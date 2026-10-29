@@ -32,7 +32,8 @@ end;
 
 - Register it like any other controller: `AEngine.AddController(TMySSEController)`.
 - `TSSEConnection`: `Send(TSSEMessage)`, `SendComment(text)`, `ClientId`, `LastEventId`,
-  `CustomData: TObject` for per-connection state. (`ChannelName` is a method of `TMVCSSEController`,
+  `CustomData: TObject` for per-connection state — not freed unless you also set
+  `OwnsCustomData := True` (default `False`). (`ChannelName` is a method of `TMVCSSEController`,
   not of the connection.)
 - **Push from outside the controller** (e.g. from a POST action) via the global broker:
   `SSEBroker.Broadcast('/chat', TSSEMessage.Create(...))`, or `SSEBroker.SendTo(channel, clientId, msg)`.

@@ -78,23 +78,25 @@ type
 
 // --- Filter builders ------------------------------------------------------
 
-// LoggingFilter: wraps the next call so that REQ/RES/ERR/TIME/DONE all end
+// LoggingEndpointFilter: wraps the next call so that REQ/RES/ERR/TIME/DONE all end
 // up in the audit log. Replaces the entire 4-hook stack of the previous
 // version with a single cohesive function.
-function LoggingFilter: TMVCEndpointFilter;
+function LoggingEndpointFilter: TMVCEndpointFilter;
 
-// BearerAuthFilter: requires Authorization: Bearer <token> on incoming
+// BearerAuthEndpointFilter: requires Authorization: Bearer <token> on incoming
 // requests; short-circuits 401 if missing or invalid; otherwise stashes
 // the resolved TPrincipal on the context and forwards to the next filter.
-function BearerAuthFilter: TMVCEndpointFilter;
+function BearerAuthEndpointFilter: TMVCEndpointFilter;
 
-// RequireRoleFilter: assumes BearerAuthFilter ran first. Short-circuits
-// 403 if the principal's role does not match. Forwards otherwise.
-function RequireRoleFilter(const ARequired: string): TMVCEndpointFilter;
+// RequirePrincipalRoleEndpointFilter: assumes BearerAuthEndpointFilter ran first.
+// Short-circuits 403 if the principal's role does not match. Forwards otherwise.
+// Not the framework's RequireRoleEndpointFilter: this one reads the TPrincipal
+// of BearerAuthEndpointFilter (not Context.LoggedUser) and writes the audit log.
+function RequirePrincipalRoleEndpointFilter(const ARequired: string): TMVCEndpointFilter;
 
-// BusinessErrorsFilter: catches ETokenError raised by inner code and
+// BusinessErrorsEndpointFilter: catches ETokenError raised by inner code and
 // replaces it with a 401 response. Other exceptions propagate.
-function BusinessErrorsFilter: TMVCEndpointFilter;
+function BusinessErrorsEndpointFilter: TMVCEndpointFilter;
 
 // Standalone helper: the principal stashed by BearerAuth on the context.
 function CurrentPrincipal(const ACtx: TWebContext): TPrincipal;
@@ -228,7 +230,7 @@ end;
 
 // --- Filter builders ------------------------------------------------------
 
-function LoggingFilter: TMVCEndpointFilter;
+function LoggingEndpointFilter: TMVCEndpointFilter;
 begin
   Result := function (const Ctx: TWebContext;
                        const Next: TMVCEndpointFilterNext): IMVCResponse
@@ -260,7 +262,7 @@ begin
     end;
 end;
 
-function BearerAuthFilter: TMVCEndpointFilter;
+function BearerAuthEndpointFilter: TMVCEndpointFilter;
 begin
   Result := function (const Ctx: TWebContext;
                        const Next: TMVCEndpointFilterNext): IMVCResponse
@@ -287,7 +289,7 @@ begin
     end;
 end;
 
-function RequireRoleFilter(const ARequired: string): TMVCEndpointFilter;
+function RequirePrincipalRoleEndpointFilter(const ARequired: string): TMVCEndpointFilter;
 begin
   Result := function (const Ctx: TWebContext;
                        const Next: TMVCEndpointFilterNext): IMVCResponse
@@ -307,7 +309,7 @@ begin
     end;
 end;
 
-function BusinessErrorsFilter: TMVCEndpointFilter;
+function BusinessErrorsEndpointFilter: TMVCEndpointFilter;
 begin
   Result := function (const Ctx: TWebContext;
                        const Next: TMVCEndpointFilterNext): IMVCResponse

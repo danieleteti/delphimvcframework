@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Several defaults have been flipped. The first two affect the JSON
 output of `OKResponse(TObject)` and are one-line overrides to restore
-the pre-3.5 behaviour if needed; the last three are security defaults.
+the pre-3.5 behaviour if needed; 4 to 7 are security defaults.
 
 **1. TGUID default format: braces + dashes → dashes only (RFC 4122)**
 
@@ -125,6 +125,19 @@ argument to `False`, for the same reason. There is no process-wide switch for th
 SSE client: pass `True` at the call site for a host you control and whose
 certificate you cannot fix.
 
+**7. The system controllers are off by default**
+
+`TMVCConfigKey.LoadSystemControllers` now defaults to `'false'` (it was `'true'`), and the
+wizard writes `dmvc.load_system_controllers=false` in `.env` and reads it with `'false'` as the
+default. `TMVCSystemController` answers `/system/describeserver.info` (every controller and
+action), `/system/describeplatform.info` and `/system/serverconfig.info` (the whole
+`TMVCConfig`): localhost only, but the map and the configuration of the application, so they
+are opt-in. To get them back:
+
+```pascal
+Config[TMVCConfigKey.LoadSystemControllers] := 'true';
+```
+
 ### Added
 
 - **`TMVCCSRFMiddleware`: CSRF protection for cookie-authenticated web apps.**
@@ -171,16 +184,16 @@ certificate you cannot fix.
   engine-wide filters that decide who may talk to a path and from where, each
   with an optional `APathPrefix` (the full routed path they guard, `''` for
   every request):
-  - `BearerAuthFilter(validator, prefix)`: `Authorization: Bearer <token>` is
+  - `BearerAuthHTTPFilter(validator, prefix)`: `Authorization: Bearer <token>` is
     checked by the validator (`function(const AToken: string; out AUserName:
     string; var ARoles: TArray<string>): Boolean`); on success it fills
     `Context.LoggedUser`, otherwise 401 with `WWW-Authenticate: Bearer`.
     `StaticBearerTokens` is the validator for a fixed set of tokens (constant-
     time comparison; an empty or space-padded token is refused at startup).
-  - `AllowedOriginFilter(origins, prefix)`: 403 when a request carries an
-    `Origin` that is not in the list. `CORSFilter` only decides what the browser
+  - `AllowedOriginHTTPFilter(origins, prefix)`: 403 when a request carries an
+    `Origin` that is not in the list. `CORSHTTPFilter` only decides what the browser
     may read, this one stops the request on the server.
-  - `AllowedHostFilter(hosts, prefix)`: 403 when the `Host` header (port
+  - `AllowedHostHTTPFilter(hosts, prefix)`: 403 when the `Host` header (port
     ignored) is not `localhost`, `127.0.0.1`, `[::1]` or a declared host: DNS
     rebinding on a service that listens on loopback.
 
@@ -189,6 +202,401 @@ certificate you cannot fix.
   a guard; `MVCNormalizePath` and `MVCRequestTargetsPath` are public for custom
   guards. The `MCPGuard` filter of mcp-server-delphi is gone: the wizard's MCP
   projects use these filters plus `MCPEndpoint` (unit `MVCFramework.MCP.Endpoint`).
+
+- **Sessions, ActiveRecord and the rate limit with options as HTTP filters.**
+  `MVCFramework.Filters` gets the engine-wide counterparts of three classic
+  middleware, so a controller-based application can use them (the endpoint
+  filters `MemorySessionEndpointFilter`, `FileSessionEndpointFilter`, `DatabaseSessionEndpointFilter` and `ActiveRecordEndpointFilter`
+  attach to Minimal API route groups only):
+  - `MemorySessionHTTPFilter(timeout, flags)`,
+    `FileSessionHTTPFilter(timeout, folder, flags)` and
+    `DatabaseSessionHTTPFilter(timeout, flags)` put the session factory on every
+    request; `DatabaseSessionHTTPFilter` needs `ActiveRecordHTTPFilter` registered before
+    it. `flags` is a set, `TMVCSessionCookieFlags` (`[scfHttpOnly]` by default),
+    so the call site says what it turns on:
+    `FileSessionHTTPFilter(10, 'sessions', [scfHttpOnly, scfSecure])`. For a Secure
+    setting read at run time, `SessionCookieFlags(dotEnv.Env('SESSION_COOKIE_SECURE', True))`
+    builds the set. The endpoint filters `MemorySessionEndpointFilter`, `FileSessionEndpointFilter` and
+    `DatabaseSessionEndpointFilter` take the same `flags`, and `RedirectHTTPFilter` takes a
+    `TMVCRedirectKind` (`rdkTemporary`, the default, or `rdkPermanent`) instead
+    of a Boolean: `RedirectHTTPFilter(['/old'], '/new', rdkPermanent)`.
+  - `ActiveRecordHTTPFilter(connectionDefName, connectionDefFileName)` (and an
+    overload with additional connections) acquires the connection(s) before the
+    request is dispatched and releases them in a `finally`: the connection goes
+    back to the pool when the action raises too. It does not wrap the classic
+    middleware, and the additional connections work for every filter instance
+    (the middleware set them up for the first instance of the process only).
+  - `RateLimitHTTPFilter(TMVCRateLimitOptions)`: the same options and the same answer as
+    `TMVCRateLimitMiddleware` (key by IP, user, API key or custom, excluded path
+    prefixes, `X-RateLimit-*` header prefix, a callback when a request is
+    refused; 429 + `Retry-After` + JSON body). `RateLimitHTTPFilter(max, window)` is
+    unchanged.
+
+- **`MVCFramework.Filters` depends on the core only; the optional filters moved to
+  companion units.** A consumer of `MVCFramework.Filters` no longer pulls in
+  FireDAC, `TMVCActiveRecord`, SwagDoc or the OpenAPI emitter, the same way
+  `MVCFramework.Filters.Redis` keeps the Redis client out. Add the unit of the
+  filter you use:
+
+  | Unit | Filters |
+  |------|---------|
+  | `MVCFramework.Filters.ActiveRecord` | `ActiveRecordEndpointFilter`, `ActiveRecordHTTPFilter`, `DatabaseSessionEndpointFilter`, `DatabaseSessionHTTPFilter` |
+  | `MVCFramework.Filters.Swagger` | `SwaggerHTTPFilter` |
+  | `MVCFramework.Filters.OpenAPI` | `OpenAPIHTTPFilter` |
+  | `MVCFramework.Filters.Redis` | `RateLimitRedisHTTPFilter` |
+
+  The signatures do not change. `MVCFramework.Filters` gets `SessionEndpointFilter(factory)`
+  and `SessionHTTPFilter(factory)`, the endpoint and the engine-wide filter for any
+  `TMVCWebSessionFactory` (the filter owns it); the memory, file and database
+  session filters are built on them. The generated projects add the units they
+  need.
+
+- **`StaticFilesHTTPFilter`: one implementation, and single-page applications in the simple
+  form.** `StaticFilesHTTPFilter(prefix, folder)` used to be a second, smaller
+  implementation next to `StaticFilesHTTPFilter(TMVCStaticFilesOptions)`, with its own MIME
+  table. It now builds the options and calls the full filter, so the two forms
+  behave the same way: `Last-Modified` and `304` on `If-Modified-Since`, `index.html`
+  in sub folders, a folder requested without the trailing `/` answers `301`, the
+  prefix is case-insensitive and accepts a trailing `/` (`'/static/'`), a path out
+  of the root answers `404` (the simple form answered `403`), and a missing root
+  folder raises on the first request under the prefix instead of falling through
+  to routing. The third parameter is now a mode, not the default document:
+  `StaticFilesHTTPFilter('/app', 'www/app', sfmSPA)` serves the nearest `index.html` for
+  every URL that is not a file, so the client-side router takes over;
+  `sfmFiles` (the default) lets the request go on to routing. The default
+  document moved to the fourth parameter. `TMVCStaticFilesOptions.Default`
+  now has `SPAWebAppSupport = False`, as the simple form (it was `True`). With
+  `sfmSPA` the router goes first: only a GET/HEAD for which the application has
+  no route, and which would be a `404`, is answered with `index.html`. The routes
+  of the application are never hidden by it, so the SPA can sit at `/` next to
+  an API. It needs `AllowUnhandledAction = false` (the default), and the router
+  still logs `ROUTE NOT FOUND` for each client-side route.
+
+- **Engine-wide endpoint filters: post-routing filters for controllers.** An
+  endpoint filter registered with `AEngine.Use(...)` runs for every
+  route the router finds, controller actions and Minimal API routes. The endpoint
+  filters that existed for Minimal API route groups only (`BasicAuthEndpointFilter`,
+  `AuthorizeEndpointFilter`, `RequireRoleEndpointFilter`, `MemorySessionEndpointFilter`, `FileSessionEndpointFilter`,
+  `DatabaseSessionEndpointFilter`, `ActiveRecordEndpointFilter`, `CORSEndpointFilter`, and the JWT check, now
+  part of `JWTAuthenticationBundle`) work for controllers this way. `TWebContext` gets
+  `ControllerQualifiedClassName` and `ActionName` (for a route: an empty class name
+  and the verb + pattern). The first registered is the outermost; `ANext()` runs the
+  action and returns `nil` for a controller (its answer is already written), and a
+  filter that does not call it answers the request. `TMVCEndpointFilter` and
+  `TMVCEndpointFilterNext` are declared in `MVCFramework`; the names stay valid from
+  `MVCFramework.MinimalAPI`. Without endpoint filters nothing changes on the path
+  of a request.
+
+- **Filter bundles and a single `Use`.** `IMVCFilterBundle` (`MVCFramework`) is a
+  set of filters that go together: `HTTPFilters` and `EndpointFilters`, each list in
+  the order the bundle runs it. `TMVCFilterBundle.Create(AHTTPFilters, AEndpointFilters)`
+  builds one without implementing the interface. One method registers every kind:
+  - `TMVCEngine.Use` takes a `TMVCHTTPFilter`, a `TMVCEndpointFilter` or an
+    `IMVCFilterBundle`, where the call is, and returns the engine;
+  - `TMVCRouteGroup<T>.Use` takes an endpoint filter or a bundle: the endpoint part
+    goes on the group, the HTTP part on the engine of the group, because it runs
+    before routing. An HTTP filter on a group does not compile.
+
+  The HTTP part of a bundle is registered once, however many groups use the bundle.
+  The same bundle on the engine and on a group (in either order), twice on the
+  engine, or on a group and on a group nested in it, raises `EMVCConfigException` at
+  the second `Use`: its check would run twice on the same routes. On two groups side
+  by side it is allowed. A bundle with an HTTP part only (`FileServerBundle`) on a
+  group raises too: its filters run before routing for every request, the group
+  would protect nothing of it. An empty bundle registers nothing; a nil one raises.
+  The HTTP part is on the engine as soon as the group's `Use` returns: discarding the
+  result (`AGroup.Use(B);`) keeps the login of `B` and loses its check. The name of
+  the argument says its kind: it ends in `HTTPFilter`, `EndpointFilter` or `Bundle`.
+
+  ```pascal
+  AEngine.Use(CompressionHTTPFilter(1024));
+  AEngine.Use(JWTAuthenticationBundle(TAuthentication.Create, lClaimsSetup, dotEnv.Env('JWT_SECRET')));
+  AEngine.Use(TMVCFilterBundle.Create([RequestLogHTTPFilter()], [AuthorizeEndpointFilter()]));
+  lAdmin := AGroup.Use(RequireRoleEndpointFilter('admin'));
+  ```
+
+- **Authentication bundles** (`MVCFramework.Filters.Authentication`, new unit). Each
+  mechanism is one function that builds all its parts with the same handler, secret
+  and URLs, registered with one `Use` on the engine or on a route group:
+
+  | Function | HTTP part (on the engine, in order) | Endpoint part |
+  |---|---|---|
+  | `JWTAuthenticationBundle` | [blacklist] → login → [refresh token] | the JWT check (`Authorization: Bearer`) |
+  | `JWTCookieAuthenticationBundle` | [allowed origins of the login] → login + logout | the JWT check (cookie) |
+  | `BasicAuthenticationBundle(handler, realm)` | | `BasicAuthEndpointFilter(handler, realm)` |
+  | `CustomAuthenticationBundle(handler, loginURL)` | login + logout | the check of the session |
+  | `OIDCAuthenticationBundle(TMVCOIDCOptions)` (`MVCFramework.Filters.OIDC`) | login + callback + logout | the check |
+
+  - The JWT bundles have a short form, `JWTAuthenticationBundle(handler, claimsSetup,
+    secret, loginURL = '/login')` and `JWTCookieAuthenticationBundle(handler,
+    claimsSetup, secret, cookie, loginURL, logoutURL)`, and a form with an options
+    record, `TMVCJWTAuthenticationOptions` / `TMVCJWTCookieAuthenticationOptions`
+    (start from `.Default`): `Secret` (with `HMACAlgorithm`, HS512) or `Signer`
+    (RS256 & co.), `LoginURL`, `ClaimsToCheck` (`[ExpirationTime]`) and
+    `LeewaySeconds` (300). The bearer bundle adds `AccessTokenParamName` (`''`: the
+    header only), the blacklist (`OnAcceptToken` + `OnNewJWTToBlackList` at
+    `BlackListURL`, `/logout`) and the refresh token; the cookie bundle adds
+    `Cookie: TMVCAuthCookieOptions`, `LogoutURL` and `LoginAllowedOrigins` (empty: the
+    `Origin` of the login is not checked, otherwise `AllowedOriginHTTPFilter` on the
+    login). An optional part is on when what it needs is assigned (both blacklist
+    callbacks, the refresh store, a non-empty list of origins): there is no Boolean
+    switch.
+  - **Refresh token.** With `RefreshTokenStore` assigned, the login of
+    `JWTAuthenticationBundle` answers `{"access_token": ..., "refresh_token": ...,
+    "token_type": "bearer", "expires_in": ...}`, the body of the refresh URL, and the
+    bundle adds `RefreshTokenHTTPFilter` at `RefreshToken.RefreshURLSegment`
+    (`/auth/refresh`); the tokens are signed with the secret or the signer of the bundle. Both access
+    tokens carry `username`, `roles`, the issuer and the lifetime of `RefreshToken`:
+    `ClaimsSetup` must be nil (the bundle raises otherwise), and the session data of
+    the handler is not in the tokens. `TMVCRefreshTokenConfig` gets `Signer` (nil:
+    `Secret` + `HMACAlgorithm`, as before). `RefreshTokenHTTPFilter` stays public for
+    a login written in a controller.
+  - **Logout with the refresh token.** With the blacklist and `RefreshTokenStore`, a
+    request to `BlackListURL` whose JSON body is `{"refresh_token": ...}` also revokes
+    that refresh token and its family; without that body only the access token is
+    logged out. The blacklist reads the token as the check does, from the
+    `AccessTokenParamName` parameter too when the header is missing
+    (`TMVCJWTBlackListMiddleware.Create` has an optional `AccessTokenParamName`,
+    `''` by default: the header only, as before). The store must be one for the whole
+    process: under WebBroker, ISAPI and Apache every web module has its own engine.
+  - **No login part.** `LoginURL = ''` leaves the login out of `JWTAuthenticationBundle`
+    (as `AccessTokenParamName = ''` leaves the parameter out): the bundle has the check, plus
+    the blacklist and the refresh URL when they are set, for the tokens of a login of your
+    own signed with the same secret or signer, and `ClaimsSetup` must be nil. That login
+    must be outside the check: with the bundle on the engine a Minimal API route is
+    always checked, so it is a controller action the handler's `OnRequest` makes
+    public, or the bundle goes on the route group it protects. The cookie bundle needs
+    its login: an empty `LoginURL` raises.
+  - The cookie bundle has no blacklist: `TMVCJWTBlackListMiddleware` reads the
+    `Authorization` header, or the `AccessTokenParamName` parameter, never the cookie.
+  - A bundle raises when it is built with a nil handler, a nil claims setup (with its
+    login, without the refresh token), an empty
+    secret, the secret shipped with the framework, `Secret` and `Signer` together, or
+    one blacklist callback without the other.
+  - `BasicAuthEndpointFilter`, `AuthorizeEndpointFilter`, `RequireRoleEndpointFilter`,
+    `CSRFHTTPFilter` / `CSRFEndpointFilter` and `RefreshTokenHTTPFilter` stay public:
+    each one is complete on its own.
+
+  ```pascal
+  uses MVCFramework.Filters.Authentication;
+
+  AEngine.Use(JWTAuthenticationBundle(TAuthentication.Create, lClaimsSetup, dotEnv.Env('JWT_SECRET')));
+
+  // login + refresh token
+  lOptions := TMVCJWTAuthenticationOptions.Default;
+  lOptions.Handler := TAuthentication.Create;
+  lOptions.Secret := dotEnv.Env('JWT_SECRET');
+  lOptions.RefreshTokenStore := gRefreshStore; // one for the process, created in initialization
+  AEngine.Use(JWTAuthenticationBundle(lOptions));
+  ```
+
+- **`FileServerBundle`: a folder served with one `Use`** (`MVCFramework.Filters`).
+  `FileServerBundle(prefix, folder, mode)` serves the files as `StaticFilesHTTPFilter`
+  does (MIME type, `Last-Modified` and 304, default document, the 301 of a folder,
+  path traversal refused) and answers a request with a `Range` header with
+  `206 Partial Content`, as `RangeMediaHTTPFilter` does (416 past the end of the
+  file). The mode is a `TMVCFileServerMode`: `fsmFiles` (the default) lets a request
+  that is not a file go on to routing; with `fsmSPA` a GET/HEAD the router has no
+  route for gets the nearest `index.html`, as `StaticFilesHTTPFilter(..., sfmSPA)`,
+  so an API keeps its routes on the same prefix. `FileServerBundle(TMVCFileServerOptions)`
+  takes the rest: `DefaultDocument`, `Charset`, `MediaTypesCustomizer`, `Rules` and
+  `Flags`, a set of `TMVCFileServerFlag` (`[fsfRanges]` by default;
+  `fsfCaseSensitivePrefix`). The Range answer is part of the file server: root,
+  prefix, `Rules`, traversal checks and MIME table (the static files' types plus
+  the audio/video types of `RangeMediaHTTPFilter`) are the same with and without
+  `Range`. The bundle has an HTTP part only. `StaticFilesHTTPFilter` and
+  `RangeMediaHTTPFilter` stay.
+
+  ```pascal
+  AEngine.Use(FileServerBundle('/', TPath.Combine(AppPath, 'www')));          // files + Range
+  AEngine.Use(FileServerBundle('/', TPath.Combine(AppPath, 'www'), fsmSPA));  // + the SPA fallback
+  ```
+
+- **Breaking (rc8 → rc9): `Use` replaces `UseHTTPFilter` and `UseEndpointFilter`.**
+  `AEngine.UseHTTPFilter(f)` and `AEngine.UseEndpointFilter(f)` are `AEngine.Use(f)`;
+  the overload follows the type of the argument. There are no aliases: the methods
+  were born in the 3.5 RC cycle. A filter function without arguments needs its
+  brackets inside `Use`, or the compiler cannot choose the overload (E2250):
+  `AEngine.Use(ETagHTTPFilter())`, `lGroup.Use(AuthorizeEndpointFilter())`.
+
+- **Breaking (rc8 → rc9): the authentication filters are inside their bundles.** The
+  login and check filters of each mechanism are no longer public: one half alone, or
+  the two halves with different parameters, was a misconfiguration the compiler
+  could not see. Each pair is one `Use`:
+
+  | Before | Now |
+  |---|---|
+  | `JWT(handler, claimsSetup, secret, loginURL, ...)` (rc8), `JWTLoginHTTPFilter` + `JWTEndpointFilter` | `JWTAuthenticationBundle(handler, claimsSetup, secret, loginURL)`, or `JWTAuthenticationBundle(TMVCJWTAuthenticationOptions)` |
+  | `JWTCookieLoginHTTPFilter` + `JWTCookieEndpointFilter` | `JWTCookieAuthenticationBundle(...)`; the origin check of the login is `LoginAllowedOrigins` |
+  | `JWTBlackListHTTPFilter` | `OnAcceptToken` + `OnNewJWTToBlackList` (+ `BlackListURL`) of `TMVCJWTAuthenticationOptions` |
+  | `CustomAuthLoginHTTPFilter` + `CustomAuthEndpointFilter` | `CustomAuthenticationBundle(handler, loginURL)` |
+  | `OIDCLoginHTTPFilter` + `OIDCEndpointFilter` | `OIDCAuthenticationBundle(TMVCOIDCOptions)` |
+
+  On a Minimal API group, `AGroup.Use(JWTAuthenticationBundle(...))` puts the check
+  on the group and the login on the engine. rc8's `JWT(...)` answered the login only
+  when a route matched and returned the token in the `Authorization` response header;
+  the login of the bundle is an HTTP filter and answers `{"token": ...}`.
+
+- **The wizard generates filters.** A new controller or web project registers
+  `RedirectHTTPFilter`, `FileServerBundle`, `AnalyticsHTTPFilter`, `TraceHTTPFilter`, `CORSHTTPFilter`,
+  `ETagHTTPFilter`, `CompressionHTTPFilter`, `RateLimitHTTPFilter`, `SwaggerHTTPFilter`, `ActiveRecordHTTPFilter` and the session
+  filters with `AEngine.Use`, in one chain. JWT is generated as a bundle:
+  `JWTAuthenticationBundle` (bearer) or `JWTCookieAuthenticationBundle`
+  (server-side views), with the secret or the RS256 signer; the Minimal API
+  project gets its login at `/api/v1/admin/login` from the bundle on the admin
+  group in `Routes.RootU` (`lAdmin := AGroup.Use(JWTAuthenticationBundle(...,
+  '/api/v1/admin/login'))`, the login goes on the engine; rc8 had an endpoint filter
+  that answered only if a route matched), and the token comes back as `{"token": ...}` (rc8 put it in the
+  `Authorization` response header). The generated check no longer accepts
+  `?access_token=`. The cookie flavour refuses a `POST /login` from an origin
+  that is not in `LOGIN_ALLOWED_ORIGINS` (`.env`, the localhost origins of the
+  project by default), so a page of another site cannot log the browser in to
+  its own account (`LoginAllowedOrigins` of the bundle options); the server does
+  not start when the key is empty, because the bundle checks no origin with an
+  empty list. Static files and server-side views get `FileServerBundle('/static', ...)`,
+  which also answers `Range` requests; the Swagger UI stays on `StaticFilesHTTPFilter`.
+  The Minimal API WebApp helpers are `RequireLoginEndpointFilter` and
+  `PageDefaultsEndpointFilter`. RS256 is ignored for Minimal API projects (their templates
+  sign with `JWT_SECRET`). With JWT (bearer) and Swagger the document gets the
+  bearer scheme; the `/login` operation is documented only by the classic JWT
+  middleware. Minimal API projects already used filters. The project menu
+  detects an OpenAPI project from `MVCFramework.Swagger.Commons` instead of
+  `MVCFramework.Middleware.Swagger`.
+
+- **Filters for every classic authentication middleware.** Each one runs the
+  code of its middleware, so it checks and answers the same way. The parts that
+  need no route (login, logout, the OIDC callback) are HTTP filters; the check
+  of the request is an endpoint filter, engine-wide (`AEngine.Use`, for
+  controllers and Minimal API routes) or on a route group (`AGroup.Use`). An
+  authentication mechanism is a bundle (see "Authentication bundles"), so one
+  `Use` puts both parts in place:
+
+  | Middleware | Use |
+  |------------|-----|
+  | `TMVCJWTAuthenticationMiddleware` | `JWTAuthenticationBundle` |
+  | `TMVCJWTCookieAuthenticationMiddleware` | `JWTCookieAuthenticationBundle` |
+  | `TMVCJWTBlackListMiddleware` | `OnAcceptToken` + `OnNewJWTToBlackList` of `TMVCJWTAuthenticationOptions` |
+  | `TMVCJWTRefreshTokenMiddleware` | `RefreshTokenStore` of `TMVCJWTAuthenticationOptions` (with a login of your own, `LoginURL := ''` and the login outside the check) |
+  | `TMVCBasicAuthenticationMiddleware` | `BasicAuthenticationBundle(handler)` or `BasicAuthEndpointFilter(handler)` |
+  | `TMVCCustomAuthenticationMiddleware`, `TMVCRoleBasedAuthMiddleware` | `CustomAuthenticationBundle` |
+  | `TMVCOIDCAuthenticationMiddleware` | `OIDCAuthenticationBundle` (`MVCFramework.Filters.OIDC`, options in `TMVCOIDCOptions`) |
+  | `TMVCCSRFMiddleware` | `CSRFHTTPFilter` or `CSRFEndpointFilter` |
+
+  - For a controller action the handler's `OnRequest` and `OnAuthorization`
+    get the controller and the action, as with the middleware. A Minimal API
+    route has no controller: the bundle on its group is what asks for
+    authentication, so `OnRequest` is not asked (authentication is always
+    required) and `OnAuthorization` gets `''` and `'VERB pattern'`.
+  - The JWT bundles take a secret (with the HMAC algorithm, which is honoured)
+    or an `IJWTSigner` (RS256 & co.) and check the expiration by default;
+    `JWTAuthenticationBundle` reads the token from the header only (`AccessTokenParamName` adds a
+    request parameter), `JWTCookieAuthenticationBundle` from the cookie only. `TMVCAuthCookieOptions` is the cookie (HttpOnly, Secure and
+    SameSite=Strict by default).
+  - The check of a bundle runs after `OnBeforeControllerAction` of every classic
+    middleware, whatever the order of registration: a classic hook that reads
+    `Context.LoggedUser` there sees no user yet (it was after the middleware
+    in the chain). Make it an endpoint filter registered after the bundle.
+  - The HTTP part of a bundle (login, logout) runs before every classic middleware: a rate limit, an IP
+    block, CORS or a CSRF check that must cover the login is an HTTP filter
+    registered before the bundle (a classic CORS middleware does not answer the
+    preflight of a cross-origin login any more). The blacklist of `JWTAuthenticationBundle`, as the
+    check, reads the token of the `Authorization` header, or of the `AccessTokenParamName` parameter
+    when the header is missing; never the cookie. `CSRFHTTPFilter` checks before routing (it covers the
+    requests answered by later HTTP filters), `CSRFEndpointFilter` after routing;
+    `CSRFToken` computes the token. `CustomAuthenticationBundle` needs a session HTTP filter registered before it.
+  - **Breaking (rc8 → rc9):** `BasicAuthEndpointFilter(handler)` no longer asks `OnRequest` on a
+    Minimal API route.
+
+- **Breaking (rc8 → rc9): enums instead of Boolean switches.** A `True`/`False` in the
+  middle of a call says nothing; the filters and the Minimal API born in the RC cycle take an
+  enum or a set instead. No aliases (3.4.3 has none of them); the compiler finds every call.
+  - `TraceHTTPFilter(AMaxBodySize, ALogTag, AFlags: TMVCTraceFlags = [], ACorrelationHeaderName)`:
+    `tfLogAuthorization` (was `ALogAuthorization = True`), `tfLogNonTextBody` (was
+    `AHideNonTextBody = False`). `[]` keeps the defaults.
+  - `RedirectHTTPFilter(..., AKind, AQuery: TMVCRedirectQuery = rdqPreserve)`: `rdqDrop` was
+    `APreserveQuery = False`.
+  - `SwaggerHTTPFilter`: `AAuthentications: TMVCSwaggerAuthentications = []` (`sauBasic`,
+    `sauBearer`) in fifth position replaces `AEnableBasicAuthentication` (fifth) and
+    `AEnableBearerAuthentication` (tenth): one parameter less. `TMVCSwaggerMiddleware` keeps its
+    3.4 Booleans.
+  - `TMVCStaticFilesOptions`: `Mode: TMVCStaticFilesMode` (`sfmFiles`, `sfmSPA`) replaces
+    `SPAWebAppSupport`, `Flags: TMVCStaticFilesFlags` (`sffCaseSensitivePrefix`) replaces
+    `CaseSensitivePrefix`.
+  - `TMVCOIDCOptions`: `Flags: TMVCOIDCFlags`, by default `[ofFetchUserInfo, ofPKCE]`, replaces
+    `FetchUserInfo` and `UsePKCE` (to turn PKCE off: `lOptions.Flags := lOptions.Flags - [ofPKCE]`).
+  - Minimal API: `WithDeprecated` has no parameter; `WithOpenAPI(const AVisibility:
+    TMVCOpenAPIVisibility = oavVisible)`, `WithOpenAPI(oavHidden)` was `WithOpenAPI(False)`;
+    `Prefix<T>(APath, AData, AOwnership: TMVCGroupDataOwnership = gdoEngine)`, `gdoCaller` was
+    `AOwns = False`.
+  - They stay Boolean: `AUseCommonHeadersAndFooters` and `AAllowsCredentials` (the same
+    parameters of the 3.4 controllers and CORS middleware), `SessionCookieFlags(ASecure)` (a
+    value read from `.env`), the named field `TMVCAuthCookieOptions.Secure`.
+
+- **`OpenAPIHTTPFilter(AEngine, AInfo, ASources, AURL)`** (`MVCFramework.Filters.OpenAPI`): the
+  filter with document sources of your own (`IMVCOpenAPISource`) after the built-in ones, what
+  `TMVCOpenAPI3Middleware.AddSource` gave the middleware. `OpenAPIDocumentJSON(AEngine, AInfo,
+  ASources)` returns the document as a string.
+
+- **Breaking (rc8 → rc9): a filter's name ends in `HTTPFilter` or `EndpointFilter`.** The
+  name says the kind, like the types `TMVCHTTPFilter` / `TMVCEndpointFilter`; the function that
+  builds a bundle ends in `Bundle`, and `Use` registers all three. There are no aliases: the names were born in the
+  3.5 RC cycle (3.4.3 has none of them), so a project written on an rc renames its calls; the
+  compiler finds each one. In rc8 `CORSFilter` was the HTTP filter and `CORS` the endpoint one.
+  `RefreshTokenHTTPFilter`, `SessionCookieFlags`, `CSRFToken`, `StaticBearerTokens`, the
+  `TMVC*Options` records and the Minimal API `Redirect(...)` response keep their names.
+
+  | HTTP filter | Now |
+  |---|---|
+  | `ActiveRecordFilter` | `ActiveRecordHTTPFilter` |
+  | `AllowedHostFilter` | `AllowedHostHTTPFilter` |
+  | `AllowedMethodsFilter` | `AllowedMethodsHTTPFilter` |
+  | `AllowedOriginFilter` | `AllowedOriginHTTPFilter` |
+  | `Analytics` | `AnalyticsHTTPFilter` |
+  | `BearerAuthFilter` | `BearerAuthHTTPFilter` |
+  | `CORS` | `CORSHTTPFilter` |
+  | `CORSFilter` (rc8) | `CORSHTTPFilter` |
+  | `CSRFFilter` | `CSRFHTTPFilter` |
+  | `Compression` | `CompressionHTTPFilter` |
+  | `CustomAuthLoginFilter` | `CustomAuthenticationBundle` |
+  | `DatabaseSessionFilter` | `DatabaseSessionHTTPFilter` |
+  | `ETag` | `ETagHTTPFilter` |
+  | `FileSessionFilter` | `FileSessionHTTPFilter` |
+  | `IPBlock` | `IPBlockHTTPFilter` |
+  | `JWTBlackListFilter` | `JWTAuthenticationBundle` (`OnAcceptToken` + `OnNewJWTToBlackList`) |
+  | `JWTCookieLoginFilter` | `JWTCookieAuthenticationBundle` |
+  | `JWTLoginFilter` | `JWTAuthenticationBundle` |
+  | `MemorySessionFilter` | `MemorySessionHTTPFilter` |
+  | `OIDCLoginFilter` | `OIDCAuthenticationBundle` |
+  | `OpenAPI` | `OpenAPIHTTPFilter` |
+  | `RangeMedia` | `RangeMediaHTTPFilter` |
+  | `RateLimit` | `RateLimitHTTPFilter` |
+  | `RateLimitRedis` | `RateLimitRedisHTTPFilter` |
+  | `Redirect` | `RedirectHTTPFilter` |
+  | `RequestLog` | `RequestLogHTTPFilter` |
+  | `SecurityHeaders` | `SecurityHeadersHTTPFilter` |
+  | `SessionFilter` | `SessionHTTPFilter` |
+  | `Shutdown` | `ShutdownHTTPFilter` |
+  | `StaticFiles` | `StaticFilesHTTPFilter` (or `FileServerBundle`) |
+  | `Swagger` | `SwaggerHTTPFilter` |
+  | `Trace` | `TraceHTTPFilter` |
+
+  | Endpoint filter | Now |
+  |---|---|
+  | `ActiveRecord` | `ActiveRecordEndpointFilter` |
+  | `Authorize` | `AuthorizeEndpointFilter` |
+  | `BasicAuth` | `BasicAuthEndpointFilter` |
+  | `CSRF` | `CSRFEndpointFilter` |
+  | `CustomAuth` | `CustomAuthenticationBundle` |
+  | `DatabaseSession` | `DatabaseSessionEndpointFilter` |
+  | `EndpointCORS` | `CORSEndpointFilter` |
+  | `CORS` (rc8) | `CORSEndpointFilter` |
+  | `FileSession` | `FileSessionEndpointFilter` |
+  | `JWT` | `JWTAuthenticationBundle` |
+  | `JWTCookie` | `JWTCookieAuthenticationBundle` |
+  | `MemorySession` | `MemorySessionEndpointFilter` |
+  | `OIDC` | `OIDCAuthenticationBundle` |
+  | `RequireRole` | `RequireRoleEndpointFilter` |
+  | `Session` | `SessionEndpointFilter` |
 
 - **The wizard's look.** Segoe UI, a header rule in the brand amber, a "Step n of
   m" indicator, and the project summary in its own box on the last page, where
@@ -203,7 +611,7 @@ certificate you cannot fix.
   in the framework, and the wizard warns in the Messages view when it does not
   find it or finds an older one.
   - "MCP server on /mcp": `Tools.SampleU.pas` with a sample tool, the guard
-    filters (`BearerAuthFilter`, `AllowedOriginFilter` and the library's
+    filters (`BearerAuthHTTPFilter`, `AllowedOriginHTTPFilter` and the library's
     `MCPEndpoint`), the session controller and the published endpoint in
     `EngineConfigU`. The endpoint asks for a bearer token, generated for the
     project in `.env` (`mcp.auth.token`); the HTTP server does not start when
@@ -232,10 +640,19 @@ certificate you cannot fix.
     which listens on `localhost` (`mcp.http.host` in `.env`), also when the
     project is generated as a Windows service. In the other presets the
     default stays the HTTP server.
+  - Project Manager menu (Delphi 12+): "New HTTP Filter..." and "New Endpoint
+    Filter..." add `HTTPFilters.<Name>U` with `<Name>HTTPFilter` (a
+    `TMVCHTTPFilter` that puts the request time in `Server-Timing`) or
+    `EndpointFilters.<Name>U` with `<Name>EndpointFilter` (a
+    `TMVCEndpointFilter` that logs the routed action and shows, commented out,
+    how to answer instead of it), registered with `AEngine.Use(...)` at the end
+    of `ConfigureEngine` (of `WebModuleCreate` in
+    ISAPI/Apache/WebBroker projects). The endpoint filter is offered only in
+    projects with controllers or Minimal API routes.
   - Project Manager menu (Delphi 12+): "New MCP Tool Provider..." adds
     `<Name>ToolsU.pas`, a provider that registers itself. In an "MCP Server"
-    project (no controller) the menu has only "New Service..." and "New MCP
-    Tool Provider...".
+    project (no controller) the menu has only "New Service...", "New HTTP
+    Filter..." and "New MCP Tool Provider...".
   With the options off, the generated projects are what they were.
 - **Wizard: one naming and formatting style in the generated code.** Locals
   are `lName`, parameters `AName`, fields `fName`, as in the framework
@@ -267,7 +684,7 @@ certificate you cannot fix.
   warning, and the `.bat` repeats the install and refreshes the skills later.
   Untick the option to generate a project without them.
 - **OpenAPI 3 from the Swagger middleware.** `TMVCSwaggerMiddleware` and the
-  `Swagger(...)` HTTP filter take a new optional last parameter,
+  `SwaggerHTTPFilter(...)` HTTP filter take a new optional last parameter,
   `ASpecVersion: TMVCSwaggerSpecVersion = ssvSwagger2`
   (`MVCFramework.Swagger.Commons`). With `ssvOpenAPI3` the same URL serves an
   OpenAPI 3 document (`"openapi": "3.2.1"`, built by SwagDoc) with every
@@ -283,7 +700,7 @@ certificate you cannot fix.
 - **The IDE wizard generates API documentation.** New option "API
   documentation (OpenAPI 3)", on by default for RESTful, Full-Stack, Custom
   and Minimal API RESTful projects. Controller projects register the Swagger
-  middleware with OpenAPI 3; Minimal API projects register the `OpenAPI(...)`
+  middleware with OpenAPI 3; Minimal API projects register the `OpenAPIHTTPFilter(...)`
   filter. Both publish the document at `/openapi.json` and serve Swagger UI
   at `/swagger`, both published only when `.env` sets
   `dmvc.openapi.enabled=true`. The generated `.env` sets it; without the key
@@ -377,7 +794,7 @@ certificate you cannot fix.
     if a browser on another origin must call the endpoint:
 
     ```pascal
-    CORS('*', False, '', 'Content-Type,Authorization',
+    CORSHTTPFilter('*', False, '', 'Content-Type,Authorization',
       'GET,POST,PUT,DELETE,PATCH,OPTIONS,QUERY')
     ```
   - **CSRF:** treat `QUERY` like `POST`, not like `GET`. It is safe by the
@@ -421,15 +838,15 @@ certificate you cannot fix.
   inside the server, not in the caller.
 
 - **JWT refresh token** (`MVCFramework.JWT.RefreshToken`, additive and
-  opt-in). An OAuth2-style refresh token layer on top of the existing
-  `TMVCJWTAuthenticationMiddleware`: short-lived access tokens plus a
+  opt-in). An OAuth2-style refresh token layer on top of the JWT
+  authentication: short-lived access tokens plus a
   long-lived, revocable refresh token with rotation and reuse-detection.
   The refresh token is an opaque random string (not a JWT); the store
   keeps only its SHA-256 hash. Presenting an already-rotated token
   revokes the whole family (replay defence). Ships with a pluggable
   store interface, an `TMVCActiveRecord`-backed implementation
-  (`MVCFramework.JWT.RefreshToken.ActiveRecord`), endpoint filters
-  (`MVCFramework.JWT.RefreshToken.Filters`) and a sample
+  (`MVCFramework.JWT.RefreshToken.ActiveRecord`), an HTTP filter
+  (`RefreshTokenHTTPFilter`, `MVCFramework.JWT.RefreshToken.Filters`) and a sample
   (`samples/jsonwebtoken_refreshtoken`). See `docs/jwt-refresh-token.md`.
 
 - **Streaming JSON serializer fast path** (`MVCFramework.Serializer.Streaming`)
@@ -500,7 +917,36 @@ certificate you cannot fix.
 
 ### Changed
 
-- **Native OpenAPI emitter (`OpenAPI(...)` filter, `TMVCOpenAPI3Middleware`):**
+- **The filters no longer use the deprecated middleware.** The logic of JWT, JWT cookie,
+  blacklist, custom authentication, CSRF, rate limit, OIDC, Swagger and OpenAPI lives in the
+  filter units; each middleware is a wrapper over it, with its 3.4 API and behaviour, and will go
+  away in 4.0 without the filters noticing. No filter unit turns off the deprecation warning.
+  Types moved with an alias (and constants for the enum values) left where they were:
+  `TMVCJWTCookieSameSite` to `MVCFramework.JWT`; `TMVCJWTDefaults`, `TMVCOnAcceptTokenProc`,
+  `TMVCOnNewJWTToBlackList` to `MVCFramework.Filters.Authentication`; the rate-limit types
+  (`IMVCRateLimitStorage`, `TMVCInMemoryRateLimitStorage`, `TMVCRateLimitKeyType`...) and the
+  static-files callback types to `MVCFramework.Filters`; `TMVCOIDCUserAuthenticatedProc`,
+  `TMVCOIDCAuthRequiredProc` to `MVCFramework.Filters.OIDC`. Their RTTI qualified names change
+  accordingly. What the middleware call is public in the filter units: `CSRFCheck`,
+  `MVCIsValidHost`, `MVCRateLimitExceeded`, `GetAnalyticsDefaultLogger` (`MVCFramework.Filters`),
+  `TMVCJWTAuthenticationCore` & co (`MVCFramework.Filters.Authentication`), `TMVCSwaggerDocument`
+  (`MVCFramework.Filters.Swagger`), `OpenAPIDocumentJSON`. `TMVCJWTAuthenticationMiddleware`
+  gets a read-only `LoginURLSegment`, which the Swagger document reads.
+
+- **`TraceHTTPFilter` as `TMVCTraceMiddleware`.** Every line carries a
+  correlation id (`[rid:...]`: the `X-Request-ID` or `X-Correlation-ID` of the
+  request, otherwise a generated one) that is echoed in the response header, the
+  request `Authorization` is masked with `MVCRedactSecret` (`Bearer ***`), the
+  response headers are logged through the new `MVCRedactedHeaders` (Authorization,
+  Proxy-Authorization, Cookie and Set-Cookie are masked: the filter used to log
+  them as they were), and the default body limit is `1024` as in the middleware
+  (it was `4096`). New last parameter `ACorrelationHeaderName`
+  (`'X-Request-ID'`). `MVCFramework.Commons` gets `MVCRedactedHeaders`, used by
+  both.
+- `CompressionHTTPFilter` picks the first supported encoding in the order of the
+  `Accept-Encoding` header, as `TMVCCompressionMiddleware` does (the filter
+  preferred `gzip` whenever it was listed).
+- **Native OpenAPI emitter (`OpenAPIHTTPFilter(...)` filter, `TMVCOpenAPI3Middleware`):**
   - schema property names are the JSON names the serializer writes
     (`MVCNameAs`, `MVCNameCase`, `MVCNameCaseDefault`); members marked
     `MVCDoNotSerialize` are left out;
@@ -632,14 +1078,16 @@ change a default; each one says so.
   survives the next request: use a separate stickiness cookie instead.
 - **Default changed:** the session cookie is now `HttpOnly` by default, in all
   six entry points (`UseMemorySessionMiddleware` and friends, and the
-  `MemorySession`/`FileSession`/`DatabaseSession` filters). Pass `False`
-  explicitly to restore the old behaviour.
+  `MemorySessionEndpointFilter`/`FileSessionEndpointFilter`/`DatabaseSessionEndpointFilter` filters). Pass `False`
+  explicitly (the classic helpers) or leave `scfHttpOnly` out of the flags (the
+  filters) to restore the old behaviour.
 - The session cookie now carries `SameSite=Lax` - **on Delphi 11 and later
   only**. `TCookie.SameSite` arrived in 10.4.2 but `CompilerVersion` cannot tell
   10.4.2 from 10.4, so builds on 10.2-10.4 emit no SameSite attribute at all.
-- **New:** `Secure` on the session factory, and a matching last argument on all
-  six entry points (`UseMemorySessionMiddleware` and friends, and the
-  `MemorySession`/`FileSession`/`DatabaseSession` filters). **Default `False`**,
+- **New:** `Secure` on the session factory, and a matching last argument on the
+  classic helpers (`UseMemorySessionMiddleware` and friends) and the `scfSecure`
+  flag on the `MemorySessionEndpointFilter`/`FileSessionEndpointFilter`/`DatabaseSessionEndpointFilter` filters.
+  **Default off**,
   and deliberately: a `Secure` cookie is not stored or sent at all over plain
   HTTP, so defaulting it to `True` would silently break every development setup —
   and any existing HTTP deployment — on upgrade, with no error to explain why the
@@ -759,7 +1207,7 @@ written case-insensitively. Check the rules in front of a DMVCFramework server.
   `.env` promised was ignored.
 - Minimal API + JWT produced a project that looked authenticated and was not: the
   JWT units were emitted only for the non-minimal flavor. The admin route group
-  now carries the `JWT(...)` endpoint filter, which verifies inside the route
+  now carries `JWTAuthenticationBundle(...)`, whose check verifies inside the route
   pipeline - the classic middleware verifies in `OnBeforeControllerAction`, which
   a minimal-API route never reaches.
 - The generated `.env` emits the HTTPS block based on the chosen **protocol**
@@ -803,14 +1251,14 @@ the same socket.
   `Response.ReasonString := ...`) added a header to the response: header names,
   header values and redirects were already stripped, the status line was not.
   It now is, on every host.
-- `IPBlock` compared the list against `ClientIp` only. With
+- `IPBlockHTTPFilter` compared the list against `ClientIp` only. With
   `MVCTrustProxyForwardedHeaders` on, a blocked address that reached the server
   directly sent `X-Forwarded-For` with any other address and passed. The filter
   now refuses the request when either `ClientIp` or `PeerIp` is in the list.
 - With `MVCTrustProxyForwardedHeaders` on, `ClientIp` (and the WebSocket
   `RealClientIP`) took the **first** address of `X-Forwarded-For`. A proxy
   appends to that header, so the first address is whatever the client sent: the
-  IP rate limit, `IPBlock` and the request log followed it. `ClientIp` now takes
+  IP rate limit, `IPBlockHTTPFilter` and the request log followed it. `ClientIp` now takes
   the address written by the proxy, the last one. **Behind more than one proxy**
   (a CDN in front of nginx, for example) say how many there are, or `ClientIp`
   is the address of the outer proxy:
@@ -832,6 +1280,53 @@ the same socket.
 
 ### Deprecated
 
+- **The classic authentication middleware.** `TMVCJWTAuthenticationMiddleware`,
+  `TMVCJWTCookieAuthenticationMiddleware`, `TMVCJWTBlackListMiddleware`,
+  `TMVCBasicAuthenticationMiddleware`, `TMVCCustomAuthenticationMiddleware`,
+  `TMVCRoleBasedAuthMiddleware`, `TMVCOIDCAuthenticationMiddleware`,
+  `TMVCCSRFMiddleware`, `TMVCJWTRefreshTokenMiddleware` (its warning names the
+  `RefreshTokenStore` of `JWTAuthenticationBundle`; with a login of your own,
+  `LoginURL` empty and the login outside the check) and
+  `UseJWTMiddleware`, `UseJWTCookieAuthentication`, `UseJWTBlackListMiddleware`,
+  `UseOIDCAuthentication`: each warning names what to use, the bundle of the
+  mechanism, `AEngine.Use(XxxAuthenticationBundle(...))`, or the CSRF
+  filters (see "Authentication bundles" and "Filters for every classic
+  authentication middleware"). They keep working as before.
+  `samples/jsonwebtoken_refreshtoken` and `docs/jwt-refresh-token.md` use
+  `JWTAuthenticationBundle` with the refresh token. `TRoleBasedAuthHandler` is not deprecated: it is
+  a handler, and works with `CustomAuthenticationBundle`.
+
+- **Classic middleware that have an HTTP filter.** The classes below are
+  deprecated and each warning names the filter to use (`MVCFramework.Filters`,
+  registered with `AEngine.Use(...)`). They keep working as before;
+  existing code compiles with one `W1000` per use.
+
+  | Deprecated | Use |
+  |---|---|
+  | `TMVCRedirectMiddleware` | `RedirectHTTPFilter` |
+  | `TMVCStaticFilesMiddleware` | `StaticFilesHTTPFilter` |
+  | `TMVCAnalyticsMiddleware` | `AnalyticsHTTPFilter` |
+  | `TMVCTraceMiddleware` | `TraceHTTPFilter` |
+  | `TMVCCompressionMiddleware` | `CompressionHTTPFilter` |
+  | `TMVCETagMiddleware` | `ETagHTTPFilter` |
+  | `TMVCCORSMiddleware` | `CORSHTTPFilter` |
+  | `TMVCSecurityHeadersMiddleware` | `SecurityHeadersHTTPFilter` |
+  | `TMVCShutdownMiddleware` | `ShutdownHTTPFilter` |
+  | `TMVCRangeMediaMiddleware` | `RangeMediaHTTPFilter` |
+  | `TMVCSwaggerMiddleware` | `SwaggerHTTPFilter` (`MVCFramework.Filters.Swagger`) |
+  | `TMVCOpenAPI3Middleware` | `OpenAPIHTTPFilter` (`MVCFramework.Filters.OpenAPI`) |
+  | `TMVCRateLimitMiddleware` | `RateLimitHTTPFilter` (`TMVCRateLimitOptions` for the options) |
+  | `TMVCActiveRecordMiddleware` | `ActiveRecordHTTPFilter` (`MVCFramework.Filters.ActiveRecord`) |
+  | `UseMemorySessionMiddleware` | `MemorySessionHTTPFilter` |
+  | `UseFileSessionMiddleware` | `FileSessionHTTPFilter` |
+  | `UseDatabaseSessionMiddleware` | `DatabaseSessionHTTPFilter` (`MVCFramework.Filters.ActiveRecord`) |
+
+  Defaults differ in a few places: `CORSHTTPFilter` has credentials off and the
+  headers `Content-Type,Authorization` (the classic middleware: credentials on
+  and `jwtusername`, `jwtpassword`, `authentication`, `authorization` too),
+  `ETagHTTPFilter` writes a quoted ETag, `RedirectHTTPFilter` keeps the query string, `TraceHTTPFilter`
+  redacts the `Authorization` header. Pass the parameters you rely on.
+
 - **`TMVCListener` / `TMVCListenerProperties` / `TMVCListenersContext`**
   (`MVCFramework.Server`) are deprecated and **will be removed in 4.0**.
   After the Indy Direct conversion they are a thin wrapper over the
@@ -847,6 +1342,87 @@ the same socket.
   code keeps compiling with a deprecation warning.
 
 ### Fixed
+
+- **OpenAPI 3.1 (`OpenAPIHTTPFilter`): a response that is not JSON.** A controller action
+  returning a `TStream` was documented as `application/json` with the schema of `TStream`
+  (`Size`, `Position`); `[MVCProduces]` was not read. Now a stream is
+  `{"type": "string", "format": "binary"}` under the media type of `[MVCProduces]`
+  (`application/octet-stream` without it), any other return type goes under that media type
+  (`application/json` without it), and a success `MVCSwagResponses` without a model, on an
+  action that produces a media type that is not JSON, gets the binary schema under it.
+- **OpenAPI 3.1 (`OpenAPIHTTPFilter`): `MVCSwagResponses` with `DataEnvelope` or a record.**
+  The envelope (`{"data": <model>}`, `{"data": [<model>]}`) and the record model were ignored;
+  the Swagger middleware already honoured them.
+- **The ETag middleware answered a `304` to a range with the range in its body**
+  (HTTP.sys; Indy drops the body of a `304` by itself): it empties the body with
+  `Size := 0`, which the stream of the `206` ignored. That stream now shrinks.
+- **The logout of `JWTAuthenticationBundle` with the refresh token answered 500** when
+  `refresh_token` in the body was an object or an array, after the access token was
+  already blacklisted. Only a string is a refresh token; anything else is the logout of
+  the access token alone.
+- **The access tokens of the refresh token had no `nbf` and no `jti`**
+  (`TMVCRefreshTokenCore`): a check with `NotBefore` in its claims, as the wizard
+  writes it, refused every token of the login and of the refresh; and two logins of a
+  user in the same second got the same token, so the logout of one ended the other.
+- **A `HEAD` got the body of the `GET`** after its headers, which a client on a
+  kept-alive connection reads as the start of the next response: on HTTP.sys for every
+  answer (the kernel sends the entity it is given), and on the streamed answers of every
+  host that streams (an action without `MVCHTTPMethod` accepts `HEAD`):
+  `StreamItems`/`StreamEach`/`StreamDataSet` on Indy Direct and HTTP.sys, the writers of
+  `MVCFramework.SSE.Writer` (SSE, JSON Lines, JSON array, CSV) on Indy Direct and on
+  WebBroker under the Indy bridge. They get the headers only, and a source stops at its
+  first `Connected` check (`False` once the headers are out): `StreamDataSet` pulls no
+  record, `StreamItems`/`StreamEach` stop after the first item. Indy,
+  Apache and IIS already dropped the body of the other answers to a `HEAD`;
+  `TMVCSSEController` answers `GET` only. On a `HEAD` no host sends the `Content-Length`
+  of the `GET`.
+- **Indy Direct: a compressed response leaked the stream it replaced.**
+  `CompressionHTTPFilter` (and the middleware) and `ETagHTTPFilter` (its 304 on a file or a
+  stream) swap the body of the response; on Indy Direct the old stream was not
+  freed, once per request. It is freed now, as HTTP.sys and WebBroker already
+  did.
+- **JWT and JWT cookie middleware: a handler that set `IsValid` only to accept
+  could log in anybody.** The flag passed to `OnAuthentication` was not
+  initialised, so a refused login read whatever was on the stack; it starts
+  False now (the custom and Basic logins already did).
+- **JWT middleware: a token without `iat` left `Context.LoggedUser.IsValid`
+  False** although the token was accepted (the login time read as 0001-01-01).
+  It is now the time of the request.
+- **JWT middleware: on a public action the token in `access_token` was ignored**
+  (it was looked for with a `Bearer ` prefix); it is read as on a private action.
+- **`TRoleBasedAuthHandler` on a target RTTI cannot find by name** (a Minimal API
+  route, a controller declared in an implementation section) raised an access
+  violation. A Minimal API route needs authentication and is authorized; a
+  controller it cannot read is refused (its `MVCRequiresRole` cannot be checked).
+- **`THMACJWTSigner` accepted an empty or the published demo key**: it raises,
+  as `TJWT.Create(secret)` does.
+- **`Context.LoggedUser.CustomData` assigned twice leaked the first object**
+  (two JWT filters on one request).
+- **An HTTP filter that raised before `ANext()`** (a refused login) skipped
+  `OnAfterRouting` of the classic middleware and the release of the session.
+
+- **HTTP filters and controllers.** The code of an HTTP filter after `ANext()` ran
+  before the action of a controller (the chain was run by the Minimal API
+  middleware, inside `OnBeforeRouting`), so a filter that works on the answer
+  (`ETagHTTPFilter`, `CompressionHTTPFilter`, `AnalyticsHTTPFilter`, `TraceHTTPFilter`, the session and ActiveRecord
+  filters) saw an empty response and released its resources too early. The
+  engine now runs the HTTP filters around the whole request: classic middleware
+  hooks, routing, the action and the end of the request. `Use` is a
+  method of `TMVCEngine`, so a project that does not use the Minimal API does
+  not need `MVCFramework.MinimalAPI` in its `uses`; the filters wrap the classic
+  middleware whatever the order of registration. `TMVCHTTPFilter` and
+  `TMVCHTTPFilterNext` are declared in `MVCFramework`; the names stay valid from
+  `MVCFramework.MinimalAPI`.
+- **`BasicAuthEndpointFilter`** passes the controller and the action of the
+  context to the handler (`OnRequest`, `OnAuthorization`); it used to pass empty
+  strings.
+- **`RangeMediaHTTPFilter` with a folder written with `/`.** The filter did not
+  normalize the folder (`TMVCRangeMediaMiddleware` does): `RangeMediaHTTPFilter('/media',
+  'www/media')` on Windows left the root with mixed separators, the check that the
+  file stays inside the root failed for every file and the folder answered `404`.
+- `ActiveRecordHTTPFilter` with additional connections: the middleware it replaces
+  worked out the number of additional connections inside the one-time load of the
+  connection definitions, so only the first instance of the process added them.
 
 - **Request body: an integer out of the range of its target is a 400, on every integer type.** The range check
   covered only `jdtLong`/`jdtULong`; a number the parser classifies as `jdtInt` went straight in, so `70000`
@@ -872,14 +1448,14 @@ the same socket.
 - **Swagger 2.0: a body parameter carried `type`/`items` next to `schema`** (`MVCSwagParam(plBody, ..., ptArray)`
   and every ActiveRecord controller body), which `openapi-spec-validator` rejects. A body parameter is now
   described by its schema alone. The documents of the test suite validate clean (2.0, 3.2.1, 3.1.0).
-- **`JWT(...)` endpoint filter: `Authorize` and `RequireRole` always answered 401.** The filter read the user
+- **The JWT check (rc8's `JWT(...)` endpoint filter, now part of `JWTAuthenticationBundle`): `AuthorizeEndpointFilter` and `RequireRoleEndpointFilter` always answered 401.** The filter read the user
   name from `sub`, which its own login never writes, did not copy the roles, and a token with no `iat` left
   `LoggedUser.LoggedSince` invalid. The login now writes `username`, `roles` and `iat` as
   `TMVCJWTAuthenticationMiddleware` does, and the filter fills `LoggedUser` (user name, roles, custom claims)
   from them; `sub` stays a fallback for tokens issued elsewhere.
-- **`CORS(...)` endpoint filter documentation.** It said it handles preflight; an endpoint filter runs only on a
+- **`CORSEndpointFilter(...)` endpoint filter documentation.** It said it handles preflight; an endpoint filter runs only on a
   matched route, so an `OPTIONS` on a GET/POST-only route is a 404 from the router. The comment now says so and
-  points to `CORSFilter`, the HTTP filter that runs before routing.
+  points to `CORSHTTPFilter`, the HTTP filter that runs before routing.
 - **Minimal API: `WithName` on a `MapMethods` whose first verb is QUERY was lost** (QUERY has no OpenAPI 3.1
   key, so the name never reached the document). The name now lands on the first verb that is not QUERY.
 - **JSON-RPC: an invalid request whose id can be read answers with that id.** `"jsonrpc":"1.0","id":12` answered
@@ -1063,6 +1639,13 @@ the same socket.
   `AddBodyFieldURLEncoded` fields, even when there were none; a raw body is
   now kept.
 
+- **Expressions (TemplatePro `@(...)`, `.env` `$[...]`)**, from the
+  ExprEvaluator library: a `;` inside a string or a comment no longer splits
+  the expression (a trailing `;` is allowed); `not(x)`, `and(x)` and the other
+  keywords may be followed by `(`; numbers are converted and concatenated with
+  a dot whatever the locale; a variable in a branch skipped by short-circuit is
+  not asked to the external resolver; `sqrt`, `log`, `logn`, `power` and `^`
+  raise instead of returning NaN or Infinity.
 - **TemplatePro: more dataset field types, unsigned values.** Fields of type
   `ftShortint`, `ftByte`, `ftLongWord`, `ftExtended`, `ftGuid`, `ftFixedChar`,
   `ftFixedWideChar` and (Delphi 13+) `ftLargeUint` can be used in views, and
@@ -1139,10 +1722,14 @@ the same socket.
   used to guard `/api/v1/admin/*` with a placeholder filter that let in any
   `Authorization: Bearer <anything>`. Without JWT the project now gets a token of
   its own in `.env` (`api.admin.token`, 384 random bits, like `mcp.auth.token`),
-  checked by the standard `BearerAuthFilter(StaticBearerTokens(...), ADMIN_PATH)`
+  checked by the standard `BearerAuthHTTPFilter(StaticBearerTokens(...), ADMIN_PATH)`
   in `EngineConfigU`; the server does not start when the token is empty, and the
-  group adds `Authorize()` so a lost filter still answers 401. With JWT the group
-  keeps the `JWT(...)` endpoint filter.
+  group adds `AuthorizeEndpointFilter()` so a lost filter still answers 401. With JWT the group
+  gets `JWTAuthenticationBundle(...)`: the check on the group, the login on the engine.
+- **Wizard, Minimal API WebApp preset: the admin login is fail-closed.** `POST
+  /web/login` accepted `admin`/`admin`, written in `Routes.RootU`. It now reads
+  `ADMIN_USER` and `ADMIN_PASSWORD` from `.env` (generated empty) and refuses
+  everyone while they are empty, as the generated JWT handler does.
 - **Wizard, generated `.dproj`.** The Debug configuration now defines `DEBUG`
   (`<DCC_Define>DEBUG;$(DCC_Define)</DCC_Define>`; it defined nothing, so a Debug
   build behaved as Release: no exception class names in error responses), Release
@@ -1159,6 +1746,13 @@ the same socket.
   `WebModuleCreate` declare their locals in one `var` section.
 
 ### Performance
+
+- `RangeMediaHTTPFilter` and `FileServerBundle` send a `206` from the file: on Indy Direct
+  and WebBroker the slice (up to 8 MB) is read as it is sent, no longer copied into memory
+  first. HTTP.sys still copies any response stream into memory before it sends it (as before,
+  not changed here).
+- The Minimal API dispatcher splits and decodes the path once per request, not once per
+  route of the verb.
 
 All numbers below are median of 3 x 30 s runs at c=100 on a loopback
 HTTP.sys bench (i9-13980HX, Win 11, Release Win64). See
@@ -1178,7 +1772,7 @@ the cross-backend comparison.
 `(*)` new benchmark scenarios introduced in 3.5.x exercising the
 streaming serializer.
 
-- `CORS(...)` and `CORSFilter(...)` split and trim the allowed-origins list
+- `CORSEndpointFilter(...)` and `CORSHTTPFilter(...)` split and trim the allowed-origins list
   once when the filter is created, not on every request.
 
 ## [3.4.3-aluminium] - Current Stable

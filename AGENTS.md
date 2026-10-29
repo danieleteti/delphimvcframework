@@ -5,7 +5,7 @@
 DelphiMVCFramework - RESTful framework for Delphi (Object Pascal). REST services, JSON-RPC APIs, web apps. MVC architecture, ORM (MVCActiveRecord), auth (JWT, Basic), middleware, WebSocket, serialization.
 
 **Language**: Object Pascal / Delphi
-**Version**: `sources/dmvcframeworkbuildconsts.inc` (DMVCFRAMEWORK_VERSION) — currently `3.5.0-silicon-rc8`
+**Version**: `sources/dmvcframeworkbuildconsts.inc` (DMVCFRAMEWORK_VERSION) — currently `3.5.0-silicon-rc9`
 **License**: Apache License 2.0
 
 ## Build Commands
@@ -80,7 +80,7 @@ Three backends, one controller stack, selected in the `.dpr` via `TMVCServerFact
 ### Two routing styles, same engine
 
 - **Controller-based**: attribute-routed methods on a `TMVCController`. Actions are **functions** returning data or `IMVCResponse` — never `procedure` + `Render(...)`.
-- **Minimal API** (`MVCFramework.MinimalAPI`): lambda routes on a route group. `lEngine.Root` / `.Prefix(...)` → `TMVCRouteGroup<T>` (**a record — `Use`/`Prefix`/`AsWeb` return a new group; discarding the result is a silent no-op**), then `MapGet`/`MapPost`/`MapMethods`. Handlers are `function(...): IMVCResponse`, max 4 typed args, bound **by argument type**. Register classic middleware **before** the first `MapXxx` — the minimal dispatcher is installed lazily on the first `Map` and short-circuits matching routes.
+- **Minimal API** (`MVCFramework.MinimalAPI`): lambda routes on a route group. `lEngine.Root` / `.Prefix(...)` → `TMVCRouteGroup<T>` (**a record — `Use`/`Prefix`/`AsWeb` return a new group; discarding the result is a silent no-op**, except for `AGroup.Use(bundle)`: its HTTP part, e.g. the login, is registered on the engine anyway while its check is lost), then `MapGet`/`MapPost`/`MapMethods`. Handlers are `function(...): IMVCResponse`, max 4 typed args, bound **by argument type**. Register classic middleware **before** the first `MapXxx` — the minimal dispatcher is installed lazily on the first `Map` and short-circuits matching routes.
 
 ### Key files
 
@@ -89,7 +89,7 @@ Three backends, one controller stack, selected in the `.dpr` via `TMVCServerFact
 | Core | `MVCFramework.pas`, `MVCFramework.Router.pas`, `MVCFramework.Commons.pas` | `TMVCEngine`, `TMVCController` |
 | Hosting | `MVCFramework.Server.{Intf,Factory,Indy,HttpSys,WebBroker}.pas`, `.Signal.pas` | `IMVCServer`, `TMVCServerFactory` |
 | Minimal API | `MVCFramework.MinimalAPI.pas` | `TMVCRouteGroup<T>`, `TMVCRouteHandle`, `TMVCFormFile` |
-| Filters | `MVCFramework.Filters.pas` (+ `.Filters.Redis.pas`) | `TMVCEndpointFilter` (per-group), `TMVCHTTPFilter` (engine-wide) |
+| Filters | `MVCFramework.Filters.pas`, `MVCFramework.Filters.Authentication.pas` (+ companion units `.Filters.{ActiveRecord,Swagger,OpenAPI,Redis,OIDC}.pas`: the core does not depend on the optional layers) | `TMVCEndpointFilter` (after routing), `TMVCHTTPFilter` (engine-wide), `IMVCFilterBundle` (in `MVCFramework.pas`) |
 | ORM | `MVCFramework.ActiveRecord.pas`, `MVCFramework.ActiveRecordController.pas`, `MVCFramework.Repository.pas` | `TMVCActiveRecord`, `IMVCRepository<T>` |
 | Middleware | `Middleware.{JWT,CORS,Compression,StaticFiles,RateLimit,ETag,Swagger,Analytics,Trace,ActiveRecord}.pas` | `IMVCMiddleware` |
 | Serialization | `Serializer.JsonDataObjects.pas` | JSON with naming conventions |
@@ -99,7 +99,7 @@ Three backends, one controller stack, selected in the `.dpr` via `TMVCServerFact
 | Config | `MVCFramework.DotEnv.pas` | `NewDotEnv`, `dotEnv`, `dotEnvConfigure` |
 | Other | `RESTClient.pas`, `Cache.pas`, `RQL.Parser.pas`, `Nullables.pas` | |
 
-**Filters vs middleware**: `MVCFramework.Filters` is the modern surface — `TMVCEndpointFilter` attaches to a route group and fires only on a match; `TMVCHTTPFilter` is engine-wide and wraps routing itself. 18/19 classic middleware helpers have a filter equivalent; only OIDC is still middleware-only.
+**Filters vs middleware**: `MVCFramework.Filters` is the modern surface — `TMVCEndpointFilter` attaches to a route group or engine-wide (controllers included) and fires only once a route is matched; `TMVCHTTPFilter` is engine-wide and wraps routing itself; an `IMVCFilterBundle` (`TMVCFilterBundle.Create([...], [...])`) carries HTTP and endpoint filters that go together. **One verb, `Use`**, registers all three: on the engine any of them; on a route group an endpoint filter or a bundle (the bundle's HTTP part goes on the engine, once; an HTTP filter on a group does not compile; the same bundle on the engine and on a group, twice on the engine, or on a group and a group nested in it raises `EMVCConfigException`, and so does a bundle with an HTTP part only, e.g. `FileServerBundle`, on a group). The name says the kind: it ends in `HTTPFilter`, `EndpointFilter` or `Bundle` (`CORSHTTPFilter`, `AuthorizeEndpointFilter`, `FileServerBundle`); no aliases for the names of the earlier RCs. A filter function without arguments needs `()` inside `Use` (`Use(AuthorizeEndpointFilter())`, else E2250). Every classic middleware has a filter equivalent. Authentication is a bundle: `JWTAuthenticationBundle`, `JWTCookieAuthenticationBundle`, `BasicAuthenticationBundle`, `CustomAuthenticationBundle` in `.Filters.Authentication`, `OIDCAuthenticationBundle` in `.Filters.OIDC`; their login/check filters are internal. Public on their own: `BasicAuthEndpointFilter`, `AuthorizeEndpointFilter`, `RequireRoleEndpointFilter`, CSRFHTTPFilter/CSRFEndpointFilter, RefreshTokenHTTPFilter in `MVCFramework.JWT.RefreshToken.Filters` (for a login of your own; with `RefreshTokenStore` in its options the JWT bundle does login + refresh; the store is process-wide, one engine per web module under WebBroker). With `LoginURL := ''` the JWT bundle has no login: the login of your own must be outside the check, a controller action the handler's `OnRequest` makes public, or the bundle on the group it protects (an engine-wide bundle always checks a Minimal API route). `FileServerBundle` = `StaticFilesHTTPFilter` + Range 206 (+ SPA fallback with `fsmSPA`). The middleware are deprecated, not removed, in 3.5. The logic lives in the filter units and each deprecated middleware is a thin wrapper over it, never the reverse: no filter unit uses a `MVCFramework.Middleware.*` unit or turns off the deprecation warning (shared internals: `.Filters.Internal`, `.Filters.Authentication.Internal`, `.Filters.OIDC.Internal`, `.Filters.Swagger.Internal`, not an API). On a Minimal API route the handler's OnRequest is not asked (auth always required). A switch parameter of a new API is an enum or a set, not a `Boolean`.
 
 **Ownership**: the framework **frees the object returned by a functional action** (`MVCFramework.pas`, the `tkClass` branch of the dispatcher). `ToFree<T>` is only for intermediates you allocate and do **not** return — `Result := ToFree(x)` is a double free. `ViewData` owns nothing.
 
@@ -170,7 +170,7 @@ Indy (HTTP/TCP/WebSocket), FireDAC (DB for ActiveRecord), JsonDataObjects (JSON)
 | **RESTful API** | REST controller + CRUD + CORS/compression |
 | **Minimal API RESTful** | Lambda routes, no controller class, per-group endpoint filters |
 | **Web Application** | TemplatePro/HTMX + static files + session |
-| **Minimal API WebApp** | Lambda routes via `.AsWeb`, `RenderView`/`ViewData`, MemorySession + RequireLogin filters |
+| **Minimal API WebApp** | Lambda routes via `.AsWeb`, `RenderView`/`ViewData`, `MemorySessionEndpointFilter` + `RequireLoginEndpointFilter` filters |
 | **JSON-RPC Service** | JSON-RPC 2.0 endpoint + MVCDoc |
 | **Real-Time Application** | WebSocket server + session + static files |
 | **Full-Stack Application** | REST + TemplatePro + WebSocket + HTMX + JWT + ActiveRecord + ETag + RateLimit + Analytics + HTTPS |
@@ -187,7 +187,7 @@ Each preset pre-populates the same wizard form with different defaults; the user
 
 Tutorial projects showing the Minimal API scaffolds live in `samples/wizard_showcase/{rest,web}/`.
 
-**Project Manager menu** (Delphi 12+ only: the unit is in the `d120`/`d130` DT packages and registered under `{$IF CompilerVersion >= 36}`): right click on a DMVC project → DMVCFramework → new REST controller, web controller + view, Minimal API route group, TemplatePro view, MCP tool provider, filtered by project kind (`IsMinimalAPIProject`: the `.dpr` calls `ConfigureRoutes`; views only with a views folder; an MCP project that registers no controller of its own, `RegistersControllers`, gets only the service and the tool provider). Verbs/names of the menu items must be identifiers: a dot in them hangs the IDE on right click. `DMVC.Expert.ProjectMenu.pas` is the IDE side (menu, dialog, edits through the editor buffer); `DMVC.Expert.ProjectItems.pas` has no ToolsAPI (unit sources from the `add_*.tpro` templates, where to insert `AddController`/`Map<Name>Routes`) and is what the template test suite exercises on every generated project.
+**Project Manager menu** (Delphi 12+ only: the unit is in the `d120`/`d130` DT packages and registered under `{$IF CompilerVersion >= 36}`): right click on a DMVC project → DMVCFramework → new REST controller, web controller + view, Minimal API route group, HTTP filter, endpoint filter, TemplatePro view, MCP tool provider, filtered by project kind (`IsMinimalAPIProject`: the `.dpr` calls `ConfigureRoutes`; views only with a views folder; the endpoint filter only with controllers or Minimal API routes; an MCP project that registers no controller of its own, `RegistersControllers`, gets only the service, the HTTP filter and the tool provider). A new filter is a unit `HTTPFilters.<Name>U` / `EndpointFilters.<Name>U` registered with `AEngine.Use(...)` at the end of `ConfigureEngine` (of `WebModuleCreate` in ISAPI/Apache/WebBroker projects). Verbs/names of the menu items must be identifiers: a dot in them hangs the IDE on right click. `DMVC.Expert.ProjectMenu.pas` is the IDE side (menu, dialog, edits through the editor buffer); `DMVC.Expert.ProjectItems.pas` has no ToolsAPI (unit sources from the `add_*.tpro` templates, where to insert `AddController`/`Map<Name>Routes`) and is what the template test suite exercises on every generated project.
 
 ## IDE Expert - Template System (TemplatePro)
 

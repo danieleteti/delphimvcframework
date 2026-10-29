@@ -26,6 +26,8 @@
 
 unit MVCFramework.Middleware.Analytics;
 
+{$WARN SYMBOL_DEPRECATED OFF} // the class is deprecated for its users, not inside its own unit
+
 interface
 
 uses
@@ -52,49 +54,23 @@ type
   public
     constructor Create(const ALogWriter: ILogWriter); virtual;
     property LogWriter: ILogWriter read fLogWriter;
-  end;
+  end deprecated 'Use the Analytics HTTP filter (MVCFramework.Filters): AEngine.Use(AnalyticsHTTPFilter(...))';
 
 function GetAnalyticsDefaultLogger: ILogWriter;
 
 implementation
 
 uses
-  System.SysUtils, System.DateUtils, LoggerPro.FileAppender, LoggerPro.Builder,
-  MVCFramework.Commons, System.IOUtils;
-
-var
-  GLogWriter: ILogWriter = nil;
+  System.SysUtils, System.DateUtils,
+  MVCFramework.Commons, MVCFramework.Filters;
 
 const
   LOG_LEVEL: array [1..5] of TLogType = (TLogType.Info, TLogType.Info, TLogType.Info, TLogType.Warning, TLogType.Error);
   ANALYTICS_TAG = 'analytics';
 
 function GetAnalyticsDefaultLogger: ILogWriter;
-var
-  lLog: ILogAppender;
 begin
-  if GLogWriter = nil then
-  begin
-    TMonitor.Enter(GLock);
-    try
-      if GLogWriter = nil then // double check locking (https://en.wikipedia.org/wiki/Double-checked_locking)
-      begin
-        lLog := TLoggerProSimpleFileAppender.Create(10, 5000, AppPath + 'analytics',
-          TPath.ChangeExtension(TLoggerProSimpleFileAppender.DEFAULT_FILENAME_FORMAT,'csv'));
-        TLoggerProAppenderBase(lLog).OnLogRow := procedure(const LogItem: TLogItem; out LogRow: string)
-          begin
-            LogRow := Format('%s;%s;%s', [
-              FormatDateTime('yyyy-mm-dd hh:nn:ss', LogItem.TimeStamp),
-              LogItem.LogTypeAsString,
-              LogItem.LogMessage]);
-          end;
-        GLogWriter := LoggerProBuilder.WriteToAppender(lLog).Build;
-      end;
-    finally
-      TMonitor.Exit(GLock);
-    end;
-  end;
-  Result := GLogWriter;
+  Result := MVCFramework.Filters.GetAnalyticsDefaultLogger;
 end;
 
 

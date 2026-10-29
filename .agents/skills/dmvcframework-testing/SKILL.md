@@ -18,7 +18,7 @@ tests start and stop the server in `[SetupFixture]`/`[TeardownFixture]`.
 
 **Verify signatures against real code, not memory** — the DUnitX and DMVCFramework units on disk, plus one
 existing test as the call site. When you do not know where those sources are, ask the user for the path and
-record it as the `dmvcframework` skill describes (the `<!-- delphi-local-sources -->` block in `AGENTS.md` /
+record it as the `dmvcframework` skill describes (the `<!-- delphi-local-sources -->` block in `CLAUDE.md` /
 `AGENTS.md`), so the question is asked once per project and not once per session.
 
 Reference test files in the official repository:
@@ -54,7 +54,7 @@ The user is expected to have a wizard-generated project and to have started the 
 folder** (look for `*.dpr` + `EngineConfigU.pas` + `Controllers.*.pas` or `RoutesU.pas`).
 
 - **Read the controllers/routes under test first** — the test project reuses the very same controller and
-  middleware units, so the tests exercise the real thing, not a copy.
+  engine-configuration units (filters included), so the tests exercise the real thing, not a copy.
 - **If there is no project to test**, stop and tell the user to create one with the IDE wizard
   (**File → New → Other → Delphi Projects → DelphiMVCFramework**), accepting the defaults — the server
   backend is **Indy Direct** — then `cd` into the folder and start you there.
@@ -83,10 +83,19 @@ MyProjectTests/
 Build the engine directly and host it with the Indy Direct backend. There is no WebModule and no `.dfm`.
 
 **This holds even when the application ships as an ISAPI DLL or an Apache module.** The host is not what you
-are testing — the engine, the controllers and the middleware are. Call the app's own
+are testing — the engine, the controllers and the filters are. Call the app's own
 `ConfigureEngine(AEngine)` from the test, host it in-process with Indy Direct, and you exercise exactly the
 same stack that WebBroker would serve in production. Do not try to spin up ISAPI/Apache from a test.
-Register only the controllers and middleware the tests actually exercise.
+Do **not** re-register controllers and filters by hand in the test: a hand-picked subset is a different
+application (leave out the JWT filters and every authentication test in §6 fails).
+
+`ConfigureEngine` reads `dotEnv` (`JWT_SECRET` has no fallback, by design), so the test executable needs a
+`.env` in its own folder with its **own throwaway `JWT_SECRET`** — never a copy of the app's secret — kept out
+of version control. `Boot` from the wizard's `BootConfigU` runs **once**, in the test `.dpr` (§10): a second
+call raises `EMVCDotEnv 'dotEnv already initialized'`, so it cannot live in a per-fixture setup.
+A **Minimal API** project registers its routes outside `ConfigureEngine`: also call
+`ConfigureRoutes(AEngine.Root)` (unit `RoutesU`, plus `MVCFramework.MinimalAPI` for `Root`), as the wizard's
+`.dpr` does.
 
 **File: `Tests.Server.pas`**
 
@@ -106,8 +115,7 @@ uses
   System.SysUtils,
   MVCFramework.Commons,
   MVCFramework.Server.Factory,
-  MVCFramework.Middleware.CORS,
-  Controllers.MyResource;
+  EngineConfigU;                 // the app's own unit, added to the test project
 
 function StartTestServer(APort: Integer; out AEngine: TMVCEngine): IMVCServer;
 begin
@@ -116,17 +124,16 @@ begin
     begin
       Config[TMVCConfigKey.DefaultContentType] := TMVCMediaType.APPLICATION_JSON;
     end);
-  AEngine.AddController(TMyResourceController);
-  AEngine.AddMiddleware(TMVCCORSMiddleware.Create);
+  ConfigureEngine(AEngine);      // the same controllers and filters the app serves
 
   Result := TMVCServerFactory.CreateIndyDirect(AEngine);
-  Result.Listen(APort);
+  Result.Listen(APort, '127.0.0.1');  // loopback: the default 0.0.0.0 triggers the Windows firewall prompt
 end;
 
 end.
 ```
 
-`IMVCServer` exposes `Listen(APort)`, `Stop`, `IsRunning`. Stop it in `[TeardownFixture]` and free the
+`IMVCServer` exposes `Listen(APort, AHost)`, `Stop`, `IsRunning`. Stop it in `[TeardownFixture]` and free the
 engine afterwards — the server does not own it.
 
 ---
@@ -148,7 +155,7 @@ uses
   MVCFramework.RESTClient;       // TMVCRESTClient
 
 const
-  TEST_HOST = 'localhost';
+  TEST_HOST = '127.0.0.1';       // the address StartTestServer listens on
   TEST_PORT = 9998;              // keep off the dev server's port
 
 type
@@ -243,6 +250,8 @@ Assert on the **status code and the body**, not merely that the call did not blo
 ```delphi
 [TestFixture]
 TCustomersTests = class(TBaseAPITest)
+private
+  function CreateCustomer: string;   // each test makes its own row; returns its Location
 public
   [Test] procedure Create_Returns201_And_Location;
   [Test] procedure Get_Returns_The_Created_Customer;
@@ -262,12 +271,22 @@ begin
   Assert.IsNotEmpty(lResp.HeaderValue('Location'));
 end;
 
+function TCustomersTests.CreateCustomer: string;
+var
+  lResp: IMVCRESTResponse;
+begin
+  lResp := FClient.Post('/api/customers',
+    '{"firstName":"Daniele","lastName":"Teti","email":"d.teti@example.com"}');
+  Assert.AreEqual(HTTP_STATUS.Created, lResp.StatusCode);
+  Result := lResp.HeaderValue('Location');
+end;
+
 procedure TCustomersTests.Get_Returns_The_Created_Customer;
 var
   lResp: IMVCRESTResponse;
   lJSON: TJDOJsonObject;
 begin
-  lResp := FClient.Get('/api/customers/1');
+  lResp := FClient.Get(CreateCustomer);   // never rely on a row another test created
   Assert.AreEqual(HTTP_STATUS.OK, lResp.StatusCode);
 
   lJSON := lResp.ToJSONObject;          // the caller owns it
@@ -291,11 +310,14 @@ begin
     '{"firstName":"Bob","lastName":"X","email":"not-an-email"}');
   // validation failed => 422, and the action never ran
   Assert.AreEqual(HTTP_STATUS.UnprocessableEntity, lResp.StatusCode);
+  // keys are Delphi property names. Controller body: "items" holds "Email: <message>";
+  // Minimal API body: ProblemDetails, "errors": {"Email": "<message>"} (after 3.5.0-rc7)
+  Assert.Contains(lResp.Content, 'Email');
 end;
 
 procedure TCustomersTests.Delete_Returns204;
 begin
-  Assert.AreEqual(HTTP_STATUS.NoContent, FClient.Delete('/api/customers/1').StatusCode);
+  Assert.AreEqual(HTTP_STATUS.NoContent, FClient.Delete(CreateCustomer).StatusCode);
 end;
 ```
 
@@ -307,7 +329,7 @@ var
 begin
   lCustomer := TCustomer.Create;
   try
-    FClient.Get('/api/customers/1').BodyFor(lCustomer);
+    FClient.Get(CreateCustomer).BodyFor(lCustomer);
     Assert.AreEqual('Daniele', lCustomer.FirstName);
   finally
     lCustomer.Free;
@@ -328,36 +350,41 @@ begin
   Assert.AreEqual(HTTP_STATUS.Unauthorized, FClient.Get('/api/admin/stats').StatusCode);
 end;
 
-procedure TSecureTests.Login_Returns_A_Token;
+// a helper, not a test: every test that needs a token logs in itself, so no test depends on run order
+function TSecureTests.Login(const AUser, APassword: string): string;
 var
   lResp: IMVCRESTResponse;
   lJSON: TJDOJsonObject;
 begin
-  // the JWT middleware serves the login URL you configured (e.g. '/login')
-  lResp := FClient
-    .SetBasicAuthorization('user1', 'user1')
+  // JWTAuthenticationBundle (the JWT middleware, in a 3.4 project) serves the login URL you configured (e.g. '/login');
+  // a separate client, so the Basic header does not stay on FClient
+  lResp := TMVCRESTClient.New.BaseURL(TEST_HOST, TEST_PORT)
+    .SetBasicAuthorization(AUser, APassword)
     .Post('/login');
-
   Assert.AreEqual(HTTP_STATUS.OK, lResp.StatusCode);
   lJSON := lResp.ToJSONObject;
   try
-    Assert.IsNotEmpty(lJSON.S['token']);
-    FToken := lJSON.S['token'];
+    Result := lJSON.S['token'];   // 'access_token' when the bundle has a RefreshTokenStore
   finally
     lJSON.Free;
   end;
 end;
 
+procedure TSecureTests.Login_Returns_A_Token;
+begin
+  Assert.IsNotEmpty(Login('user1', 'user1'));
+end;
+
 procedure TSecureTests.ValidToken_Returns200;
 begin
   Assert.AreEqual(HTTP_STATUS.OK,
-    FClient.SetBearerAuthorization(FToken).Get('/api/admin/stats').StatusCode);
+    FClient.SetBearerAuthorization(Login('user1', 'user1')).Get('/api/admin/stats').StatusCode);
 end;
 
 procedure TSecureTests.TamperedToken_Returns401;
 begin
   Assert.AreEqual(HTTP_STATUS.Unauthorized,
-    FClient.SetBearerAuthorization(FToken + 'x').Get('/api/admin/stats').StatusCode);
+    FClient.SetBearerAuthorization(Login('user1', 'user1') + 'x').Get('/api/admin/stats').StatusCode);
 end;
 ```
 
@@ -394,9 +421,10 @@ DELETE is still a breach.
 ## 8. Database-backed tests
 
 For tests that need a real database, configure FireDAC in `[SetupFixture]`
-**before** starting the server, and register `TMVCActiveRecordMiddleware.Create('TestConn')` on the engine
-(add it in `StartTestServer`, §2) — without it no connection is bound to the request and every ActiveRecord
-call fails.
+**before** starting the server. The wizard's `ConfigureEngine` already registers `ActiveRecordHTTPFilter`
+(`TMVCActiveRecordMiddleware` in a 3.4 project) with the connection named by
+`firedac.connection_definition_name` in `.env`: set it to `TestConn` in the test `.env` — without it no
+connection is bound to the request and every ActiveRecord call fails.
 
 ```delphi
 [TestFixture]
@@ -438,10 +466,7 @@ begin
     LParams.Free;
   end;
 
-  // 2. Seed initial data if needed
-  SeedTestData;
-
-  // 3. Start the in-process server (the engine's ActiveRecord middleware uses 'TestConn')
+  // 2. Start the in-process server (the engine's ActiveRecordHTTPFilter uses 'TestConn')
   FServer := StartTestServer(9998, FEngine);
 end;
 
@@ -458,6 +483,8 @@ end;
 
 procedure TMyResourceDBTests.Setup;
 begin
+  // seed here, not in SetupFixture: TearDown wipes the data after every test
+  SeedTestData;
   FClient := TMVCRESTClient.New.BaseURL('localhost', 9998).ReadTimeout(30000);
 end;
 
@@ -556,7 +583,9 @@ uses
   Tests.Base in 'Tests.Base.pas',
   Tests.MyResource in 'Tests.MyResource.pas',
   Tests.Auth in 'Tests.Auth.pas',
-  Tests.Server in 'Tests.Server.pas';
+  Tests.Server in 'Tests.Server.pas',
+  BootConfigU;                   // the app's own unit
+
 
 var
   runner: ITestRunner;
@@ -565,6 +594,7 @@ var
   nunitLogger: ITestLogger;
 begin
   try
+    Boot;                        // once per process - see section 2
     TDUnitX.CheckCommandLine;
     runner := TDUnitX.CreateRunner;
     runner.UseRTTI := True;
@@ -659,7 +689,7 @@ HTTP_STATUS.InternalServerError // 500
 - **Server startup**: `[SetupFixture]` (once) starts the listener; `[Setup]` (per test) creates a fresh client — never start/stop the server per test, it's expensive
 - **DB isolation**: use a **separate test database**; reset state in `[TearDown]` not `[SetupFixture]` so each test is independent
 - **`ToJSONObject` ownership**: `lResp.ToJSONObject` returns a new `TJsonObject` — always `Free` it in a `try/finally`
-- **Path params syntax**: DMVCFramework uses `($param)` syntax in routes, `AddPathParam('param', value)` in client
+- **Path params syntax**: routes use `($param)`; the client uses `{param}` in the URL, filled by `AddPathParam`: `.AddPathParam('id', 42).Get('/api/customers/{id}')`
 - **Object posting**: `FClient.Post(url, obj, ownsObject)` — pass `False` if you still need the object after the call
 - **Serialization units**: add `MVCFramework.Serializer.JsonDataObjects` and `JsonDataObjects` to uses when deserializing responses to typed objects
 - **`[SetupFixture]` vs `[Setup]`**: if you mistakenly start the HTTP server in `[Setup]`, it restarts for every test — this is very slow and often causes port-in-use errors
@@ -675,7 +705,7 @@ List the endpoints from the controller: GET list, GET by ID, POST, PUT, PATCH, D
 Include error cases: not found, invalid input, unauthorized, forbidden.
 
 ### Step 2 — Create (or reuse) `Tests.Server.pas`
-Build the engine, register the controller(s) under test and only the middleware actually exercised,
+Build the engine, register the controller(s) under test and only the filters actually exercised,
 host it with `TMVCServerFactory.CreateIndyDirect`.
 
 ### Step 3 — Create `Tests.Base.pas`

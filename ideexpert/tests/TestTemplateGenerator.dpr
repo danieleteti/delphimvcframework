@@ -734,6 +734,17 @@ begin
   LTestCase.Config.B[TConfigKey.program_service_container_generate] := False;
   ATestCases.Add(LTestCase);
 
+  // the system controllers (route map, configuration) are off unless .env turns them on
+  LTestCase := Default(TTestCase);
+  LTestCase.Name := 'system_controllers_off_by_default';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+  LTestCase.MustContain := ['TestProject.dpr|dotEnv.Env(''dmvc.load_system_controllers'', ''false'')',
+    'bin/.env|dmvc.load_system_controllers=false'];
+  LTestCase.MustNotContain := ['bin/.env|dmvc.load_system_controllers=true'];
+  ATestCases.Add(LTestCase);
+
   // RESTful preset with no index methods and no views: there is no sample resource,
   // so the generator keeps THomeController with its index actions anyway. A controller
   // project with no controller would have no route and nothing for the menu to wire next to.
@@ -792,8 +803,12 @@ begin
   LTestCase.ExpectedFiles := ['bin/templates/lib/forms_bootstrap5.tpro', 'bin/templates/home/index.html'];
   LTestCase.ForbiddenFiles := ['PeopleSampleU.pas', 'Controllers.PeoplePagesU.pas', 'bin/templates/people'];
   LTestCase.MustContain := ['bin/templates/home/index.html|hx-get="/web/fragment/clock"',
-    'bin/templates/home/index.html|https://github.com/danieleteti/delphimvcframework/tree/master/samples/webapp_htmx_forms'];
-  LTestCase.MustNotContain := ['bin/templates/baselayout.html|/web/people', 'bin/templates/home/index.html|/web/people'];
+    'bin/templates/home/index.html|https://github.com/danieleteti/delphimvcframework/tree/master/samples/webapp_htmx_forms',
+    'EngineConfigU.pas|AEngine.Use(RedirectHTTPFilter([''/''], ''/web''))',
+    'EngineConfigU.pas|AEngine.Use(FileServerBundle(''/static'', lWwwPath))'];
+  LTestCase.MustNotContain := ['bin/templates/baselayout.html|/web/people', 'bin/templates/home/index.html|/web/people',
+    'EngineConfigU.pas|TMVCRedirectMiddleware', 'EngineConfigU.pas|TMVCStaticFilesMiddleware',
+    'EngineConfigU.pas|StaticFilesHTTPFilter'];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
 
@@ -899,7 +914,41 @@ begin
   LTestCase.Config.B['program.ssv.any'] := True;
   LTestCase.Config.S[TConfigKey.default_media_type] := 'TMVCMediaType.TEXT_HTML';
   LTestCase.Config.B[TConfigKey.webmodule_middleware_staticfiles] := True;
+  // the cookie bundle, signed with the RS256 signer
+  LTestCase.MustContain := ['EngineConfigU.pas|AEngine.Use(JWTCookieAuthenticationBundle(lJWTOptions));',
+    'EngineConfigU.pas|MVCFramework.Filters.Authentication,', 'EngineConfigU.pas|lJWTOptions.Signer := TRSAJWTSigner.CreateFromFiles(',
+    'EngineConfigU.pas|lJWTOptions.Cookie.Secure := dotEnv.Env(''JWT_COOKIE_SECURE'', True);',
+    'EngineConfigU.pas|lJWTOptions.ClaimsToCheck := [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt];',
+    // a cross-site login is refused: the origins of the site come from .env, and without them the server does not start
+    'EngineConfigU.pas|lJWTOptions.LoginAllowedOrigins := dotEnv.Env(''LOGIN_ALLOWED_ORIGINS'', '''').Split(['','']);',
+    'EngineConfigU.pas|if Length(lJWTOptions.LoginAllowedOrigins) = 0 then',
+    'bin/.env|LOGIN_ALLOWED_ORIGINS=http://localhost:'];
+  LTestCase.MustNotContain := ['EngineConfigU.pas|AddMiddleware(UseJWT', 'EngineConfigU.pas|lJWTOptions.Secret',
+    'EngineConfigU.pas|AllowedOriginHTTPFilter'];
   ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
+
+  // the same cookie login on a WebModule host
+  LTestCase.Name := 'isapi_webapp_jwt_cookie';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.ISAPI;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_jwt] := True;
+  LTestCase.Config.B[TConfigKey.program_ssv_templatepro] := True;
+  LTestCase.Config.B['program.ssv.any'] := True;
+  LTestCase.Config.S[TConfigKey.default_media_type] := 'TMVCMediaType.TEXT_HTML';
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_staticfiles] := True;
+  LTestCase.ExpectedFiles := [];
+  LTestCase.ForbiddenFiles := [];
+  LTestCase.MustContain := ['WebModuleU.pas|fMVC.Use(JWTCookieAuthenticationBundle(lJWTOptions));',
+    'WebModuleU.pas|MVCFramework.Filters.Authentication,',
+    'WebModuleU.pas|lJWTOptions.Secret := dotEnv.Env(''JWT_SECRET'');',
+    'WebModuleU.pas|lJWTOptions.LoginAllowedOrigins := dotEnv.Env(''LOGIN_ALLOWED_ORIGINS'', '''').Split(['','']);',
+    'WebModuleU.pas|if Length(lJWTOptions.LoginAllowedOrigins) = 0 then',
+    'WebModuleU.pas|fMVC.Use(FileServerBundle(''/static'', lWwwPath));',
+    'bin/.env|LOGIN_ALLOWED_ORIGINS=http://localhost:'];
+  LTestCase.MustNotContain := ['WebModuleU.pas|StaticFilesHTTPFilter', 'WebModuleU.pas|AllowedOriginHTTPFilter'];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
 
   // === Windows Service Tests ===
 
@@ -1003,7 +1052,18 @@ begin
   LTestCase.Config.B[TConfigKey.webmodule_middleware_trace] := True;
   LTestCase.Config.B[TConfigKey.webmodule_middleware_analytics] := True;
   LTestCase.Config.B[TConfigKey.webmodule_middleware_ratelimit] := True;
+  // Every middleware that has a filter is generated as the filter; RateLimit has none with the same options
+  LTestCase.MustContain := ['EngineConfigU.pas|AEngine.Use(CORSHTTPFilter(''*''))',
+    'EngineConfigU.pas|AEngine.Use(CompressionHTTPFilter(1024))',
+    'EngineConfigU.pas|AEngine.Use(ETagHTTPFilter())',
+    'EngineConfigU.pas|AEngine.Use(TraceHTTPFilter())',
+    'EngineConfigU.pas|AEngine.Use(AnalyticsHTTPFilter())',
+    'EngineConfigU.pas|AEngine.Use(RateLimitHTTPFilter(lRateLimitOptions))'];
+  LTestCase.MustNotContain := ['EngineConfigU.pas|TMVCCORSMiddleware', 'EngineConfigU.pas|TMVCCompressionMiddleware',
+    'EngineConfigU.pas|TMVCETagMiddleware', 'EngineConfigU.pas|TMVCTraceMiddleware',
+    'EngineConfigU.pas|TMVCAnalyticsMiddleware', 'EngineConfigU.pas|TMVCRateLimitMiddleware'];
   ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
 
   // Test 31: Indy Direct with JSON-RPC
   LTestCase.Name := 'indydirect_jsonrpc';
@@ -1019,7 +1079,38 @@ begin
   LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
   LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
   LTestCase.Config.B[TConfigKey.webmodule_middleware_session_memory] := True;
+  LTestCase.MustContain := ['EngineConfigU.pas|AEngine.Use(MemorySessionHTTPFilter(',
+    'EngineConfigU.pas|SessionCookieFlags(dotEnv.Env(''SESSION_COOKIE_SECURE'', True))'];
+  LTestCase.MustNotContain := ['EngineConfigU.pas|UseMemorySessionMiddleware'];
   ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
+
+  // Indy Direct with a file session
+  LTestCase.Name := 'indydirect_file_session';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_session_file] := True;
+  LTestCase.MustContain := ['EngineConfigU.pas|AEngine.Use(FileSessionHTTPFilter(',
+    'EngineConfigU.pas|SessionCookieFlags(dotEnv.Env(''SESSION_COOKIE_SECURE'', True))'];
+  LTestCase.MustNotContain := ['EngineConfigU.pas|UseFileSessionMiddleware'];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
+
+  // Indy Direct with ActiveRecord and a database session: both are filters
+  LTestCase.Name := 'indydirect_database_session';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_activerecord] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_session_database] := True;
+  LTestCase.MustContain := ['EngineConfigU.pas|AEngine.Use(ActiveRecordHTTPFilter(',
+    'EngineConfigU.pas|AEngine.Use(DatabaseSessionHTTPFilter(',
+    'EngineConfigU.pas|MVCFramework.Filters.ActiveRecord,'];
+  LTestCase.MustNotContain := ['EngineConfigU.pas|TMVCActiveRecordMiddleware',
+    'EngineConfigU.pas|UseDatabaseSessionMiddleware'];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
 
   // Test 33: Indy Direct full featured
   LTestCase.Name := 'indydirect_full_featured';
@@ -1194,9 +1285,9 @@ begin
   // the admin group is fail-closed: a token of its own in .env, checked by the standard filters
   LTestCase.MustContain := [
     'Routes.RootU.pas|ADMIN_PATH = ''/api/v1/admin'';',
-    'Routes.RootU.pas|lAdmin := AGroup.Use(Authorize());',
+    'Routes.RootU.pas|lAdmin := AGroup.Use(AuthorizeEndpointFilter());',
     'EngineConfigU.pas|api.admin.token is empty',
-    'EngineConfigU.pas|AEngine.UseHTTPFilter(BearerAuthFilter(',
+    'EngineConfigU.pas|AEngine.Use(BearerAuthHTTPFilter(',
     'EngineConfigU.pas|StaticBearerTokens([TPair<string, string>.Create(''admin'', dotEnv.Env(''api.admin.token'', ''''))]),',
     'bin/.env|api.admin.token='];
   LTestCase.MustNotContain := ['Routes.RootU.pas|any Bearer string', 'bin/.env|api.admin.token=' + sLineBreak];
@@ -1259,8 +1350,18 @@ begin
     'bin/templates/home/index.html|a <code>MapGet</code> to <code>Routes.RootU</code>',
     'bin/templates/home/index.html|https://github.com/danieleteti/delphimvcframework/tree/master/samples/webapp_htmx_forms',
     'bin/templates/pages/login.html|{{import "../lib/forms_bootstrap5.tpro" as f}}',
-    'bin/templates/pages/login.html|{{call f.form("/web/login")}}'];
-  LTestCase.MustNotContain := ['bin/templates/baselayout.html|<!--EXTRA_NAV-->',
+    'bin/templates/pages/login.html|{{call f.form("/web/login")}}',
+    // the admin login is fail-closed: credentials only from .env
+    'Routes.RootU.pas|lUser := dotEnv.Env(''ADMIN_USER'');',
+    'bin/.env|ADMIN_USER=',
+    // the filters of the scaffold are named by their kind
+    'Routes.RootU.pas|lAdmin := lWeb.Prefix(''/admin'').Use(RequireLoginEndpointFilter(''/web/login''));',
+    'Routes.RootU.pas|.Use(PageDefaultsEndpointFilter());',
+    'bin/templates/pages/admin_home.html|<code>RequireLoginEndpointFilter</code>'];
+  LTestCase.MustNotContain := ['Routes.RootU.pas|(F.Username = ''admin'') and (F.Password = ''admin'')',
+    'Routes.RootU.pas|RequireLogin(', 'Routes.RootU.pas|PageDefaults(',
+    'bin/templates/pages/admin_home.html|<code>RequireLogin</code>',
+    'bin/templates/baselayout.html|<!--EXTRA_NAV-->',
     'bin/templates/home/index.html|{{:add_page_how}}',
     'bin/templates/home/index.html|/web/people', 'bin/templates/baselayout.html|/web/people',
     'Routes.RootU.pas|People', 'Routes.RootU.pas|PersonRow', 'Routes.RootU.pas|TPeopleQuery'];
@@ -1269,7 +1370,7 @@ begin
 
   // Test 54: Indy Direct + Minimal API + full HTTPFilter stack.
   // Verifies the engineconfig.pas.tpro minimal-API block emits
-  // UseHTTPFilter(...) calls for every supported helper and that the
+  // Use(...) calls for every supported helper and that the
   // generated code compiles.
   LTestCase.Name := 'indydirect_minimal_api_httpfilters';
   LTestCase.Config := CreateBaseConfig;
@@ -1278,7 +1379,7 @@ begin
   LTestCase.Config.B[TConfigKey.program_minimal_api] := True;
   LTestCase.Config.B[TConfigKey.controller_index_methods_generate] := False;
   LTestCase.Config.B['controller.main.generate'] := False;
-  // HTTPFilter helpers — each generates a UseHTTPFilter line in
+  // HTTPFilter helpers — each generates a Use line in
   // EngineConfigU.ConfigureEngine.
   LTestCase.Config.B[TConfigKey.webmodule_middleware_cors] := True;
   LTestCase.Config.B[TConfigKey.webmodule_middleware_compression] := True;
@@ -1287,7 +1388,11 @@ begin
   LTestCase.Config.B[TConfigKey.webmodule_middleware_ratelimit] := True;
   LTestCase.ExpectedFiles := [];
   LTestCase.ForbiddenFiles := [];
+  LTestCase.MustContain := ['EngineConfigU.pas|AEngine.Use(FileServerBundle(''/static'', lWwwPath));',
+    'EngineConfigU.pas|AEngine.Use(CORSHTTPFilter(''*''));', 'EngineConfigU.pas|AEngine.Use(ETagHTTPFilter());',
+    'EngineConfigU.pas|AEngine.Use(RateLimitHTTPFilter(60, 60));'];
   ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
 
   // Test 55: Indy Direct + Minimal API WebApp + StaticFiles + ETag +
   // Compression. Reflects the updated ppMinimalAPIWebApp preset which
@@ -1372,12 +1477,17 @@ begin
   LTestCase.ExpectedFiles := [];
   LTestCase.ForbiddenFiles := [];
   LTestCase.MustContain := [
-    'Routes.RootU.pas|Result := JWT(',
+    // one bundle on the admin group: the check on the group, the login on the engine
+    'Routes.RootU.pas|lAdmin := AGroup.Use(JWTAuthenticationBundle(lJWTOptions));',
+    'Routes.RootU.pas|lJWTOptions.LoginURL := ''/api/v1/admin/login'';',
+    'Routes.RootU.pas|lJWTOptions.Secret := dotEnv.Env(''JWT_SECRET'');',
+    'Routes.RootU.pas|MVCFramework.Filters.Authentication,',
     'TestProject.dpr|expose_server_signature',
     'bin/.env|dmvc.expose_x_powered_by=false'];
-  // the JWT filter guards the admin group: no static token
+  // the JWT bundle guards the admin group: no static token, nothing of the login left in EngineConfigU
   LTestCase.MustNotContain := ['AuthenticationU.pas|UserName.Equals(Password)', 'bin/.env|api.admin.token',
-    'EngineConfigU.pas|api.admin.token', 'Routes.RootU.pas|ADMIN_PATH'];
+    'EngineConfigU.pas|api.admin.token', 'Routes.RootU.pas|ADMIN_PATH', 'EngineConfigU.pas|/api/v1/admin/login',
+    'EngineConfigU.pas|AuthenticationBundle', 'EngineConfigU.pas|MVCFramework.JWT', 'EngineConfigU.pas|JWTLogin'];
   ATestCases.Add(LTestCase);
 
   // Test 58: Indy Direct over HTTPS. The .env must carry the certificate keys
@@ -1462,10 +1572,11 @@ begin
     'bin/www/swagger/swagger-ui.js', 'bin/www/swagger/swagger-ui-es-bundle.js',
     'bin/www/swagger/swagger-ui-es-bundle-core.js'];
   LTestCase.MustContain := [
-    'EngineConfigU.pas|TMVCSwaggerMiddleware.Create(AEngine, lSwaggerInfo, ''/openapi.json''',
+    'EngineConfigU.pas|AEngine.Use(SwaggerHTTPFilter(AEngine, lSwaggerInfo, ''/openapi.json''',
+    'EngineConfigU.pas|MVCFramework.Filters.Swagger,',
     'TestProject.dpr|LogI(''API documentation (Swagger UI): http://localhost:'' + APort.ToString + ''/swagger/'');',
     'EngineConfigU.pas|ssvOpenAPI3',
-    'EngineConfigU.pas|TMVCStaticFilesMiddleware.Create(''/swagger''',
+    'EngineConfigU.pas|AEngine.Use(StaticFilesHTTPFilter(lSwaggerUIOptions))',
     'EngineConfigU.pas|if dotEnv.Env(''dmvc.openapi.enabled'', False) then',
     'bin/.env|dmvc.openapi.enabled=true',
     'bin/www/swagger/swagger-initializer.js|url: "/openapi.json"'];
@@ -1497,14 +1608,15 @@ begin
   LTestCase.ExpectedFiles := ['bin/www/swagger/index.html'];
   LTestCase.ForbiddenFiles := [];
   LTestCase.MustContain := ['WebModuleU.pas|ssvOpenAPI3',
-    'WebModuleU.pas|TMVCStaticFilesMiddleware.Create(''/swagger''',
+    'WebModuleU.pas|MVCFramework.Filters.Swagger,',
+    'WebModuleU.pas|fMVC.Use(StaticFilesHTTPFilter(lSwaggerUIOptions))',
     'WebModuleU.pas|if dotEnv.Env(''dmvc.openapi.enabled'', False) then',
     'bin/.env|dmvc.openapi.enabled=true'];
   LTestCase.MustNotContain := [];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
 
-  // Test 65: Minimal API, option ON: native OpenAPI() filter, route metadata,
+  // Test 65: Minimal API, option ON: native OpenAPIHTTPFilter() filter, route metadata,
   // no Swagger middleware.
   LTestCase.Name := 'indydirect_minimal_api_openapi';
   LTestCase.Config := CreateBaseConfig;
@@ -1517,15 +1629,16 @@ begin
   LTestCase.ExpectedFiles := ['bin/www/swagger/index.html', 'bin/www/swagger/swagger-initializer.js'];
   LTestCase.ForbiddenFiles := ['bin/www/swagger/README-swagger-ui.txt'];
   LTestCase.MustContain := [
-    'EngineConfigU.pas|AEngine.UseHTTPFilter(OpenAPI(AEngine, lOpenAPIInfo, ''/openapi.json''))',
+    'EngineConfigU.pas|AEngine.Use(OpenAPIHTTPFilter(AEngine, lOpenAPIInfo, ''/openapi.json''))',
+    'EngineConfigU.pas|MVCFramework.Filters.OpenAPI,',
     'TestProject.dpr|LogI(''API documentation (Swagger UI): http://localhost:'' + APort.ToString + ''/swagger/'');',
-    'EngineConfigU.pas|AEngine.UseHTTPFilter(StaticFiles(lSwaggerUIOptions))',
+    'EngineConfigU.pas|AEngine.Use(StaticFilesHTTPFilter(lSwaggerUIOptions))',
     'EngineConfigU.pas|if dotEnv.Env(''dmvc.openapi.enabled'', False) then',
     'bin/.env|dmvc.openapi.enabled=true',
     'Routes.RootU.pas|.WithTags(''Hello'')',
     'Routes.RootU.pas|.WithSummary(''Example route'')',
     'bin/www/swagger/swagger-initializer.js|url: "/openapi.json"'];
-  LTestCase.MustNotContain := ['EngineConfigU.pas|TMVCSwaggerMiddleware'];
+  LTestCase.MustNotContain := ['EngineConfigU.pas|Use(SwaggerHTTPFilter('];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
 
@@ -1541,7 +1654,7 @@ begin
   LTestCase.ExpectedFiles := ['bin/www/swagger/index.html'];
   LTestCase.ForbiddenFiles := [];
   LTestCase.MustContain := ['TestProject.dpr|TMVCSqids.SQIDS_ALPHABET := dotEnv.Env(''dmvc.sqids.alphabet''',
-    'EngineConfigU.pas|TMVCSwaggerMiddleware.Create('];
+    'EngineConfigU.pas|AEngine.Use(SwaggerHTTPFilter(AEngine'];
   LTestCase.MustNotContain := [];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
@@ -1659,10 +1772,10 @@ begin
     'EngineConfigU.pas|TMCPServer.Instance.ServerName := ''TestProject'';',
     'EngineConfigU.pas|mcp.auth.token is empty',
     'TestProject.dpr|RunAndWait(APort, dotEnv.Env(''mcp.http.host'', ''localhost''))',
-    'EngineConfigU.pas|BearerAuthFilter(',
+    'EngineConfigU.pas|BearerAuthHTTPFilter(',
     'EngineConfigU.pas|StaticBearerTokens([TPair<string, string>.Create(''TestProject'', dotEnv.Env(''mcp.auth.token'', ''''))])',
     'EngineConfigU.pas|TMCPServer.Instance.AllowedOrigins := dotEnv.Env(''mcp.allowed_origins'', '''').Split(['',''])',
-    'EngineConfigU.pas|AEngine.UseHTTPFilter(AllowedMethodsFilter([httpPOST, httpDELETE], MCP_ENDPOINT));',
+    'EngineConfigU.pas|AEngine.Use(AllowedMethodsHTTPFilter([httpPOST, httpDELETE], MCP_ENDPOINT));',
     'EngineConfigU.pas|AEngine.AddController(TMCPSessionController)',
     'EngineConfigU.pas|TMCPServer.Instance.CreatePublishedEndpoint',
     'BootConfigU.pas|if not MCPTransportIsStdio then',
@@ -1760,10 +1873,10 @@ begin
   LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
   LTestCase.Config.B[TConfigKey.webmodule_middleware_jwt] := True;
   LTestCase.Config.B[TConfigKey.mcp_generate] := True;
-  LTestCase.MustContain := ['EngineConfigU.pas|// the JWT middleware below authenticates /mcp', 'EngineConfigU.pas|AEngine.UseHTTPFilter(AllowedMethodsFilter([httpPOST, httpDELETE], MCP_ENDPOINT));',
+  LTestCase.MustContain := ['EngineConfigU.pas|// the JWT filters below authenticate /mcp', 'EngineConfigU.pas|AEngine.Use(AllowedMethodsHTTPFilter([httpPOST, httpDELETE], MCP_ENDPOINT));',
     'AuthenticationU.pas|MVCFramework.JSONRPC.TMVCJSONRPCPublisher',
     'AuthenticationU.pas|MVCFramework.MCP.Server.TMCPSessionController'];
-  LTestCase.MustNotContain := ['EngineConfigU.pas|BearerAuthFilter', 'bin/.env|mcp.auth.token',
+  LTestCase.MustNotContain := ['EngineConfigU.pas|BearerAuthHTTPFilter', 'bin/.env|mcp.auth.token',
     'TestProject.dpr|mcp.auth.token'];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
@@ -1774,9 +1887,13 @@ begin
   LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
   LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
   LTestCase.Config.B[TConfigKey.webmodule_middleware_jwt] := True;
-  LTestCase.MustContain := ['AuthenticationU.pas|AuthenticationRequired := False;'];
+  LTestCase.MustContain := ['AuthenticationU.pas|AuthenticationRequired := False;',
+    'EngineConfigU.pas|AEngine.Use(JWTAuthenticationBundle(lJWTOptions));', 'EngineConfigU.pas|MVCFramework.Filters.Authentication,',
+    'EngineConfigU.pas|lJWTOptions.Secret := dotEnv.Env(''JWT_SECRET'');',
+    'EngineConfigU.pas|lJWTOptions.ClaimsToCheck := [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt];'];
   // a session key named like a claim of the middleware makes every login fail
-  LTestCase.MustNotContain := ['AuthenticationU.pas|TMCPSessionController', 'EngineConfigU.pas|MCP',
+  LTestCase.MustNotContain := ['EngineConfigU.pas|AddMiddleware(', 'EngineConfigU.pas|MVCFramework.Middleware.JWT',
+    'AuthenticationU.pas|TMCPSessionController', 'EngineConfigU.pas|MCP',
     'TestProject.dpr|MCP', 'bin/.env|mcp.', 'AuthenticationU.pas|AddOrSetValue(''username''',
     'AuthenticationU.pas|AddOrSetValue(''roles'''];
   LTestCase.ForbiddenFiles := ['Tools.SampleU.pas', '.mcp.json', 'opencode.json'];
@@ -1792,7 +1909,7 @@ begin
   LTestCase.Config.S[TConfigKey.default_media_type] := 'TMVCMediaType.TEXT_HTML';
   LTestCase.Config.B[TConfigKey.webmodule_middleware_jwt] := True;
   LTestCase.Config.B[TConfigKey.mcp_generate] := True;
-  LTestCase.MustContain := ['EngineConfigU.pas|BearerAuthFilter', 'bin/.env|mcp.auth.token=',
+  LTestCase.MustContain := ['EngineConfigU.pas|BearerAuthHTTPFilter', 'bin/.env|mcp.auth.token=',
     'AuthenticationU.pas|AuthenticationRequired := False;'];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
@@ -1807,7 +1924,7 @@ begin
   LTestCase.Config.B[TConfigKey.mcp_generate] := True;
   LTestCase.Config.B[TConfigKey.mcp_bridge] := True;
   LTestCase.ExpectedFiles := ['Tools.SampleU.pas', 'Routes.RootU.pas'];
-  LTestCase.MustContain := ['EngineConfigU.pas|AllowedMethodsFilter'];
+  LTestCase.MustContain := ['EngineConfigU.pas|AllowedMethodsHTTPFilter'];
   LTestCase.MustNotContain := ['EngineConfigU.pas|RegisterFromEngine'];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
@@ -1820,7 +1937,7 @@ begin
   LTestCase.Config.S[TConfigKey.program_server_protocol] := 'https';
   LTestCase.Config.B[TConfigKey.mcp_generate] := True;
   LTestCase.Config.B[TConfigKey.mcp_bridge] := True;
-  LTestCase.MustContain := ['EngineConfigU.pas|AllowedMethodsFilter'];
+  LTestCase.MustContain := ['EngineConfigU.pas|AllowedMethodsHTTPFilter'];
   LTestCase.MustNotContain := ['EngineConfigU.pas|RegisterFromEngine'];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
@@ -1891,7 +2008,7 @@ begin
   LTestCase.Config.B[TConfigKey.mcp_stdio] := True;
   LTestCase.ExpectedFiles := ['Tools.SampleU.pas', 'Resources.SampleU.pas', 'Prompts.SampleU.pas'];
   LTestCase.ForbiddenFiles := ['.mcp.json', 'opencode.json'];
-  LTestCase.MustContain := ['TestProject.dpr|Tools.SampleU in ''Tools.SampleU.pas''', 'EngineConfigU.pas|AllowedMethodsFilter'];
+  LTestCase.MustContain := ['TestProject.dpr|Tools.SampleU in ''Tools.SampleU.pas''', 'EngineConfigU.pas|AllowedMethodsHTTPFilter'];
   LTestCase.MustNotContain := ['TestProject.dpr|TransportConf', 'BootConfigU.pas|MCPTransportIsStdio'];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
@@ -2720,6 +2837,33 @@ var
       Check(AName + ' compiles', CompileProject(LDir, 'TestProject', LError), LError);
   end;
 
+  // What the menu does twice: an HTTP filter, then an endpoint filter, in the same host
+  procedure AddFiltersAndCompile(const AName, ACase, AHostFile: string);
+  var
+    LHTTP, LEndpoint: TDMVCNewUnit;
+    LHTTPCall, LEndpointCall: string;
+    LWired: Boolean;
+  begin
+    LHTTP := NewFilter('Timing', False, LHTTPCall);
+    LEndpoint := NewFilter('Audit', True, LEndpointCall);
+    LWired := False;
+    AddAndCompile(AName, ACase, AHostFile, LHTTP,
+      function(S: string): TDMVCCodeEdits
+      begin
+        PlanFilterRegistration(S, LHTTP.UnitName, LHTTPCall, Result);
+      end,
+      procedure(ADir: string)
+      var
+        LText: string;
+        LEdits: TDMVCCodeEdits;
+      begin
+        LText := TFile.ReadAllText(TPath.Combine(ADir, AHostFile), TEncoding.UTF8);
+        LWired := PlanFilterRegistration(LText, LEndpoint.UnitName, LEndpointCall, LEdits);
+        TFile.WriteAllText(TPath.Combine(ADir, AHostFile), ApplyEdits(LText, LEdits), TEncoding.UTF8);
+      end, [LEndpoint]);
+    Check(AName + ': the endpoint filter registered after the HTTP one', LWired);
+  end;
+
 var
   LDir, LFile, LSource, LCallFmt, LView: string;
   LEdits: TDMVCCodeEdits;
@@ -2735,6 +2879,9 @@ var
   LDmvcSources, LFireDACSources, LDriverIDs: string;
   LSources: string;
   LDocMismatch: Integer;
+  LHTTPFilter, LEndpointFilter: TDMVCNewUnit;
+  LHTTPCall, LEndpointCall: string;
+  LFilterHosts: Integer;
 begin
   Log('');
   Log('=== Project Manager menu: new controller, route group, view ===');
@@ -3240,6 +3387,78 @@ begin
       TFile.WriteAllText(TPath.Combine(ADir, LService.FileName), LService.Source, TEncoding.UTF8);
       TFile.WriteAllText(TPath.Combine(ADir, LModel.FileName), LModel.Source, TEncoding.UTF8);
     end);
+
+  // --- HTTP and endpoint filters: the units
+  LHTTPFilter := NewFilter('Timing', False, LHTTPCall);
+  LEndpointFilter := NewFilter('Timing', True, LEndpointCall);
+  Check('HTTP filter: unit, function, registration, code before and after ANext()',
+    (LHTTPFilter.UnitName = 'HTTPFilters.TimingU') and (LHTTPFilter.TypeName = 'TimingHTTPFilter') and
+    (LHTTPCall = 'Use(TimingHTTPFilter())') and LHTTPFilter.Source.Contains('unit HTTPFilters.TimingU;') and
+    LHTTPFilter.Source.Contains('function TimingHTTPFilter: TMVCHTTPFilter;') and
+    TRegEx.IsMatch(LHTTPFilter.Source, 'StartNew;\s+ANext\(\);\s+//[^\n]*\n\s+AContext\.Response\.SetCustomHeader\(') and
+    LHTTPFilter.Source.Contains('Format(''timing;dur=%.1f''') and not LHTTPFilter.Source.Contains('{{'),
+    LHTTPFilter.Source);
+  Check('endpoint filter: unit, function, registration, the target, the answer of ANext()',
+    (LEndpointFilter.UnitName = 'EndpointFilters.TimingU') and (LEndpointFilter.TypeName = 'TimingEndpointFilter') and
+    (LEndpointCall = 'Use(TimingEndpointFilter())') and
+    LEndpointFilter.Source.Contains('function TimingEndpointFilter: TMVCEndpointFilter;') and
+    LEndpointFilter.Source.Contains('AContext.ActionQualifiedName') and
+    LEndpointFilter.Source.Contains('Result := ANext();') and not LEndpointFilter.Source.Contains('{{'),
+    LEndpointFilter.Source);
+
+  // --- filters: the planner on small sources
+  LSource := 'unit E;'#13#10'interface'#13#10'procedure ConfigureEngine(AEngine: TMVCEngine);'#13#10 +
+    'implementation'#13#10'uses'#13#10'  MVCFramework.Commons;'#13#10#13#10 +
+    'procedure ConfigureEngine(AEngine: TMVCEngine);'#13#10'begin'#13#10'  AEngine.AddController(TA);'#13#10 +
+    'end;'#13#10'end.';
+  Check('filter: at the end of ConfigureEngine, on its parameter, unit used',
+    PlanFilterRegistration(LSource, LHTTPFilter.UnitName, LHTTPCall, LEdits) and
+    Planned(LSource, LEdits).Contains('  AEngine.AddController(TA);'#13#10 +
+      '  AEngine.Use(TimingHTTPFilter());'#13#10'end;') and
+    Planned(LSource, LEdits).Contains('uses'#13#10'  HTTPFilters.TimingU,'#13#10'  MVCFramework.Commons;') and
+    not Planned(LSource, LEdits).Contains('TMVCEngine);'#13#10'  AEngine.Use'), Planned(LSource, LEdits));
+  LSource := 'unit W;'#10'implementation'#10'procedure TW.WebModuleCreate(Sender: TObject);'#10'begin'#10 +
+    '  fMVC := TMVCEngine.Create(Self,'#10'    procedure(AConfig: TMVCConfig)'#10'    begin'#10'    end);'#10 +
+    '  fMVC.AddController(TA);'#10'end;'#10#10'procedure TW.WebModuleDestroy(Sender: TObject);'#10'begin'#10 +
+    '  fMVC.Free;'#10'end;'#10'end.';
+  Check('filter: in a WebModule, at the end of the routine that creates the engine, LF source',
+    PlanFilterRegistration(LSource, LEndpointFilter.UnitName, LEndpointCall, LEdits) and
+    Planned(LSource, LEdits).Contains('  fMVC.AddController(TA);'#10 +
+      '  fMVC.Use(TimingEndpointFilter());'#10'end;'#10#10'procedure TW.WebModuleDestroy') and
+    Planned(LSource, LEdits).Contains('uses'#10'  EndpointFilters.TimingU;') and
+    not Planned(LSource, LEdits).Contains(#13), Planned(LSource, LEdits));
+  Check('filter: refused where the engine goes to ConfigureEngine, when registered already, without an engine',
+    not PlanFilterRegistration('implementation'#13#10'procedure TS.Start;'#13#10'begin'#13#10 +
+      '  lEngine := TMVCEngine.Create;'#13#10'  ConfigureEngine(lEngine);'#13#10'end;', 'BU', 'Use(BF())',
+      LEdits) and (Length(LEdits) = 0) and
+    not PlanFilterRegistration('implementation'#13#10'uses BU;'#13#10'procedure ConfigureEngine(E: TMVCEngine);'#13#10 +
+      'begin'#13#10'  E.Use(BF());'#13#10'end;', 'BU', 'Use(BF())', LEdits) and
+    (Length(LEdits) = 0) and
+    not PlanFilterRegistration('unit A; implementation end.', 'BU', 'Use(BF())', LEdits) and
+    (Length(LEdits) = 0));
+
+  // --- every generated project takes a filter, in exactly one unit (the menu wires into the first that accepts)
+  LWrongKind := 0;
+  for LDir in ACaseDirs do
+  begin
+    LFilterHosts := 0;
+    for LFile in TDirectory.GetFiles(LDir, '*.pas') do
+      if PlanFilterRegistration(TFile.ReadAllText(LFile, TEncoding.UTF8), LHTTPFilter.UnitName, LHTTPCall, LEdits) then
+        Inc(LFilterHosts);
+    if LFilterHosts <> 1 then
+    begin
+      Inc(LWrongKind);
+      Log(Format('    %d filter insertion points: %s', [LFilterHosts, LDir]));
+    end;
+  end;
+  Check(Format('every generated project takes a filter in exactly one unit (%d)', [Length(ACaseDirs)]),
+    LWrongKind = 0);
+
+  // --- filters for real, compiled; the last copies of these cases, left to be started by hand
+  AddFiltersAndCompile('HTTP + endpoint filter in a controller project', 'indydirect_with_crud', 'EngineConfigU.pas');
+  AddFiltersAndCompile('HTTP + endpoint filter in a Minimal API project', 'indydirect_minimal_api_services',
+    'EngineConfigU.pas');
+  AddFiltersAndCompile('HTTP + endpoint filter in a WebModule (Apache)', 'apache_webapp_htmx', 'WebModuleU.pas');
 
   Result := Length(LFailures) = 0;
 end;

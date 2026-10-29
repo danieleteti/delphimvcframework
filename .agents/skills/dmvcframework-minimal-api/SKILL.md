@@ -1,6 +1,6 @@
 ---
 name: dmvcframework-minimal-api
-description: Use when building a DelphiMVCFramework service with lambda/anonymous-method routes instead of controller classes — Minimal API. Triggers on "minimal API", "MapGet", "MapPost", "MapMethods", "route group", "endpoint filter", "HTTP filter", "TMVCRouteGroup", "AsWeb", "lambda routes", "no controller", "Prefix", "UseHTTPFilter", "TMVCFormFile", "MVCFromQueryString", "wizard Minimal API preset". Covers both Minimal REST APIs and Minimal web apps (TemplatePro/HTMX via .AsWeb).
+description: Use when building a DelphiMVCFramework service with lambda/anonymous-method routes instead of controller classes — Minimal API. Triggers on "minimal API", "MapGet", "MapPost", "MapMethods", "route group", "endpoint filter", "HTTP filter", "filter bundle", "TMVCRouteGroup", "AsWeb", "lambda routes", "no controller", "Prefix", "group.Use", "TMVCFormFile", "MVCFromQueryString", "wizard Minimal API preset". Covers both Minimal REST APIs and Minimal web apps (TemplatePro/HTMX via .AsWeb).
 ---
 
 # DMVCFramework — Minimal API
@@ -36,8 +36,8 @@ For the language and the RTL themselves — version gating, lifetime, strings, g
 - Route-level filters/composition (auth per group, versioned prefixes)
 - Web app with lambda handlers rendering TemplatePro views (`.AsWeb`)
 
-Use the controller-based API (skill `dmvcframework`) when you want class-level inheritance, `OnBeforeAction`
-hooks, or the classic middleware chain as the primary mechanism.
+Use the controller-based API (skill `dmvcframework`) when you want class-level inheritance or `OnBeforeAction`
+hooks. The filters (§6) work on both.
 
 ---
 
@@ -62,13 +62,15 @@ project folder**. A Minimal API wizard project has:
 *.dpr              Boot + RegisterServices + RunServer  (Indy Direct by default; a WebModule here means WebBroker/ISAPI/Apache — also fine)
 BootConfigU.pas    dotEnv + LoggerPro
 EngineConfigU.pas  ConfigureEngine — view engine, exception handler, HTTP filters
-RoutesU.pas        ConfigureRoutes — YOUR ROUTES GO HERE
-ServicesU.pas      DI registrations
-EntitiesU.pas      entities
+RoutesU.pas        ConfigureRoutes — YOUR ROUTES GO HERE (one example: GET /api/v1/hello)
+ServicesU.pas      DI registrations: RegisterServices (on by default)
 bin/.env           port and settings
 ```
 
 Read `RoutesU.pas` and `EngineConfigU.pas` before writing anything, and follow their conventions.
+On Delphi 12 and later the user can add a route group or a service from the IDE: right-click the project in
+the Project Manager → **DMVCFramework** → *New Minimal API Route Group...* / *New Service...*; when they
+prefer that, tell them which item to use instead of writing the files yourself.
 
 **Step 2 — if there is no wizard project, stop.** Do not scaffold one. Tell the user:
 
@@ -132,9 +134,10 @@ end;
 procedure ConfigureRoutes(const ARoot: TMVCRouteGroup<TObject>);
 ```
 
-**Ordering rule:** add classic middlewares **before** the first `MapXxx` call. The minimal-API dispatcher is
-installed lazily on the first `Map` and short-circuits matching routes — middlewares added after it never run
-for minimal routes.
+**Ordering rule:** a classic middleware (deprecated in 3.5 — write a filter, §6) must be added **before** the
+first `MapXxx` call. The minimal-API dispatcher is installed lazily on the first `Map` and short-circuits
+matching routes — middlewares added after it never run for minimal routes. The engine-wide filters and
+bundles (`AEngine.Use(...)`) go in `ConfigureEngine`, which runs before `ConfigureRoutes`.
 
 ---
 
@@ -143,19 +146,23 @@ for minimal routes.
 Everything hangs off a **group**. There are no `Map*` methods on `TMVCEngine`.
 
 ```delphi
-// TMVCEngine helpers
+// TMVCEngine helpers (MVCFramework.MinimalAPI)
 function Root: TMVCRouteGroup<TObject>;                      // = Prefix('')
 function Prefix(const APrefix: string): TMVCRouteGroup<TObject>; overload;
 function Prefix<T: class>(const APrefix: string; const AData: T;
-                          AOwns: Boolean = True): TMVCRouteGroup<T>; overload;
-function UseHTTPFilter(const AFilter: TMVCHTTPFilter): TMVCEngine;
+                          const AOwnership: TMVCGroupDataOwnership = gdoEngine): TMVCRouteGroup<T>; overload;
+// TMVCEngine (MVCFramework): one verb, the argument's type picks the overload
+function Use(const AFilter: TMVCHTTPFilter): TMVCEngine; overload;
+function Use(const AFilter: TMVCEndpointFilter): TMVCEngine; overload;   // every route, controllers too
+function Use(const ABundle: IMVCFilterBundle): TMVCEngine; overload;
 ```
 
 `TMVCRouteGroup<T>` — **a record with value semantics**:
 
 ```delphi
 function Prefix(const APath: string): TMVCRouteGroup<T>;             // nested; inherits filters + rkWeb
-function Use(const AFilter: TMVCEndpointFilter): TMVCRouteGroup<T>;
+function Use(const AFilter: TMVCEndpointFilter): TMVCRouteGroup<T>; overload;
+function Use(const ABundle: IMVCFilterBundle): TMVCRouteGroup<T>; overload;  // endpoint part here, HTTP part on the engine
 function AsWeb: TMVCRouteGroup<T>;                                    // web route: hidden from OpenAPI
 function AsApi: TMVCRouteGroup<T>;                                    // default
 function MapGet   (const APath: string; const AHandler: TMVCMinimalFunc): TMVCRouteHandle;
@@ -169,15 +176,28 @@ function MapMethods(const AVerbs: array of TMVCHTTPMethodType; const APath: stri
 
 Each `Map*` (and `MapMethods`) has generic overloads for **1 to 4** typed handler arguments:
 `MapGet<T1>`, `MapGet<T1,T2>`, `MapGet<T1,T2,T3>`, `MapGet<T1,T2,T3,T4>`.
+**Always write the type arguments** — `lWeb.MapGet<TWebContext>('/', function(Ctx: TWebContext): IMVCResponse ...)`.
+Delphi does not infer them from the anonymous method: without them the call fails with *E2250 There is no
+overloaded version of 'MapGet'*. The plain `MapGet(APath, AHandler)` takes only a handler with **no** arguments.
 
 > **Value-semantics trap:** `Use`/`Prefix`/`AsWeb` return a **new** group.
-> `lGroup.Use(Authorize);` on its own line is a **no-op**. Chain it or reassign:
-> `lGroup := lGroup.Use(Authorize);`
+> `lGroup.Use(AuthorizeEndpointFilter());` on its own line is a **no-op**. Chain it or reassign:
+> `lGroup := lGroup.Use(AuthorizeEndpointFilter());`
+> With a bundle it is worse than a no-op: `lGroup.Use(JWTAuthenticationBundle(...));` alone registers the login on
+> the engine and loses the check of the group.
+>
+> **A filter without arguments needs `()`**: `Use(AuthorizeEndpointFilter())`, `AEngine.Use(ETagHTTPFilter())`,
+> `AEngine.Use(SecurityHeadersHTTPFilter())`. Without them Delphi passes the function itself, not the filter it
+> returns: *E2250 There is no overloaded version of 'Use'*.
+>
+> **No HTTP filter on a group.** `lGroup.Use(CORSHTTPFilter('*'))` does not compile (E2250): an HTTP filter runs
+> before routing, so it cannot run for one group. Register it on the engine. A route (`TMVCRouteHandle.Use`) takes
+> an endpoint filter only.
 
 Path syntax = standard DMVC: `($id)`, with optional constraint `($id:int)`.
-Constraints: `int`, `int64`, `float`, `bool`, `guid`, `date` (`yyyy-mm-dd`), `sqids` (decoded to the integer) — the
-same list and behaviour as controller routes. A failed constraint means the route simply does not match (→ 404 or
-the next route). An unknown constraint name makes `MapGet`/`MapPost`/... raise `EMVCException` at registration (controllers: `AddController`, same check).
+Constraints: `int`, `int64`, `float`, `bool`, `guid`, `date`, `sqids`. A failed constraint means the route
+simply does not match (→ 404 or the next route). An unknown constraint name raises `EMVCException` when the
+route is registered, at startup.
 Trailing wildcard: `($slug:*)` captures the rest of the path, slashes included, as a `string`.
 
 ### Route metadata — `TMVCRouteHandle` (returned by every `Map*`)
@@ -190,8 +210,8 @@ lRoutes.MapGet('/customers', ...)
   .WithTags(['customers'])
   .WithDeprecated
   .Produces<TCustomer>
-  .WithOpenAPI(False)                // hide from the spec
-  .Use(RequireRole('admin'));        // route-scoped filter, runs after the group's
+  .WithOpenAPI(oavHidden)            // hide from the spec
+  .Use(RequireRoleEndpointFilter('admin'));        // route-scoped filter, runs after the group's
 ```
 
 ---
@@ -278,9 +298,12 @@ ProblemDetails(StatusCode, Title, Detail = '', Instance = '');
 - `Ok(TObject)` serializes and **frees** the object (`Owns = True`) — works for `TObjectList<T>`,
   entities, `TJsonObject`.
 - `Ok(string)` wraps the string as `{"message": "..."}`.
+- `ProblemDetails(...)` is the RFC 7807 object itself, sent as `application/problem+json` (on 3.5.0-rc7 and
+  earlier it came out wrapped in `{"data": ...}` as `application/json`).
 - **Records cannot be returned.** There is no `Ok(record)` overload — build a class or a `TJsonObject`.
 - The result is mutable: `Result := Ok(lData); Result.StatusCode := 201;`
-- HTML: return a `TMVCHTMLResponse` (set `.HTMLBody`) or use `RenderView` (§7).
+- HTML: `RenderView` (§7) for a template; `Html(const AHtml: string)` for a small fragment with no template
+  (an HTMX swap target) — it sends the string **as is**, nothing escaped, so encode any untrusted value in it.
 
 ---
 
@@ -298,17 +321,27 @@ TMVCHTTPFilter         = reference to procedure(const AContext: TWebContext;
 
 | | EndpointFilter | HTTPFilter |
 |--|----------------|-----------|
-| Attached to | a group (`group.Use`) or one route (`handle.Use`) | the engine (`lEngine.UseHTTPFilter`) |
+| Attached to | a group (`group.Use`), one route (`handle.Use`), or every route — controller actions too (`lEngine.Use`) | the engine only (`lEngine.Use`) |
 | Fires | only when a route matches | on **every** request, wrapping routing itself |
 | Works with | `IMVCResponse` in/out | mutates `Ctx.Response` directly |
-| Order | after all HTTPFilters; first `Use`d = outermost | all HTTPFilters run before any EndpointFilter |
+| Order | after all HTTPFilters; the engine-wide ones outside the group's; first registered = outermost | all HTTPFilters run before any EndpointFilter |
 
 Skipping `ANext()` short-circuits the chain. Nested `Prefix` inherits the parent's filters.
+The base types are declared in `MVCFramework` (the names stay valid from `MVCFramework.MinimalAPI`).
+
+**Filter bundles** (`IMVCFilterBundle`, `MVCFramework`, re-exported by `MVCFramework.MinimalAPI`): filters that go
+together — an HTTP part and an endpoint part, each in its order — registered by one `Use`. On a group,
+`lGroup.Use(B)` puts the endpoint part on the group and the HTTP part on the engine; on the engine, `lEngine.Use(B)`
+puts both engine-wide. The same bundle instance on two sibling groups is allowed (HTTP part once); on the engine and
+on a group, on a group and a group nested in it, or twice on the engine, it raises `EMVCConfigException` at the
+second `Use`. A bundle with no endpoint part (`FileServerBundle`) on a group raises too: use it on the engine. Build one with
+`TMVCFilterBundle.Create([HTTP filters], [endpoint filters])`; an endpoint filter held in a variable inside `[...]`
+is called instead of passed (E2035) — write `[TMVCEndpointFilter(lFilter)]`.
 
 **Custom endpoint filter — the whole shape:**
 
 ```delphi
-function RequireLogin(const ARedirectTo: string): TMVCEndpointFilter;
+function RequireLoginEndpointFilter(const ARedirectTo: string): TMVCEndpointFilter;
 begin
   Result :=
     function(const Ctx: TWebContext; const Next: TMVCEndpointFilterNext): IMVCResponse
@@ -323,16 +356,85 @@ end;
 
 ### Ready-made filters (`MVCFramework.Filters`)
 
-**EndpointFilters** — `MemorySession(TimeoutMinutes = 0; HttpOnly = False)` · `FileSession(...)` ·
-`DatabaseSession(...)` · `CORS(...)` · `JWT(AuthHandler, ClaimsSetup, Secret, LoginURLSegment, ClaimsToCheck,
-LeewaySeconds, HMACAlgorithm)` · `BasicAuth(Validator, Realm)` · `Authorize` ·
-`RequireRole(Role)` / `RequireRole(Roles: TArray<string>)` (any-of) · `ActiveRecord(ConnectionDefName)`
+A filter's name ends in `EndpointFilter` (engine, group or route) or `HTTPFilter` (engine only); a function that
+builds a bundle ends in `Bundle` (engine or group). All of them are registered with `Use`.
 
-**HTTPFilters** — `StaticFiles(Prefix, RootFolder, DefaultDocument = 'index.html')` ·
-`Compression(Threshold = 1024)` · `ETag` · `IPBlock(...)` · `RateLimit(Max = 60, WindowSeconds = 60)` ·
-`RequestLog` · `CORSFilter(...)` · `SecurityHeaders` · `Shutdown(...)` · `Analytics(...)` · `Trace(...)` ·
-`Redirect(...)` · `RangeMedia(URLPath, DocumentRoot)` · `OpenAPI(Engine, Info, '/openapi.json')` · `Swagger(...)`
-(`RateLimitRedis` lives in `MVCFramework.Filters.Redis`.)
+**EndpointFilters** — `AuthorizeEndpointFilter` · `RequireRoleEndpointFilter(Role)` / `RequireRoleEndpointFilter(Roles: TArray<string>)` (any-of) ·
+`BasicAuthEndpointFilter(Validator, Realm)` / `BasicAuthEndpointFilter(Handler, Realm)` (pass the realm with a validator,
+and write `TAuthentication.Create as IMVCAuthenticationHandler` for a handler: otherwise the overloads do not resolve,
+E2250) · `CSRFEndpointFilter(...)` ·
+`MemorySessionEndpointFilter(TimeoutMinutes = 0; Flags = [scfHttpOnly])` · `FileSessionEndpointFilter(TimeoutMinutes, Folder, Flags)` ·
+`SessionEndpointFilter(Factory)` · `CORSEndpointFilter(...)` (matched routes only: it does not answer a preflight — use `CORSHTTPFilter`)
+
+**HTTPFilters** — `StaticFilesHTTPFilter(Prefix, RootFolder, Mode = sfmFiles, DefaultDocument = 'index.html')` (`sfmSPA`
+for a single-page app) / `StaticFilesHTTPFilter(TMVCStaticFilesOptions)` · `CompressionHTTPFilter(Threshold = 1024)` · `ETagHTTPFilter` ·
+`CORSHTTPFilter(Origins = '*', AllowsCredentials = False, ...)` · `RateLimitHTTPFilter(Max = 60, WindowSeconds = 60)` /
+`RateLimitHTTPFilter(TMVCRateLimitOptions)` · `IPBlockHTTPFilter(...)` · `RequestLogHTTPFilter` · `SecurityHeadersHTTPFilter` · `ShutdownHTTPFilter(...)` ·
+`AnalyticsHTTPFilter(...)` · `TraceHTTPFilter(...)` · `RedirectHTTPFilter(...)` · `RangeMediaHTTPFilter(URLPath, DocumentRoot)` ·
+`MemorySessionHTTPFilter` / `FileSessionHTTPFilter` / `SessionHTTPFilter` · request guards `BearerAuthHTTPFilter`,
+`AllowedOriginHTTPFilter`, `AllowedHostHTTPFilter`, `AllowedMethodsHTTPFilter` · `CSRFHTTPFilter`
+
+**Bundles** — `FileServerBundle(URLPrefix, DocumentRoot, Mode = fsmFiles)` / `FileServerBundle(TMVCFileServerOptions)`:
+the files of `StaticFilesHTTPFilter` (MIME type, `Last-Modified`/304, default document, path traversal refused) plus
+206 Partial Content for a GET or HEAD with a `Range` header (a HEAD gets the headers only). `fsmSPA`: a GET/HEAD with no route gets `index.html`, so an
+API keeps its routes on the same prefix. The options (`TMVCFileServerOptions.Default`) add `DefaultDocument`,
+`Charset`, `Flags` (`[fsfRanges]` by default; `fsfCaseSensitivePrefix`), `MediaTypesCustomizer`, `Rules`. An HTTP part
+only: register it on the engine (on a group it raises). · `MVCFramework.Filters.Authentication` —
+`JWTAuthenticationBundle(Handler, ClaimsSetup, Secret, LoginURL = '/login')` / `JWTAuthenticationBundle(TMVCJWTAuthenticationOptions)`,
+`JWTCookieAuthenticationBundle(Handler, ClaimsSetup, Secret, Cookie, LoginURL = '/login', LogoutURL = '/logout')` /
+`JWTCookieAuthenticationBundle(TMVCJWTCookieAuthenticationOptions)`, `BasicAuthenticationBundle(Handler, Realm)`,
+`CustomAuthenticationBundle(Handler, LoginURL)` (the options, the blacklist and the refresh token: `dmvcframework`
+skill, *Filters*) · `MVCFramework.Filters.OIDC` — `OIDCAuthenticationBundle(TMVCOIDCOptions)`
+
+**Companion units** (the core unit pulls in no FireDAC, SwagDoc or Redis): `MVCFramework.Filters.ActiveRecord` —
+`ActiveRecordEndpointFilter(ConnectionDefName)`, `DatabaseSessionEndpointFilter`, `ActiveRecordHTTPFilter`, `DatabaseSessionHTTPFilter` ·
+`MVCFramework.Filters.OpenAPI` — `OpenAPIHTTPFilter(Engine, Info, '/openapi.json')` /
+`OpenAPIHTTPFilter(Engine, Info, [Sources], '/openapi.json')` (your `IMVCOpenAPISource`s, after the routes and the
+controllers) · `MVCFramework.Filters.Swagger` — `SwaggerHTTPFilter(Engine, Info, URL, JWTDescription,
+Authentications = [], ...)`: with `JWTAuthenticationBundle` pass `[sauBearer]` (`TMVCSwaggerAuthentications`), because
+the filter finds a JWT on its own only in the deprecated middleware · `MVCFramework.Filters.Redis` — `RateLimitRedisHTTPFilter` ·
+`MVCFramework.JWT.RefreshToken.Filters` — `RefreshTokenHTTPFilter` (the refresh endpoint alone, for a login of your own).
+
+**A login route of your own** (it issues the tokens itself): `TMVCJWTAuthenticationOptions` with `LoginURL := ''`
+gives a bundle with the check only (plus the blacklist and the refresh URL when set); `ClaimsSetup` stays nil.
+The login route must be **outside the check**: a Minimal API route is always checked (`OnRequest` is not asked),
+so put this bundle on the group it protects — `lApi.Prefix('/admin').Use(JWTAuthenticationBundle(lJWTOptions))` —
+and map the login on a group without it. Engine-wide, the check would cover the login route too. A refresh store,
+when used, is one global instance for the process (see `dmvcframework`, *Filters*).
+
+### Authentication on a group
+
+An authentication bundle on the group: the check (endpoint part) covers the group's routes, the login needs no
+route and goes on the engine by itself (as the wizard generates it, in `Routes.RootU`):
+
+```delphi
+// var lJWTOptions: TMVCJWTAuthenticationOptions;
+// POST /api/v1/admin/login (jwtusername / jwtpassword) answers {"token": "..."};
+// every route on lAdmin needs the token
+lJWTOptions := TMVCJWTAuthenticationOptions.Default;
+lJWTOptions.Handler := TAuthentication.Create;
+lJWTOptions.ClaimsSetup := procedure(const JWT: TJWT)
+  begin
+    JWT.Claims.Issuer := dotEnv.Env('JWT_ISSUER', 'MyApp');
+    JWT.Claims.ExpirationTime := Now + OneHour;
+    JWT.Claims.NotBefore := Now - OneMinute * 5;
+    JWT.Claims.IssuedAt := Now;
+  end;
+lJWTOptions.Secret := dotEnv.Env('JWT_SECRET');      // no fallback for the key
+lJWTOptions.LoginURL := '/api/v1/admin/login';
+lJWTOptions.ClaimsToCheck := [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt];
+lAdmin := lApi.Prefix('/admin')
+  .Use(JWTAuthenticationBundle(lJWTOptions))
+  .Use(RequireRoleEndpointFilter('admin'));
+```
+
+The short form, `JWTAuthenticationBundle(TAuthentication.Create, lClaimsSetup, dotEnv.Env('JWT_SECRET'),
+'/api/v1/admin/login')`, checks the expiration only. The same bundle, kept in a variable (`lAuth: IMVCFilterBundle`),
+can go on two groups: its login is registered once.
+
+On a route, the handler's `OnRequest` is **not** asked (authentication is always required) and
+`OnAuthorization` gets `''` as controller and `'VERB pattern'` as action. The login answers any verb:
+`CORSHTTPFilter` or `RateLimitHTTPFilter` that must cover it are HTTP filters registered on the engine before it.
 
 ---
 
@@ -348,14 +450,25 @@ AEngine.UseExceptionHandler('error', 'MyApp');
 Mark the group `.AsWeb` (excludes it from OpenAPI) and add a session filter:
 
 ```delphi
-var lWeb := ARoot.AsWeb.Use(MemorySession(10));
+var lWeb := ARoot.AsWeb.Use(MemorySessionEndpointFilter(30, SessionCookieFlags(dotEnv.Env('SESSION_COOKIE_SECURE', True))));  // as the wizard
 
-lWeb.MapGet('/',
-  function(Ctx: TWebContext): IMVCResponse   // MapGet<TWebContext>
+lWeb.MapGet<TWebContext>('/customers',
+  function(Ctx: TWebContext): IMVCResponse
+  var
+    lCustomers: TObjectList<TCustomer>;
   begin
-    ViewData['ispage']    := not Ctx.Request.IsHTMX;   // uses MVCFramework.HTMX
-    ViewData['customers'] := GetCustomers;
-    Result := RenderView('customers');
+    lCustomers := GetCustomers;
+    try
+      ViewData['customers'] := lCustomers;
+      // HTMX asks for the table only; a normal request gets the whole page
+      if Ctx.Request.IsHTMX and not Ctx.Request.HXIsBoosted
+         and not Ctx.Request.HXIsHistoryRestoreRequest then   // uses MVCFramework.HTMX
+        Result := RenderView('customers/table')
+      else
+        Result := RenderView('customers/index');
+    finally
+      lCustomers.Free;               // ViewData owns nothing
+    end;
   end);
 ```
 
@@ -373,13 +486,7 @@ function RenderViews(const AViewNames: TArray<string>; const AUseCommonHeadersAn
 otherwise; they are stale).
 
 Session: read/write `Ctx.Session['user']`, end with `Ctx.SessionStop`.
-The one HTMX idiom you need — full page vs fragment from the same handler:
-
-```delphi
-ViewData['ispage'] := not Ctx.Request.IsHTMX;
-```
-and in `baselayout.html`, wrap the chrome in `{{if ispage}}…{{endif}}`.
-For TemplatePro syntax and HTMX attributes see the `dmvcframework-webapp` skill.
+Page vs fragment: the handler above; the template pair, TemplatePro and HTMX are in `dmvcframework-webapp`.
 
 **Content negotiation:** if an `rkApi` and an `rkWeb` route share verb+path, the winner is scored on
 `Accept`/`Content-Type` (web wins on `text/html`, api on `application/json`). Ties → first registered.
@@ -391,8 +498,19 @@ For TemplatePro syntax and HTMX attributes see the `dmvcframework-webapp` skill.
 - **Bound classes:** validated automatically if the class carries ≥1 validator attribute or descends from
   `TMVCValidatable` — after deserialization, before the handler runs.
 - **Bound records:** validated **unconditionally** (`ValidateRecord`); fields with validator attributes are checked.
+  Error keys are field names; no `OnValidate`, no nesting, and cross-field validators (`MVCCompareField`, …)
+  get no owner object and do not check — use a class for rules that span two fields.
 - Failure raises `EMVCValidationException` → rendered as RFC-7807 ProblemDetails with **422**
-  (binding errors raise `EMVCMinimalAPI` → **400**).
+  (binding errors → **400**: `EMVCMinimalAPI` for a route/query value, `EMVCException` for malformed JSON). The body has `"detail": "Validation failed for fields:
+  Email, FirstName"` plus an `"errors"` object with the per-field messages (`{"Email": "...", ...}`).
+  `errors` arrived after 3.5.0-rc7: on rc7 and earlier only `detail` is there.
+- Validators read **properties** of a class (fields of a record); on a `NullableXxx` property only
+  `MVCRequired` checks anything.
+- HTML form posts (`Ctx.Request.ContentFields`) are not validated for you: copy the fields into an object,
+  validate, re-render with `formModel`/`formErrors` and 422.
+
+The full attribute list, the error-map response, the form re-render pattern and custom validators are in the
+`dmvcframework` skill, `reference/validation.md`.
 
 ```delphi
 type
@@ -412,13 +530,13 @@ procedure ConfigureRoutes(const ARoot: TMVCRouteGroup<TObject>);
 begin
   var lApi := ARoot.Prefix('/api');
 
-  lApi.MapGet('/customers',
+  lApi.MapGet<TCustomerSearch, ICustomerService>('/customers',
     function(Search: TCustomerSearch; Svc: ICustomerService): IMVCResponse   // record + DI interface
     begin
       Result := Ok(Svc.Search(Search.Query, Search.Page));                   // TObjectList → owned & freed
     end).WithName('customers.list').Produces<TCustomer>;
 
-  lApi.MapGet('/customers/($id:int)',
+  lApi.MapGet<Integer, ICustomerService>('/customers/($id:int)',
     function(ID: Integer; Svc: ICustomerService): IMVCResponse               // primitive ← route segment
     var
       lCustomer: TCustomer;
@@ -429,7 +547,7 @@ begin
       Result := Ok(lCustomer);
     end);
 
-  lApi.MapPost('/customers',
+  lApi.MapPost<TCreateCustomerReq, ICustomerService>('/customers',
     function(Req: TCreateCustomerReq; Svc: ICustomerService): IMVCResponse   // record → validated
     var
       lID: Integer;
@@ -438,10 +556,11 @@ begin
       Result := Created('/api/customers/' + lID.ToString, 'Customer created');
     end);
 
-  // admin group — filters applied to every route below
-  var lAdmin := lApi.Prefix('/admin').Use(Authorize).Use(RequireRole('admin'));
+  // admin group — filters applied to every route below. AuthorizeEndpointFilter needs a user: an authentication
+  // bundle before it (.Use(JWTAuthenticationBundle(...))), or BearerAuthHTTPFilter in EngineConfigU (the wizard's non-JWT admin group)
+  var lAdmin := lApi.Prefix('/admin').Use(AuthorizeEndpointFilter()).Use(RequireRoleEndpointFilter('admin'));
 
-  lAdmin.MapDelete('/customers/($id:int)',
+  lAdmin.MapDelete<Integer, ICustomerService>('/customers/($id:int)',
     function(ID: Integer; Svc: ICustomerService): IMVCResponse
     begin
       Svc.Delete(ID);
@@ -464,7 +583,14 @@ end;
 | `function(Svc: TCustomerService)` | Only **interfaces** get DI. A class arg means body/query/group data |
 | Returning a record | No `Ok(record)` overload. Return a class or `TJsonObject` |
 | Freeing a bound arg / `TMVCFormFile.ContentStream` | Framework-owned. Do not free |
-| Adding a middleware after the first `MapXxx` | It will not run for minimal routes. Register middlewares first |
+| Object loaded, then `Update`/`Insert`/anything that can raise, then `Ok(x)` | Leaks on the exception: `Ok` owns it only once called. Wrap the stretch in `try ... except x.Free; raise; end` |
+| Adding a middleware after the first `MapXxx` | It will not run for minimal routes. Register middlewares first — better, write the filter: every classic middleware is deprecated in 3.5 |
+| `JWT(handler, claimsSetup, secret, '/login', ...)` | The rc8 name and signature, gone after rc8. Write `.Use(JWTAuthenticationBundle(handler, claimsSetup, secret, '/login'))`: the check on the group, the login on the engine, in one call |
+| `lEngine.UseHTTPFilter(...)` | The rc8 name. After rc8 it is `lEngine.Use(...)`, for HTTP filters, endpoint filters and bundles alike |
+| `CORSHTTPFilter(...)` on a group / `CORS(...)`, `CORSFilter(...)` | `CORSHTTPFilter` is the **HTTP** filter (answers the preflight, `lEngine.Use`); on a group it does not compile. The endpoint one is `CORSEndpointFilter`. In rc8 `CORSFilter` was the HTTP filter and `CORS` the endpoint one |
+| `Use(AuthorizeEndpointFilter)` | E2250: a filter function without arguments needs `()` |
+| The same bundle on the engine and on a group | `EMVCConfigException` at startup: the check would run twice on the group. Put it in one place |
+| `MemorySession(30, True, lSecure)` | The rc8 form. The cookie flags are now a set: `MemorySessionEndpointFilter(30, [scfHttpOnly, scfSecure])` or `SessionCookieFlags(lSecure)` |
 | `procedure` handler | Handlers are always `function ... : IMVCResponse` |
 
 ---
@@ -474,9 +600,11 @@ end;
 | Unit | Purpose |
 |------|---------|
 | `MVCFramework.MinimalAPI` | `Root`/`Prefix`, `TMVCRouteGroup<T>`, `TMVCRouteHandle`, `TMVCMinimalFunc`, `TMVCFormFile`, `ViewData`, `RenderView` |
-| `MVCFramework.Filters` | All ready-made endpoint/HTTP filters |
-| `MVCFramework.Filters.Redis` | `RateLimitRedis` |
-| `MVCFramework` | `TMVCEngine`, `IMVCResponse`, response builders, `[MVCFromBody/QueryString/Header/Cookie/ContentField/File]` |
+| `MVCFramework.Filters` | The ready-made endpoint/HTTP filters, `FileServerBundle`, `TMVCAuthCookieOptions`, `SessionCookieFlags` |
+| `MVCFramework.Filters.Authentication` | `JWTAuthenticationBundle`, `JWTCookieAuthenticationBundle`, `BasicAuthenticationBundle`, `CustomAuthenticationBundle` and their options |
+| `MVCFramework.Filters.ActiveRecord` · `.OpenAPI` · `.Swagger` · `.OIDC` · `.Redis` | The filters that need FireDAC, the OpenAPI emitter, SwagDoc, the REST client, Redis (list in §6) |
+| `MVCFramework.JWT` | `TJWT`, `TJWTClaimsSetup`, `TJWTCheckableClaim` (for `JWTAuthenticationBundle`) |
+| `MVCFramework` | `TMVCEngine` and its `Use`, `IMVCFilterBundle`, `TMVCFilterBundle`, `IMVCResponse`, response builders, `[MVCFromBody/QueryString/Header/Cookie/ContentField/File]` |
 | `MVCFramework.Server.Factory` | `TMVCServerFactory.CreateIndyDirect / CreateHttpSys / CreateWebBroker` |
 | `MVCFramework.HTMX` | `Request.IsHTMX`, `Response.HXSet*` helpers |
 | `MVCFramework.Container` | `DefaultMVCServiceContainer`, `RegisterType`, `Build` |
@@ -486,6 +614,6 @@ end;
 | Folder | Shows |
 |--------|-------|
 | `samples/minimal_api/` | REST routes, groups, typed `Prefix<T>` group data, OpenAPI |
-| `samples/minimal_api_webapp/` | `.AsWeb`, `MemorySession`, `RequireLogin`, RenderView |
+| `samples/minimal_api_webapp/` | `.AsWeb`, `MemorySessionEndpointFilter`, `RequireLoginEndpointFilter`, RenderView |
 | `samples/wizard_showcase/rest/` | Wizard project shape: dpr → BootConfig → EngineConfig → Routes |
 | `samples/wizard_showcase/web/` | Same, web flavour + TemplatePro helpers + HTMX templates |

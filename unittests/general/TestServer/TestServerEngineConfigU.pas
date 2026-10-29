@@ -21,6 +21,9 @@ uses
   AuthHandlersU,
   TestServerControllerJSONRPCU,
   MinimalAPIWebTestsU,
+  EndpointFilterSupportU,
+  HTTPFilterSupportU,
+  AuthFilterSupportU,
   MVCFramework.OpenAPI3,
   MVCFramework.Middleware.OpenAPI3,
   {$IFNDEF LINUX}
@@ -96,6 +99,18 @@ begin
 
   // Minimal-API web extension integration tests
   RegisterMinimalAPIWebRoutes(AEngine);
+
+  // Endpoint filters (post-routing): they act only on their own controller and route and let every
+  // other request through, so the whole suite also runs through the endpoint filter chain
+  ConfigureEndpointFilterSupport(AEngine);
+
+  // The ready-made HTTP filters, each on a prefix of its own. /fstatic and /fspa serve the folder that the
+  // classic middleware serves at /static and /spa, so the tests can compare the two
+  ConfigureHTTPFilterSupport(AEngine, 'www');
+
+  // The authentication filters (JWT, JWT cookie, blacklist, OIDC with a fake provider at /idp), each on
+  // paths of its own. The suite reaches the TestServer at localhost:8888 on every host
+  ConfigureAuthFilterSupport(AEngine, 'http://localhost:8888');
 
   // OpenAPI 3 endpoint at /openapi.json (used by the Minimal API OpenAPI tests)
   lOAInfo.Title := 'DMVCFramework TestServer';

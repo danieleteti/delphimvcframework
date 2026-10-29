@@ -37,7 +37,7 @@ uses
 // =============================================================================
 
 // One filter that does request logging + elapsed time, around the entire chain.
-function RequestLoggingFilter: TMVCEndpointFilter;
+function RequestLoggingEndpointFilter: TMVCEndpointFilter;
 begin
   Result := function (const Ctx: TWebContext;
                        const Next: TMVCEndpointFilterNext): IMVCResponse
@@ -67,7 +67,7 @@ begin
 end;
 
 // "Not found" exceptions become a clean 404 (vs the default 500).
-function NotFoundMapperFilter: TMVCEndpointFilter;
+function NotFoundMapperEndpointFilter: TMVCEndpointFilter;
 begin
   Result := function (const Ctx: TWebContext;
                        const Next: TMVCEndpointFilterNext): IMVCResponse
@@ -101,14 +101,14 @@ begin
 
   // ---------------------------------------------------------------------
   // /v1 — DEPRECATED API version. Two filters:
-  //   * RequestLoggingFilter (logs + elapsed time)
-  //   * NotFoundMapperFilter (turns "not found" exceptions into 404)
+  //   * RequestLoggingEndpointFilter (logs + elapsed time)
+  //   * NotFoundMapperEndpointFilter (turns "not found" exceptions into 404)
   // Group data: TApiVersion handed to handlers as a parameter.
   // ---------------------------------------------------------------------
   lV1 := ARoot
     .Prefix<TApiVersion>('/v1', TApiVersion.Create(1, True, '2026-12-31'))
-    .Use(RequestLoggingFilter())
-    .Use(NotFoundMapperFilter());
+    .Use(RequestLoggingEndpointFilter())
+    .Use(NotFoundMapperEndpointFilter());
 
   // GET /v1/people — handler reads group data (TApiVersion) AND a DI
   // service. Returns the people list with a deprecation note.
@@ -151,8 +151,8 @@ begin
   // ---------------------------------------------------------------------
   lV2 := ARoot
     .Prefix<TApiVersion>('/v2', TApiVersion.Create(2, False))
-    .Use(RequestLoggingFilter())
-    .Use(NotFoundMapperFilter());
+    .Use(RequestLoggingEndpointFilter())
+    .Use(NotFoundMapperEndpointFilter());
 
   lV2.MapGet<TApiVersion, IPeopleService>('/people',
     function (Ver: TApiVersion; Svc: IPeopleService): IMVCResponse

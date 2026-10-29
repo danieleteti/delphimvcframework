@@ -489,7 +489,8 @@ type
     procedure WriteChunk(const ABytes: TBytes);
     /// Emit the terminating chunk and complete the response.
     procedure Finish;
-    /// False once the client has gone away (write failed).
+    /// False once the client has gone away (write failed), and once the
+    /// headers of a HEAD are out: nothing else is sent, the source stops.
     function Connected: Boolean;
   end;
 
@@ -651,6 +652,8 @@ type
     function GetViewData: TMVCViewDataObject;
   protected
     fActionQualifiedName: String;
+    fControllerQualifiedClassName: String;
+    fActionName: String;
     procedure Flush; virtual;
     function GetData: TMVCStringDictionary;
     procedure InternalSessionStart(var Session: TMVCWebSession);
@@ -689,6 +692,15 @@ type
     property CustomIntfObject: IInterface read GetIntfObject write SetIntfObject;
     property ParamsTable: TMVCRequestParamsTable read GetParamsTable write SetParamsTable;
     property ActionQualifiedName: String read fActionQualifiedName;
+    /// <summary>
+    /// The target the router found, available to the endpoint filters and to the code that runs after routing.
+    /// For a controller action: its qualified class name and the method name. For a Minimal API route:
+    /// an empty class name and the verb + pattern of the route.
+    /// </summary>
+    property ControllerQualifiedClassName: String read fControllerQualifiedClassName;
+    property ActionName: String read fActionName;
+    /// <summary>Called by the dispatchers once the target is known.</summary>
+    procedure SetMatchedAction(const AControllerQualifiedClassName, AActionName: string);
     property ServiceContainerResolver: IMVCServiceContainerResolver read fServiceContainerResolver;
     property ViewData: TMVCViewDataObject read GetViewData;
   end;
@@ -1196,6 +1208,61 @@ type
     procedure OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
   end;
 
+  /// <summary>
+  /// Post-routing filter: it runs once the router has found the target (a controller action or a Minimal API
+  /// route), with the controller and the action in the context (ControllerQualifiedClassName, ActionName).
+  /// ANext() runs the rest: the filters that follow and then the action. A filter that does not call ANext()
+  /// answers the request by returning the response to render.
+  /// For a Minimal API route ANext() returns the response of the handler; for a controller action it returns
+  /// nil, because the action has already written its answer to the context: to replace that answer return
+  /// another response. Registered engine-wide with TMVCEngine.Use, or per route group with
+  /// the Use method of the group (Minimal API).
+  /// The HTTP filters (TMVCHTTPFilter) are the pre-routing counterpart: they wrap the whole dispatch, routing
+  /// included, and know nothing about the target.
+  /// </summary>
+  TMVCEndpointFilterNext = reference to function: IMVCResponse;
+  TMVCEndpointFilter = reference to function(const AContext: TWebContext;
+    const ANext: TMVCEndpointFilterNext): IMVCResponse;
+
+  /// <summary>
+  /// Pre-routing filter: it wraps the whole request, routing and the action included. The code before ANext()
+  /// runs before anything else, the code after it runs when the answer is complete (the action has run and has
+  /// written its response, the classic middleware have run their hooks). A filter that does not call ANext()
+  /// answers the request by itself. A filter knows the request and the response, not the target: for that see
+  /// the endpoint filters (TMVCEndpointFilter), which run after routing.
+  /// Registered engine-wide with TMVCEngine.Use: the first registered is the outermost, and all of them
+  /// wrap the classic middleware whatever the order of registration.
+  /// </summary>
+  TMVCHTTPFilterNext = reference to procedure;
+  TMVCHTTPFilter = reference to procedure(const AContext: TWebContext;
+    const ANext: TMVCHTTPFilterNext);
+
+  /// <summary>
+  /// Filters that go together (the HTTP and the endpoint part of an authentication mechanism, for example),
+  /// registered with one Use. TMVCEngine.Use appends the HTTP filters to the HTTP chain and the endpoint filters
+  /// to the engine-wide endpoint chain, each list in its order. The Use of a Minimal API route group puts the
+  /// endpoint filters on the group and the HTTP filters on the engine, once whatever the number of groups. The
+  /// same bundle cannot go both engine-wide and on a group, nor twice engine-wide, nor on a group and on a group
+  /// nested in it; a bundle with HTTP filters only (FileServerBundle) goes on the engine, on a group it raises.
+  /// Build one with TMVCFilterBundle.
+  /// </summary>
+  IMVCFilterBundle = interface
+    ['{35D2589D-F40A-426D-925F-87A7722A88C8}']
+    function HTTPFilters: TArray<TMVCHTTPFilter>;
+    function EndpointFilters: TArray<TMVCEndpointFilter>;
+  end;
+
+  TMVCFilterBundle = class(TInterfacedObject, IMVCFilterBundle)
+  private
+    fHTTPFilters: TArray<TMVCHTTPFilter>;
+    fEndpointFilters: TArray<TMVCEndpointFilter>;
+  public
+    constructor Create(const AHTTPFilters: TArray<TMVCHTTPFilter>;
+      const AEndpointFilters: TArray<TMVCEndpointFilter>);
+    function HTTPFilters: TArray<TMVCHTTPFilter>;
+    function EndpointFilters: TArray<TMVCEndpointFilter>;
+  end;
+
   TMVCExceptionHandlerProc = reference to procedure(E: Exception;
     SelectedController: TMVCController; WebContext: TWebContext; var ExceptionHandled: Boolean);
 
@@ -1242,6 +1309,15 @@ type
     fOnRouterLog: TMVCRouterLogHandlerProc;
     fWebContextCreateEvent: TWebContextCreateEvent;
     fWebContextDestroyEvent: TWebContextDestroyEvent;
+    fEndpointFilters: TArray<TMVCEndpointFilter>;
+    fHTTPFilters: TArray<TMVCHTTPFilter>;
+    // the bundles whose HTTP part is on the engine, by where they were used
+    fEngineBundles: TArray<IMVCFilterBundle>;
+    fGroupBundles: TArray<IMVCFilterBundle>;
+  private type
+    TMVCBundleScope = (bsEngine, bsGroup); // where Use puts the endpoint part of a bundle
+  private
+    function RegisterBundle(const ABundle: IMVCFilterBundle; const AScope: TMVCBundleScope): TArray<TMVCEndpointFilter>;
     procedure FillActualParamsForAction(const ASelectedController: TMVCController;
       const AContext: TWebContext; const AActionFormalParams: TArray<TRttiParameter>;
       const AActionName: string; var AActualParams: TArray<TValue>; out ABodyParameter: TObject);
@@ -1277,6 +1353,10 @@ type
     function ExecuteAction(const ASender: TObject; const ARequest: TWebRequest;
       const AResponse: TWebResponse): Boolean; virtual;
     function InternalExecuteAction(const AContext: TWebContext; AParamsTable: TMVCRequestParamsTable;
+      const AStopWatch: TStopWatch): Boolean;
+    /// <summary>The request itself: middleware hooks, routing, the controller action, the end of the
+    /// request. InternalExecuteAction runs it inside the HTTP filters, if there are any.</summary>
+    function DispatchRequest(const AContext: TWebContext; AParamsTable: TMVCRequestParamsTable;
       const AStopWatch: TStopWatch): Boolean;
     function CreateControllerWithDependencies(
       const Context: TWebContext;
@@ -1329,6 +1409,32 @@ type
     function UseExceptionHandler(const AErrorViewName: string = 'error';
       const AAppName: string = '';
       const AOptions: TMVCExceptionHandlerOptions = []): TMVCEngine;
+    /// <summary>
+    /// Registers a post-routing filter for every route the router finds: controller actions and Minimal API
+    /// routes. The first registered is the outermost; the filters of a Minimal API group run inside them.
+    /// Register the filters at startup, before the first request. See TMVCEndpointFilter.
+    /// A filter function without arguments needs its brackets: Use(AuthorizeEndpointFilter()).
+    /// </summary>
+    function Use(const AFilter: TMVCEndpointFilter): TMVCEngine; overload;
+    /// <summary>
+    /// Registers a pre-routing filter that wraps every request, whatever it ends up in: a controller action, a
+    /// Minimal API route, a classic middleware that answers by itself, a 404. The first registered is the
+    /// outermost. Register the filters at startup, before the first request. See TMVCHTTPFilter.
+    /// A filter function without arguments needs its brackets: Use(ETagHTTPFilter()).
+    /// </summary>
+    function Use(const AFilter: TMVCHTTPFilter): TMVCEngine; overload;
+    /// <summary>
+    /// Registers the HTTP filters and the endpoint filters of a bundle, each list in its order, where the call
+    /// is. An empty bundle does nothing. Raises EMVCConfigException if the bundle is nil, or already used here
+    /// or on a Minimal API route group. See IMVCFilterBundle.
+    /// </summary>
+    function Use(const ABundle: IMVCFilterBundle): TMVCEngine; overload;
+    /// <summary>
+    /// Internal, for the Use of a Minimal API route group (MVCFramework.MinimalAPI): registers the HTTP part of
+    /// ABundle on the engine, once whatever the number of groups, and returns the endpoint part for the group;
+    /// raises EMVCConfigException when the bundle has no endpoint part. Call AGroup.Use(ABundle) instead.
+    /// </summary>
+    function UseBundleOnGroup(const ABundle: IMVCFilterBundle): TArray<TMVCEndpointFilter>;
 
     procedure SendHTTPStatus(const AContext: TWebContext; const HTTPStatusCode: Integer;
       const AReasonString: string = ''; const AClassName: string = '');
@@ -1343,6 +1449,8 @@ type
     /// key up and parsing it again on every request.</summary>
     property MaxRequestSize: Int64 read FConfigCache_MaxRequestSize;
     property Middlewares: TList<IMVCMiddleware> read FMiddlewares;
+    property EndpointFilters: TArray<TMVCEndpointFilter> read fEndpointFilters;
+    property HTTPFilters: TArray<TMVCHTTPFilter> read fHTTPFilters;
     property Controllers: TObjectList<TMVCControllerDelegate> read FControllers;
     property Serializers: TDictionary<string, IMVCSerializer> read FSerializers;
     property OnRouterLog: TMVCRouterLogHandlerProc read fOnRouterLog write fOnRouterLog;
@@ -2257,6 +2365,9 @@ end;
 
 procedure TMVCUser.SetCustomData(const Value: TMVCCustomData);
 begin
+  // the user owns it: the one it replaces would be lost
+  if FCustomData <> Value then
+    FCustomData.Free;
   FCustomData := Value;
 end;
 
@@ -2353,6 +2464,16 @@ end;
 procedure TWebContext.Flush;
 begin
   FResponse.Flush;
+end;
+
+procedure TWebContext.SetMatchedAction(const AControllerQualifiedClassName, AActionName: string);
+begin
+  fControllerQualifiedClassName := AControllerQualifiedClassName;
+  fActionName := AActionName;
+  if AControllerQualifiedClassName.IsEmpty then
+    fActionQualifiedName := AActionName
+  else
+    fActionQualifiedName := AControllerQualifiedClassName + '.' + AActionName;
 end;
 
 procedure TWebContext.FreeSession;
@@ -2673,6 +2794,104 @@ begin
   Result := Self;
 end;
 
+{ TMVCFilterBundle }
+
+constructor TMVCFilterBundle.Create(const AHTTPFilters: TArray<TMVCHTTPFilter>;
+  const AEndpointFilters: TArray<TMVCEndpointFilter>);
+begin
+  inherited Create;
+  fHTTPFilters := AHTTPFilters;
+  fEndpointFilters := AEndpointFilters;
+end;
+
+function TMVCFilterBundle.HTTPFilters: TArray<TMVCHTTPFilter>;
+begin
+  Result := fHTTPFilters;
+end;
+
+function TMVCFilterBundle.EndpointFilters: TArray<TMVCEndpointFilter>;
+begin
+  Result := fEndpointFilters;
+end;
+
+function TMVCEngine.Use(const AFilter: TMVCEndpointFilter): TMVCEngine;
+begin
+  if not Assigned(AFilter) then
+    raise EMVCException.Create('Use: the endpoint filter is nil');
+  SetLength(fEndpointFilters, Length(fEndpointFilters) + 1);
+  fEndpointFilters[High(fEndpointFilters)] := AFilter;
+  Result := Self;
+end;
+
+function TMVCEngine.Use(const AFilter: TMVCHTTPFilter): TMVCEngine;
+begin
+  if not Assigned(AFilter) then
+    raise EMVCException.Create('Use: the HTTP filter is nil');
+  SetLength(fHTTPFilters, Length(fHTTPFilters) + 1);
+  fHTTPFilters[High(fHTTPFilters)] := AFilter;
+  Result := Self;
+end;
+
+function TMVCEngine.Use(const ABundle: IMVCFilterBundle): TMVCEngine;
+var
+  lFilter: TMVCEndpointFilter;
+begin
+  for lFilter in RegisterBundle(ABundle, bsEngine) do
+    Use(lFilter);
+  Result := Self;
+end;
+
+function TMVCEngine.UseBundleOnGroup(const ABundle: IMVCFilterBundle): TArray<TMVCEndpointFilter>;
+begin
+  Result := RegisterBundle(ABundle, bsGroup);
+end;
+
+function ContainsBundle(const ABundles: TArray<IMVCFilterBundle>; const ABundle: IMVCFilterBundle): Boolean;
+var
+  lBundle: IMVCFilterBundle;
+begin
+  for lBundle in ABundles do
+    if lBundle = ABundle then
+      Exit(True);
+  Result := False;
+end;
+
+function TMVCEngine.RegisterBundle(const ABundle: IMVCFilterBundle; const AScope: TMVCBundleScope): TArray<TMVCEndpointFilter>;
+var
+  lBundle: IMVCFilterBundle;
+  lHTTPFilters: TArray<TMVCHTTPFilter>;
+  lFilter: TMVCHTTPFilter;
+begin
+  if ABundle = nil then
+    raise EMVCConfigException.Create('Use: the bundle is nil');
+  // Use(TMVCFilterBundle.Create(...)) passes an object nobody has counted yet (a const parameter):
+  // this reference frees it on exit when the engine does not keep it (empty, or a raise)
+  lBundle := ABundle;
+  lHTTPFilters := lBundle.HTTPFilters;
+  Result := lBundle.EndpointFilters;
+  if (Length(lHTTPFilters) = 0) and (Length(Result) = 0) then
+    Exit; // nothing to register, nothing to clash with
+  // its HTTP filters run before routing for every request: on a group it would protect none of its routes
+  if (AScope = bsGroup) and (Length(Result) = 0) then
+    raise EMVCConfigException.Create('Use: this filter bundle has no endpoint part, its filters run before ' +
+      'routing for every request; use it on the engine (AEngine.Use)');
+  // engine-wide plus a group would run the endpoint part twice on the routes of the group
+  if ContainsBundle(fEngineBundles, lBundle) then
+    raise EMVCConfigException.Create('Use: this filter bundle is already used engine-wide');
+  if ContainsBundle(fGroupBundles, lBundle) then
+  begin
+    if AScope = bsEngine then
+      raise EMVCConfigException.Create('Use: this filter bundle is already used on a route group, it cannot go engine-wide too');
+    Exit; // one more group: the HTTP part is already on the engine
+  end;
+  if AScope = bsEngine then
+    fEngineBundles := fEngineBundles + [lBundle]
+  else
+    fGroupBundles := fGroupBundles + [lBundle];
+  for lFilter in lHTTPFilters do
+    Use(lFilter);
+end;
+
 function TMVCEngine.AddSerializer(const AContentType: string; const ASerializer: IMVCSerializer)
   : TMVCEngine;
 begin
@@ -2716,7 +2935,7 @@ begin
   Config[TMVCConfigKey.MaxEntitiesRecordCount] := '20';
   Config[TMVCConfigKey.MaxRequestSize] := IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE);
   Config[TMVCConfigKey.HATEOSPropertyName] := '_links';
-  Config[TMVCConfigKey.LoadSystemControllers] := 'true';
+  Config[TMVCConfigKey.LoadSystemControllers] := 'false'; // the route map and the configuration: opt-in
 
   fOnRouterLog :=
     procedure(
@@ -3023,17 +3242,347 @@ begin
   end;
 end;
 
+{ Runs one controller action: parameters binding, OnBeforeAction, the call, the rendering of what the
+  action returned and OnAfterAction. Nothing in here allocates a closure, so the usual path of a request
+  (no endpoint filter registered) stays free of it. }
+procedure InvokeControllerAction(const AEngine: TMVCEngine; const AContext: TWebContext;
+  const AController: TMVCController; const ARouterResult: TMVCRouterResult;
+  const AMethodName: string; var AHandled: Boolean);
+var
+  lBodyParameter, lResponseObject: TObject;
+  lActionFormalParams: TArray<TRttiParameter>;
+  lActualParams: TArray<TValue>;
+  lInvokeResult: TValue;
+begin
+  lBodyParameter := nil;
+  AController.MVCControllerAfterCreate;
+  try
+    AHandled := False;
+    AController.ContentType := BuildContentType(ARouterResult.ResponseContentMediaType, ARouterResult.ResponseContentCharset);
+    lActionFormalParams := ARouterResult.MethodToCall.GetParameters;
+    if (Length(lActionFormalParams) = 0) then
+      SetLength(lActualParams, 0)
+    else if (Length(lActionFormalParams) = 1) and
+      (SameText(lActionFormalParams[0].ParamType.QualifiedName,
+      'MVCFramework.TWebContext')) then
+    begin
+      SetLength(lActualParams, 1);
+      lActualParams[0] := AContext;
+    end
+    else
+    begin
+      AEngine.FillActualParamsForAction(AController, AContext, lActionFormalParams,
+        AMethodName, lActualParams, lBodyParameter);
+    end;
+    AController.OnBeforeAction(AContext, AMethodName, AHandled);
+    if not AHandled then
+    begin
+      try
+        if ARouterResult.MethodToCall.MethodKind = mkProcedure then
+        begin
+          ARouterResult.MethodToCall.Invoke(AController, lActualParams);
+        end
+        else
+        begin
+          lInvokeResult := ARouterResult.MethodToCall.Invoke(AController, lActualParams);
+          // If a streaming writer has already taken over the
+          // response (SSE, JSONL, JSONArray), skip the
+          // function-return rendering path entirely: the
+          // writer has already produced the complete HTTP
+          // response on the socket. Freeing any Result object
+          // is still required to avoid leaks.
+          if AContext.Response.StreamingHandled then
+          begin
+            // A streaming writer already produced the whole response;
+            // free any returned object (to avoid a leak) and skip the
+            // render path entirely. Falling through with TValue.Empty
+            // would hit the "cannot serialize" else and dereference a
+            // nil TypeInfo -> access violation on an already-sent reply.
+            if (lInvokeResult.Kind = tkClass) and
+               (lInvokeResult.AsObject <> nil) then
+              lInvokeResult.AsObject.Free;
+          end
+          else
+          case lInvokeResult.Kind of
+            tkInterface:
+            begin
+              if Supports(lInvokeResult.AsInterface, IMVCResponse) then
+              begin
+                // `Result := CreatedResponse(..., ABody)` hands the
+                // [MVCFromBody] parameter to the response: the
+                // response frees it, the outer Free must not.
+                if (lBodyParameter <> nil) and
+                   ((lInvokeResult.AsInterface as TObject) is TMVCResponse) and
+                   (TMVCResponse(lInvokeResult.AsInterface as TObject).fData = lBodyParameter) then
+                begin
+                  TMVCResponse(lInvokeResult.AsInterface as TObject).fOwnsData := True;
+                  lBodyParameter := nil;
+                end;
+                TMVCRenderer.InternalRenderMVCResponse(AController, TMVCResponse(lInvokeResult.AsInterface));
+              end
+              else
+              begin
+                AController.Render(lInvokeResult.AsInterface);
+              end;
+            end;
+            tkClass:
+            begin
+              lResponseObject := lInvokeResult.AsObject;
+              try
+                if lResponseObject <> nil then
+                begin
+                  // https://learn.microsoft.com/en-us/aspnet/core/web-api/action-return-types?view=aspnetcore-7.0
+                  if lResponseObject is TMVCStreamedResponse then
+                  begin
+                    AController.RenderStreamed(TMVCStreamedResponse(lResponseObject));
+                  end
+                  else if lResponseObject is TDataSet then
+                  begin
+                    AController.Render(TDataSet(lResponseObject), False);
+                  end
+                  else if lResponseObject is TStream then
+                  begin
+                    AContext.Response.Content := EmptyStr;
+                    AContext.Response.ContentType := AContext.Response.ContentType;
+                    AContext.Response.InternalSetContentStream(TStream(lResponseObject), True);
+                    lResponseObject := nil; //do not free it!!
+                  end
+                  else if lResponseObject is TMVCResponse then
+                  begin
+                    TMVCRenderer.InternalRenderMVCResponse(AController, TMVCResponse(lResponseObject));
+                  end
+                  else
+                  begin
+                    { Render handles duck typing vs type serializer logic internally }
+                    AController.Render(lResponseObject, False);
+                  end;
+                end
+                else
+                begin
+                  AController.Render(TObject(nil));
+                end;
+              finally
+                // If the action returned the [MVCFromBody] parameter
+                // itself (typical CRUD pattern: `Result := APerson`),
+                // both lResponseObject and lBodyParameter point to
+                // the same instance. Free it exactly once here and
+                // disarm the outer body-parameter Free to avoid a
+                // double-free.
+                if lResponseObject = lBodyParameter then
+                  lBodyParameter := nil;
+                lResponseObject.Free;
+              end
+            end;
+            tkRecord:
+            begin
+              AController.Render(
+                AController.Serializer(AController.GetContentType)
+                  .SerializeRecord(lInvokeResult.GetReferenceToRawData,
+                  lInvokeResult.TypeInfo,
+                  TMVCSerializationType.stFields,nil,nil));
+            end;
+            tkArray, tkDynArray:
+            begin
+              AController.Render(
+                AController.Serializer(AController.GetContentType)
+                  .SerializeArrayOfRecord(lInvokeResult,
+                    TMVCSerializationType.stFields,nil,nil));
+            end;
+            tkUString, tkString:
+            begin
+              AController.Render(lInvokeResult.AsString);
+            end;
+            tkEnumeration:
+            begin
+              AController.Render(GetEnumName(lInvokeResult.TypeInfo, lInvokeResult.AsOrdinal));
+            end;
+            tkFloat:
+            begin
+              AController.Render(FloatToStr(lInvokeResult.AsExtended, GetDefaultFormatSettings));
+            end;
+            tkInteger:
+            begin
+              AController.Render(IntToStr(lInvokeResult.AsInteger));
+            end;
+            tkInt64:
+            begin
+              AController.Render(IntToStr(lInvokeResult.AsInt64));
+            end
+            else
+            begin
+              RaiseSerializationError('Cannot serialize type ' + lInvokeResult.TypeInfo.Name);
+            end;
+          end;
+        end;
+      finally
+        AController.fFreeList.Free;
+        AController.OnAfterAction(AContext, AMethodName);
+      end;
+    end;
+  finally
+    try
+      lBodyParameter.Free;
+    except
+      on E: Exception do
+      begin
+        LogE(Format('Cannot free Body object: [CLS: %s][MSG: %s]',
+          [E.Classname, E.Message]));
+      end;
+    end;
+    AController.MVCControllerBeforeDestroy;
+  end;
+end;
+
+function WrapEndpointFilter(const AFilter: TMVCEndpointFilter; const AContext: TWebContext;
+  const ANext: TMVCEndpointFilterNext): TMVCEndpointFilterNext;
+begin
+  Result :=
+    function: IMVCResponse
+    begin
+      Result := AFilter(AContext, ANext);
+    end;
+end;
+
+{ Same as InvokeControllerAction with the endpoint filters around it, the first registered being the
+  outermost. ANext() of the innermost one runs the action, which renders its own answer: it returns nil.
+  A filter that answers without calling ANext() returns the response to render, and the action is not run
+  (as when a classic middleware handles OnBeforeControllerAction). }
+procedure InvokeControllerActionThroughFilters(const AEngine: TMVCEngine; const AContext: TWebContext;
+  const AController: TMVCController; const ARouterResult: TMVCRouterResult;
+  const AMethodName: string; var AHandled: Boolean);
+var
+  lRouterResult: TMVCRouterResult;
+  lActionRan, lActionHandled: Boolean;
+  lNext: TMVCEndpointFilterNext;
+  lResponse: IMVCResponse;
+  I: Integer;
+begin
+  lRouterResult := ARouterResult;
+  lActionRan := False;
+  lActionHandled := False;
+  lNext :=
+    function: IMVCResponse
+    begin
+      lActionRan := True;
+      InvokeControllerAction(AEngine, AContext, AController, lRouterResult, AMethodName, lActionHandled);
+      Result := nil;
+    end;
+  for I := High(AEngine.fEndpointFilters) downto 0 do
+    lNext := WrapEndpointFilter(AEngine.fEndpointFilters[I], AContext, lNext);
+  AController.ContentType := BuildContentType(ARouterResult.ResponseContentMediaType,
+    ARouterResult.ResponseContentCharset);
+  lResponse := lNext();
+  // the classic after-hooks are told that the request was handled when a filter answered instead of the action
+  AHandled := lActionHandled or (not lActionRan);
+  if lResponse <> nil then
+  begin
+    // what a filter answers is rendered as JSON, whatever the content type of the controller
+    AController.ContentType := BuildContentType(TMVCMediaType.APPLICATION_JSON,
+      AEngine.fConfigCache_DefaultContentCharset);
+    TMVCRenderer.InternalRenderMVCResponse(AController, TMVCResponse(lResponse as TObject));
+  end;
+end;
+
+function WrapHTTPFilter(const AFilter: TMVCHTTPFilter; const AContext: TWebContext;
+  const ANext: TMVCHTTPFilterNext): TMVCHTTPFilterNext;
+begin
+  Result :=
+    procedure
+    begin
+      AFilter(AContext, ANext);
+    end;
+end;
+
+{ The HTTP filters around the whole request, the first registered being the outermost. Only reached when at
+  least one filter is registered: a request without filters allocates nothing here. }
+function DispatchRequestThroughHTTPFilters(const AEngine: TMVCEngine; const AContext: TWebContext;
+  AParamsTable: TMVCRequestParamsTable; const AStopWatch: TStopWatch): Boolean;
+var
+  lStopWatch: TStopWatch;
+  lDispatched: Boolean;
+  lEnded: Boolean;
+  lResult: Boolean;
+  lNext: TMVCHTTPFilterNext;
+  lStatus: Integer;
+  I: Integer;
+begin
+  lStopWatch := AStopWatch;
+  lDispatched := False;
+  lResult := False;
+  lNext :=
+    procedure
+    begin
+      lDispatched := True;
+      lResult := AEngine.DispatchRequest(AContext, AParamsTable, lStopWatch);
+    end;
+  for I := High(AEngine.fHTTPFilters) downto 0 do
+    lNext := WrapHTTPFilter(AEngine.fHTTPFilters[I], AContext, lNext);
+  lEnded := False;
+  try
+    lNext();
+    if not lDispatched then
+    begin
+      lEnded := True;
+      // a filter answered without calling ANext(): the request still ends as any other one does
+      AContext.FreeSession;
+      AEngine.ExecuteAfterRoutingMiddleware(AContext, True);
+    end;
+  except
+    on Ex: Exception do
+    begin
+      // a filter raised, outside of the handlers of the dispatcher
+      if Ex is EMVCException then
+        lStatus := EMVCException(Ex).HTTPStatusCode
+      else
+        lStatus := HTTP_STATUS.InternalServerError;
+      if not AEngine.CustomExceptionHandling(Ex, nil, AContext) then
+      begin
+        Log.Error('[%s] %s [PathInfo "%s"] - %d %s - HTTP filter',
+          [Ex.Classname, Ex.Message, GetRequestShortDescription(AContext.Request), lStatus,
+          HTTP_STATUS.ReasonStringFor(lStatus)], LOGGERPRO_TAG);
+        {$IFDEF DEBUG}
+        AEngine.SendHTTPStatus(AContext, lStatus, Format('[%s] %s', [Ex.Classname, Ex.Message]), Ex.Classname);
+        {$ELSE}
+        AEngine.SendHTTPStatus(AContext, lStatus, MVCClientSafeExceptionMessage(Ex));
+        {$ENDIF}
+      end;
+      // raised before ANext() (e.g. a login refused): end the request as one answered by a filter
+      if not (lDispatched or lEnded) then
+        try
+          AContext.FreeSession;
+          AEngine.ExecuteAfterRoutingMiddleware(AContext, True);
+        except
+          on ExEnd: Exception do
+            Log.Error('[%s] %s [PathInfo "%s"] - After Routing, after an HTTP filter raised',
+              [ExEnd.Classname, ExEnd.Message, GetRequestShortDescription(AContext.Request)], LOGGERPRO_TAG);
+        end;
+    end;
+  end;
+  Result := lResult;
+end;
+
 function TMVCEngine.InternalExecuteAction(const AContext: TWebContext;
+  AParamsTable: TMVCRequestParamsTable; const AStopWatch: TStopWatch): Boolean;
+begin
+  DefineDefaultResponseHeaders(AContext);
+  DoWebContextCreateEvent(AContext);
+  if Length(fHTTPFilters) = 0 then
+    Result := DispatchRequest(AContext, AParamsTable, AStopWatch)
+  else
+    Result := DispatchRequestThroughHTTPFilters(Self, AContext, AParamsTable, AStopWatch);
+end;
+
+function TMVCEngine.DispatchRequest(const AContext: TWebContext;
   AParamsTable: TMVCRequestParamsTable; const AStopWatch: TStopWatch): Boolean;
 var
   lHandled: Boolean;
   lRouterMethodToCallName: string;
   lRouterControllerClazzQualifiedClassName: string;
   lSelectedController: TMVCController;
-  lActionFormalParams: TArray<TRttiParameter>;
-  lActualParams: TArray<TValue>;
-  lBodyParameter, lResponseObject: TObject;
-  lInvokeResult: TValue;
+
+
+
+
   lRespStatus: Integer;
   lRouterResult: TMVCRouterResult;
   lEValidException: EMVCValidationException;
@@ -3046,8 +3595,6 @@ var
   lDecodedPath: string;
 begin
   Result := False;
-  DefineDefaultResponseHeaders(AContext);
-  DoWebContextCreateEvent(AContext);
   lHandled := False;
   lSelectedController := nil;
   try // only for lSelectedController
@@ -3120,7 +3667,7 @@ begin
 
           MVCFramework.Logger.InitThreadVars;
 
-          AContext.fActionQualifiedName := lRouterControllerClazzQualifiedClassName + '.'+ lRouterMethodToCallName;
+          AContext.SetMatchedAction(lRouterControllerClazzQualifiedClassName, lRouterMethodToCallName);
           lSelectedController.Engine := Self;
           lSelectedController.Context := AContext;
           AContext.ParamsTable := AParamsTable;
@@ -3131,183 +3678,10 @@ begin
             lHandled);
           if not lHandled then
           begin
-            lBodyParameter := nil;
-            lSelectedController.MVCControllerAfterCreate;
-            try
-              lHandled := False;
-              lSelectedController.ContentType := BuildContentType(lRouterResult.ResponseContentMediaType, lRouterResult.ResponseContentCharset);
-              lActionFormalParams := lRouterResult.MethodToCall.GetParameters;
-              if (Length(lActionFormalParams) = 0) then
-                SetLength(lActualParams, 0)
-              else if (Length(lActionFormalParams) = 1) and
-                (SameText(lActionFormalParams[0].ParamType.QualifiedName,
-                'MVCFramework.TWebContext')) then
-              begin
-                SetLength(lActualParams, 1);
-                lActualParams[0] := AContext;
-              end
-              else
-              begin
-                FillActualParamsForAction(lSelectedController, AContext, lActionFormalParams,
-                  lRouterMethodToCallName, lActualParams, lBodyParameter);
-              end;
-              lSelectedController.OnBeforeAction(AContext, lRouterMethodToCallName, lHandled);
-              if not lHandled then
-              begin
-                try
-                  if lRouterResult.MethodToCall.MethodKind = mkProcedure then
-                  begin
-                    lRouterResult.MethodToCall.Invoke(lSelectedController, lActualParams);
-                  end
-                  else
-                  begin
-                    lInvokeResult := lRouterResult.MethodToCall.Invoke(lSelectedController, lActualParams);
-                    // If a streaming writer has already taken over the
-                    // response (SSE, JSONL, JSONArray), skip the
-                    // function-return rendering path entirely: the
-                    // writer has already produced the complete HTTP
-                    // response on the socket. Freeing any Result object
-                    // is still required to avoid leaks.
-                    if AContext.Response.StreamingHandled then
-                    begin
-                      // A streaming writer already produced the whole response;
-                      // free any returned object (to avoid a leak) and skip the
-                      // render path entirely. Falling through with TValue.Empty
-                      // would hit the "cannot serialize" else and dereference a
-                      // nil TypeInfo -> access violation on an already-sent reply.
-                      if (lInvokeResult.Kind = tkClass) and
-                         (lInvokeResult.AsObject <> nil) then
-                        lInvokeResult.AsObject.Free;
-                    end
-                    else
-                    case lInvokeResult.Kind of
-                      tkInterface:
-                      begin
-                        if Supports(lInvokeResult.AsInterface, IMVCResponse) then
-                        begin
-                          // `Result := CreatedResponse(..., ABody)` hands the
-                          // [MVCFromBody] parameter to the response: the
-                          // response frees it, the outer Free must not.
-                          if (lBodyParameter <> nil) and
-                             ((lInvokeResult.AsInterface as TObject) is TMVCResponse) and
-                             (TMVCResponse(lInvokeResult.AsInterface as TObject).fData = lBodyParameter) then
-                          begin
-                            TMVCResponse(lInvokeResult.AsInterface as TObject).fOwnsData := True;
-                            lBodyParameter := nil;
-                          end;
-                          TMVCRenderer.InternalRenderMVCResponse(lSelectedController, TMVCResponse(lInvokeResult.AsInterface));
-                        end
-                        else
-                        begin
-                          lSelectedController.Render(lInvokeResult.AsInterface);
-                        end;
-                      end;
-                      tkClass:
-                      begin
-                        lResponseObject := lInvokeResult.AsObject;
-                        try
-                          if lResponseObject <> nil then
-                          begin
-                            // https://learn.microsoft.com/en-us/aspnet/core/web-api/action-return-types?view=aspnetcore-7.0
-                            if lResponseObject is TMVCStreamedResponse then
-                            begin
-                              lSelectedController.RenderStreamed(TMVCStreamedResponse(lResponseObject));
-                            end
-                            else if lResponseObject is TDataSet then
-                            begin
-                              lSelectedController.Render(TDataSet(lResponseObject), False);
-                            end
-                            else if lResponseObject is TStream then
-                            begin
-                              AContext.Response.Content := EmptyStr;
-                              AContext.Response.ContentType := AContext.Response.ContentType;
-                              AContext.Response.InternalSetContentStream(TStream(lResponseObject), True);
-                              lResponseObject := nil; //do not free it!!
-                            end
-                            else if lResponseObject is TMVCResponse then
-                            begin
-                              TMVCRenderer.InternalRenderMVCResponse(lSelectedController, TMVCResponse(lResponseObject));
-                            end
-                            else
-                            begin
-                              { Render handles duck typing vs type serializer logic internally }
-                              lSelectedController.Render(lResponseObject, False);
-                            end;
-                          end
-                          else
-                          begin
-                            lSelectedController.Render(TObject(nil));
-                          end;
-                        finally
-                          // If the action returned the [MVCFromBody] parameter
-                          // itself (typical CRUD pattern: `Result := APerson`),
-                          // both lResponseObject and lBodyParameter point to
-                          // the same instance. Free it exactly once here and
-                          // disarm the outer body-parameter Free to avoid a
-                          // double-free.
-                          if lResponseObject = lBodyParameter then
-                            lBodyParameter := nil;
-                          lResponseObject.Free;
-                        end
-                      end;
-                      tkRecord:
-                      begin
-                        lSelectedController.Render(
-                          lSelectedController.Serializer(lSelectedController.GetContentType)
-                            .SerializeRecord(lInvokeResult.GetReferenceToRawData,
-                            lInvokeResult.TypeInfo,
-                            TMVCSerializationType.stFields,nil,nil));
-                      end;
-                      tkArray, tkDynArray:
-                      begin
-                        lSelectedController.Render(
-                          lSelectedController.Serializer(lSelectedController.GetContentType)
-                            .SerializeArrayOfRecord(lInvokeResult,
-                              TMVCSerializationType.stFields,nil,nil));
-                      end;
-                      tkUString, tkString:
-                      begin
-                        lSelectedController.Render(lInvokeResult.AsString);
-                      end;
-                      tkEnumeration:
-                      begin
-                        lSelectedController.Render(GetEnumName(lInvokeResult.TypeInfo, lInvokeResult.AsOrdinal));
-                      end;
-                      tkFloat:
-                      begin
-                        lSelectedController.Render(FloatToStr(lInvokeResult.AsExtended, GetDefaultFormatSettings));
-                      end;
-                      tkInteger:
-                      begin
-                        lSelectedController.Render(IntToStr(lInvokeResult.AsInteger));
-                      end;
-                      tkInt64:
-                      begin
-                        lSelectedController.Render(IntToStr(lInvokeResult.AsInt64));
-                      end
-                      else
-                      begin
-                        RaiseSerializationError('Cannot serialize type ' + lInvokeResult.TypeInfo.Name);
-                      end;
-                    end;
-                  end;
-                finally
-                  lSelectedController.fFreeList.Free;
-                  lSelectedController.OnAfterAction(AContext, lRouterMethodToCallName);
-                end;
-              end;
-            finally
-              try
-                lBodyParameter.Free;
-              except
-                on E: Exception do
-                begin
-                  LogE(Format('Cannot free Body object: [CLS: %s][MSG: %s]',
-                    [E.Classname, E.Message]));
-                end;
-              end;
-              lSelectedController.MVCControllerBeforeDestroy;
-            end;
+            if Length(fEndpointFilters) = 0 then
+              InvokeControllerAction(Self, AContext, lSelectedController, lRouterResult, lRouterMethodToCallName, lHandled)
+            else
+              InvokeControllerActionThroughFilters(Self, AContext, lSelectedController, lRouterResult, lRouterMethodToCallName, lHandled);
             AContext.Response.ContentType := lSelectedController.ContentType;
             Result := True; //handled
           end; //if not handled by OnBeforeControllerActionMiddleware

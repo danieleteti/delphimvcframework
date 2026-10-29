@@ -25,7 +25,8 @@ dmvc.handler.max_connections=1024
 dmvc.default.content_type=application/json
 dmvc.default.content_charset=UTF-8
 dmvc.allow_unhandled_actions=false
-dmvc.load_system_controllers=true
+# true adds /system/describeserver.info, describeplatform.info and serverconfig.info (localhost only): the route map and the configuration
+dmvc.load_system_controllers=false
 dmvc.default.view_file_extension=html
 dmvc.view_path=templates
 dmvc.view_cache=false
@@ -150,7 +151,21 @@ ADMIN_PASSWORD=
 {{if program_ssv_any}}
 # Set to false only for local development over plain HTTP.
 JWT_COOKIE_SECURE=true
+# Origins (comma separated) a browser may POST /login from; any other origin is
+# refused (login CSRF). Add the public address of the site, e.g. https://www.example.com
+LOGIN_ALLOWED_ORIGINS=http://localhost:{{:program_default_server_port}},https://localhost:{{:program_default_server_port}}
 {{endif}}
+{{endif}}
+{{if @(program_minimal_api_web and (not webmodule_middleware_jwt))}}
+
+# ============================================================================
+# Admin login (/web/login)
+# ============================================================================
+# The generated login is fail-closed: leave these empty and /web/login refuses
+# everyone. Fill them in for a first run, then replace the check in
+# Routes.RootU with your real user store.
+ADMIN_USER=
+ADMIN_PASSWORD=
 {{endif}}
 {{if @(webmodule_middleware_session_memory or webmodule_middleware_session_file or webmodule_middleware_session_database or program_minimal_api_web)}}
 

@@ -22,8 +22,7 @@
 //
 // ***************************************************************************
 
-// HTTPFilter adapter for the refresh-token feature. Kept in a companion unit
-// so MVCFramework.JWT.RefreshToken does not depend on MVCFramework.MinimalAPI.
+// HTTPFilter adapter for the refresh-token feature.
 
 unit MVCFramework.JWT.RefreshToken.Filters;
 
@@ -33,11 +32,10 @@ interface
 
 uses
   MVCFramework,
-  MVCFramework.MinimalAPI,
   MVCFramework.JWT.RefreshToken;
 
 // Engine-wide HTTPFilter that owns the refresh URL segment and falls through
-// to Next() for everything else. Attach via lEngine.UseHTTPFilter(...).
+// to Next() for everything else. Attach via lEngine.Use(...).
 function RefreshTokenHTTPFilter(const AConfig: TMVCRefreshTokenConfig;
   const AStore: IMVCRefreshTokenStore): TMVCHTTPFilter;
 

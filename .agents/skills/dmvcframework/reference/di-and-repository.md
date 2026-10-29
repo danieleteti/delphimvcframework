@@ -1,6 +1,6 @@
 # DMVCFramework — DI container and Repository pattern
 
-The service container (registration, the three injection points) and `IMVCRepository<T>`.
+The service container (registration, the two injection points) and `IMVCRepository<T>`.
 
 ---
 
@@ -33,7 +33,7 @@ RegisterServices(DefaultMVCServiceContainer);
 DefaultMVCServiceContainer.Build;          // mandatory: Build seals the container
 ```
 
-Three injection points (all used by the samples):
+Two injection points (both used by the samples):
 
 ```delphi
 // 1. Constructor injection — preferred for a controller's main collaborator
@@ -52,10 +52,10 @@ type
 function GetCustomers(
   [MVCFromQueryString('rql', '')] RQLFilter: String;
   [MVCInject] CustomersService: ICustomersService): IMVCResponse;
-
-// 3. Field injection
-[MVCInject] fMyService: IMyService;
 ```
+
+There is no field injection: `[MVCInject]` is read only on action parameters and on the controller
+constructor. On a field it compiles and the field stays `nil`.
 
 `TRegistrationType`: `Transient` | `Singleton` | `SingletonPerRequest`.
 
@@ -119,7 +119,7 @@ end;
 function TCustomersController.DeleteCustomer(const ID: Integer): IMVCResponse;
 begin
   var lTx := TMVCRepository.UseTransactionContext;   // commits on scope exit, rolls back on exception
-  var lCustomer := fCustomersRepository.GetByPK(ID);
+  var lCustomer := ToFree<TCustomer>(fCustomersRepository.GetByPK(ID));   // Delete does not free it
   fCustomersRepository.Delete(lCustomer);
   Result := NoContentResponse;
 end;

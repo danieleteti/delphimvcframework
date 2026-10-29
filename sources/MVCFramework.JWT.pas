@@ -294,9 +294,29 @@ type
   // Forward declaration so TJWTClaimsSetup below can reference TJWT.
   TJWT = class;
 
+{$SCOPEDENUMS OFF} // ssStrict / ssLax / ssNone are written unqualified, as in MVCFramework.Middleware.JWT
+  /// <summary>
+  /// SameSite cookie attribute for CSRF protection
+  /// </summary>
+  TMVCJWTCookieSameSite = (
+    /// <summary>
+    /// Cookie only sent in first-party context (maximum security)
+    /// </summary>
+    ssStrict,
+    /// <summary>
+    /// Cookie sent with top-level navigations and GET from third-party sites
+    /// </summary>
+    ssLax,
+    /// <summary>
+    /// Cookie sent in all contexts (requires Secure=True)
+    /// </summary>
+    ssNone
+  );
+{$SCOPEDENUMS ON}
+
   // Configures the registered claims of a freshly-minted token (issuer,
-  // audience, expiration time, ...) before it is signed. Used by both the
-  // classic JWT middleware and the minimal-API JWT() filter helper.
+  // audience, expiration time, ...) before it is signed. Used by the classic
+  // JWT middleware and by JWTAuthenticationBundle / JWTCookieAuthenticationBundle.
   TJWTClaimsSetup = reference to procedure(const JWT: TJWT);
 
   TJWT = class
@@ -636,6 +656,7 @@ end;
 constructor THMACJWTSigner.Create(const AAlgorithm, AKey: string);
 begin
   inherited Create;
+  CheckJWTSecret(AKey); // an empty or published key lets anybody sign
   FAlgorithm := AAlgorithm;
   FKey := AKey;
 end;
@@ -671,8 +692,7 @@ end;
 constructor TJWT.Create(const SecretKey: string; const ALeewaySeconds: Cardinal; const HMACAlgorithm: String);
 begin
   inherited Create;
-  CheckJWTSecret(SecretKey);
-  FSecretKey := SecretKey;
+  FSecretKey := SecretKey; // the signer created below refuses an empty or published key
   FRegisteredClaims := TJWTRegisteredClaims.Create;
   FCustomClaims := TJWTCustomClaims.Create;
   FHMACAlgorithm := HMACAlgorithm;

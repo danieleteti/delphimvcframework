@@ -157,13 +157,18 @@ conventional names; keep them.
 
 | Area | Keys |
 |------|------|
-| Server | `dmvc.server.port`, `dmvc.default.content_type`, `dmvc.default.content_charset`, `dmvc.allow_unhandled_actions`, `dmvc.expose_server_signature`, `dmvc.max_request_size`, `dmvc.indy.keep_alive`, `dmvc.indy.listen_queue`, `dmvc.handler.max_connections` |
+| Server | `dmvc.server.port`, `dmvc.default.content_type`, `dmvc.default.content_charset`, `dmvc.allow_unhandled_actions`, `dmvc.expose_server_signature`, `dmvc.max_request_size`, `dmvc.indy.keep_alive`, `dmvc.indy.listen_queue`, `dmvc.handler.max_connections`, `dmvc.load_system_controllers` |
 | Views | `dmvc.view_path`, `dmvc.default.view_file_extension`, `dmvc.view_cache` |
 | Data | `dmvc.max_entities_record_count`, `firedac.connection_definition_name`, `firedac.connection_definitions_filename` |
 | HTTPS | `https.enabled`, `https.cert.privkey`, `https.cert.cacert`, `https.cert.password` |
 | Profiler | `dmvc.profiler.enabled`, `dmvc.profiler.warning_threshold`, `dmvc.profiler.logs_only_over_threshold` |
 | Logging | `logger.config.file`, `logger.file.{folder,basename,max_kb,max_backups}`, `logger.html.*`, `logger.syslog.*` |
 | Sqids | `dmvc.sqids.alphabet`, `dmvc.sqids.min_length` |
+
+`dmvc.load_system_controllers` is `false` in the generated `.env`, and `false` is also the framework default of
+`TMVCConfigKey.LoadSystemControllers`: `/system/describeserver.info`, `/system/describeplatform.info` and
+`/system/serverconfig.info` answer from localhost only, but they expose the route map and the configuration, so
+they are opt-in.
 
 Application keys are yours to name (`JWT_SECRET`, `JWT_ISSUER`, `DB_*`, `BASE_URL`, …).
 

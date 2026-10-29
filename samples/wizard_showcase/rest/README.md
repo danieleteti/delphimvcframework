@@ -22,7 +22,7 @@ Open `MinimalAPIShowcase.dpr` in Delphi, press F9. Browser:
 | `GET /tags` | **typed array from query** — repeated `?tag=` keys bind to `TArray<string>` (`TTagSearch`) |
 
 The `/people/*` subtree is mounted via
-`Prefix('/people').Use(LogFilter())` — every route under that prefix
+`Prefix('/people').Use(LogEndpointFilter())` — every route under that prefix
 inherits a logging endpoint filter. Add more filters (auth, rate-limit,
 role checks) the same way.
 

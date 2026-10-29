@@ -13,8 +13,8 @@ unit DMVC.Expert.ProjectMenu;
 // "DMVCFramework" submenu in the Project Manager local menu of a DMVC project:
 // new REST controller (optionally through a service), new service, database
 // connection for ActiveRecord, new web controller + view, new Minimal API route
-// group, new TemplatePro view. Delphi 12 and later only (the packages of the older
-// versions do not contain this unit).
+// group, new HTTP or endpoint filter, new TemplatePro view, new MCP tool provider.
+// Delphi 12 and later only (the packages of the older versions do not contain this unit).
 
 interface
 
@@ -605,6 +605,32 @@ begin
     ExplainManualStep(lUnit.TypeName, lUnit.UnitName, Format(lCallFmt, ['ARoot']) + ';');
 end;
 
+procedure NewFilterAction(const AProject: IOTAProject; AEndpoint: Boolean);
+const
+  TITLE: array [Boolean] of string = ('New HTTP filter', 'New endpoint filter');
+  HINT: array [Boolean] of string = (
+    'Creates HTTPFilters.<Name>U.pas with <Name>HTTPFilter: it wraps every request, routing and action ' +
+    'included. Registered with Use in the engine configuration.',
+    'Creates EndpointFilters.<Name>U.pas with <Name>EndpointFilter: it runs after routing, around every ' +
+    'controller action and Minimal API route. Registered with Use in the engine configuration.');
+var
+  lName, lDummy, lDummyModel, lCall: string;
+  lDummyOption, lDummyOption2: Boolean;
+  lUnit: TDMVCNewUnit;
+begin
+  if not Ask(TITLE[AEndpoint], HINT[AEndpoint], '', False, False, False, False, '', lName, lDummy, lDummyModel,
+    lDummyOption, lDummyOption2) then
+    Exit;
+  lUnit := NewFilter(lName, AEndpoint, lCall);
+  AddNewUnit(AProject, lUnit);
+  if WireIn(AProject, 'TMVCEngine',
+    function(S: string): TDMVCCodeEdits
+    begin
+      PlanFilterRegistration(S, lUnit.UnitName, lCall, Result);
+    end) = '' then
+    ExplainManualStep(lUnit.TypeName, lUnit.UnitName, 'AEngine.' + lCall + ';');
+end;
+
 procedure NewMCPToolProviderAction(const AProject: IOTAProject);
 var
   lName, lDummy, lDummyModel: string;
@@ -800,6 +826,20 @@ begin
   if lMinimal then
     ProjectManagerMenuList.Add(TDMVCProjectMenuItem.Create('New Minimal API Route Group...',
       MENU_VERB + 'Routes', MENU_VERB, pmmpUserAdd + 30, NewRoutesAction));
+  // every DMVC project configures an engine; endpoint filters need routes to run around
+  ProjectManagerMenuList.Add(TDMVCProjectMenuItem.Create('New HTTP Filter...',
+    MENU_VERB + 'HTTPFilter', MENU_VERB, pmmpUserAdd + 35,
+    procedure(const AProject: IOTAProject)
+    begin
+      NewFilterAction(AProject, False);
+    end));
+  if lMinimal or lControllers then
+    ProjectManagerMenuList.Add(TDMVCProjectMenuItem.Create('New Endpoint Filter...',
+      MENU_VERB + 'EndpointFilter', MENU_VERB, pmmpUserAdd + 37,
+      procedure(const AProject: IOTAProject)
+      begin
+        NewFilterAction(AProject, True);
+      end));
   if lViews and (lMinimal or lControllers) then
     ProjectManagerMenuList.Add(TDMVCProjectMenuItem.Create('New TemplatePro View...',
       MENU_VERB + 'View', MENU_VERB, pmmpUserAdd + 40, NewViewAction));

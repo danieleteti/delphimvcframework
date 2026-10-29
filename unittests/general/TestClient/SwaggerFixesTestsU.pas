@@ -26,7 +26,7 @@ unit SwaggerFixesTestsU;
 
 // The schema keyword attributes, a QUERY-only action, an array body in
 // Swagger 2.0 and the operationId of a MapMethods route, in the documents
-// served by TMVCSwaggerMiddleware (2.0 and 3.x) and by the native OpenAPI()
+// served by TMVCSwaggerMiddleware (2.0 and 3.x) and by the native OpenAPIHTTPFilter()
 // emitter. Set DMVC_SWAGGER_DUMP_DIR to keep the documents for an external
 // validator (fix_swagger2.json, fix_openapi3.json, fix_native.json).
 
@@ -35,6 +35,7 @@ interface
 uses
   DUnitX.TestFramework,
   System.SysUtils,
+  System.Classes,
   JsonDataObjects,
   MVCFramework,
   MVCFramework.Commons,
@@ -89,6 +90,28 @@ type
     procedure PostBatch;
   end;
 
+  // responses that are not the JSON of a class (native emitter only)
+  [MVCPath('/api/bin')]
+  TSwagFixBinaryController = class(TMVCController)
+  public
+    [MVCPath('/image')]
+    [MVCHTTPMethod([httpPOST])]
+    [MVCProduces('image/png')]
+    function CreateImage: TStream;
+    [MVCPath('/download')]
+    [MVCHTTPMethod([httpGET])]
+    function Download: TStream;
+    [MVCPath('/thumbnail')]
+    [MVCHTTPMethod([httpGET])]
+    [MVCProduces('image/png')]
+    [MVCSwagResponses(200, 'The thumbnail')]
+    procedure Thumbnail;
+    [MVCPath('/wrapped')]
+    [MVCHTTPMethod([httpGET])]
+    [MVCSwagResponses(200, 'Wrapped', TSwagFixDTO, True, True)]
+    function Wrapped: IMVCResponse;
+  end;
+
   // many paths, some with QUERY only: the sort of the paths must hold
   [MVCPath('/api/many')]
   TSwagFixManyController = class(TMVCController)
@@ -132,6 +155,8 @@ type
   private
     fServer: IMVCServer;
     fNative: IMVCServer;
+    fServerEngine: TMVCEngine; // the servers do not own their engines
+    fNativeEngine: TMVCEngine;
     function Fetch(const APort: Integer; const APath, ADumpName: string): TJsonObject;
   public
     [SetupFixture]
@@ -152,19 +177,64 @@ type
     procedure Swagger2ArrayBodyHasOnlyASchema;
     [Test]
     procedure WithNameLandsOnTheFirstDocumentedVerb;
+    [Test]
+    procedure StreamResultIsBinaryOfItsProducesMediaType;
+    [Test]
+    procedure StreamResultWithoutProducesIsOctetStream;
+    [Test]
+    procedure SwagResponsesWithoutModelIsBinaryOfItsProducesMediaType;
+    [Test]
+    procedure SwagResponsesDataEnvelopeWrapsTheModel;
+    [Test]
+    procedure OpenAPIHTTPFilterAddsTheSourcesItIsGiven;
   end;
 
 implementation
 
 uses
-  System.Classes,
   System.IOUtils,
   System.Net.HttpClient,
   MVCFramework.Middleware.Swagger,
   MVCFramework.MinimalAPI,
   MVCFramework.OpenAPI3,
   MVCFramework.Filters,
+  MVCFramework.Filters.OpenAPI,
   MVCFramework.Server.Factory;
+
+type
+  TSwagFixExtraSource = class(TInterfacedObject, IMVCOpenAPISource)
+  public
+    procedure CollectOperations(const APathsObject: TJsonObject;
+      const ASchemaBuilder: TMVCOpenAPISchemaBuilder);
+  end;
+
+procedure TSwagFixExtraSource.CollectOperations(const APathsObject: TJsonObject;
+  const ASchemaBuilder: TMVCOpenAPISchemaBuilder);
+begin
+  APathsObject.O['/extra'].O['get'].S['operationId'] := 'extraOperation';
+  APathsObject.O['/extra'].O['get'].O['responses'].O['200'].S['description'] := 'OK';
+end;
+
+{ TSwagFixBinaryController }
+
+function TSwagFixBinaryController.CreateImage: TStream;
+begin
+  Result := TMemoryStream.Create;
+end;
+
+function TSwagFixBinaryController.Download: TStream;
+begin
+  Result := TMemoryStream.Create;
+end;
+
+procedure TSwagFixBinaryController.Thumbnail;
+begin
+end;
+
+function TSwagFixBinaryController.Wrapped: IMVCResponse;
+begin
+  Result := OkResponse;
+end;
 
 { TSwagFixController }
 
@@ -229,12 +299,14 @@ begin
   lEngine.AddMiddleware(TMVCSwaggerMiddleware.Create(lEngine, lInfo, '/openapi3.json',
     JWT_DEFAULT_DESCRIPTION, False, '', '', '', [psHTTP, psHTTPS], False, ssvOpenAPI3));
   fServer := TMVCServerFactory.CreateIndyDirect(lEngine);
+  fServerEngine := lEngine;
   fServer.Listen(SWAGFIX_PORT);
 
   lNativeInfo.Title := 'Native fixes';
   lNativeInfo.Version := 'v1';
   lEngine := TMVCEngine.Create;
   lEngine.AddController(TSwagFixController);
+  lEngine.AddController(TSwagFixBinaryController);
   lEngine.Root.MapMethods([httpQUERY, httpGET], '/things',
     function: IMVCResponse
     begin
@@ -245,8 +317,9 @@ begin
     begin
       Result := Ok('q');
     end).WithName('onlyQuery');
-  lEngine.UseHTTPFilter(OpenAPI(lEngine, lNativeInfo));
+  lEngine.Use(OpenAPIHTTPFilter(lEngine, lNativeInfo, [TSwagFixExtraSource.Create]));
   fNative := TMVCServerFactory.CreateIndyDirect(lEngine);
+  fNativeEngine := lEngine;
   fNative.Listen(SWAGFIX_NATIVE_PORT);
 end;
 
@@ -256,6 +329,8 @@ begin
   fServer := nil;
   fNative.Stop;
   fNative := nil;
+  FreeAndNil(fServerEngine);
+  FreeAndNil(fNativeEngine);
 end;
 
 function TSwaggerFixesTests.Fetch(const APort: Integer; const APath, ADumpName: string): TJsonObject;
@@ -389,6 +464,91 @@ begin
   try
     Assert.AreEqual('listThings', lDoc.O['paths'].O['/things'].O['get'].S['operationId'],
       lDoc.O['paths'].ToJSON);
+  finally
+    lDoc.Free;
+  end;
+end;
+
+function ResponseContent(const ADoc: TJsonObject; const APath, AVerb: string): TJsonObject;
+begin
+  Result := ADoc.O['paths'].O[APath].O[AVerb].O['responses'].O['200'].O['content'];
+end;
+
+procedure AssertNoStreamSchema(const ADoc: TJsonObject);
+var
+  I: Integer;
+begin
+  for I := 0 to ADoc.O['components'].O['schemas'].Count - 1 do
+    Assert.IsFalse(ADoc.O['components'].O['schemas'].Names[I].Contains('Stream'),
+      ADoc.O['components'].O['schemas'].ToJSON);
+end;
+
+procedure TSwaggerFixesTests.StreamResultIsBinaryOfItsProducesMediaType;
+var
+  lDoc: TJsonObject;
+begin
+  lDoc := Fetch(SWAGFIX_NATIVE_PORT, '/openapi.json', 'fix_native.json');
+  try
+    Assert.AreEqual('{"image/png":{"schema":{"type":"string","format":"binary"}}}',
+      ResponseContent(lDoc, '/api/bin/image', 'post').ToJSON);
+    AssertNoStreamSchema(lDoc);
+  finally
+    lDoc.Free;
+  end;
+end;
+
+procedure TSwaggerFixesTests.StreamResultWithoutProducesIsOctetStream;
+var
+  lDoc: TJsonObject;
+begin
+  lDoc := Fetch(SWAGFIX_NATIVE_PORT, '/openapi.json', 'fix_native.json');
+  try
+    Assert.AreEqual('{"application/octet-stream":{"schema":{"type":"string","format":"binary"}}}',
+      ResponseContent(lDoc, '/api/bin/download', 'get').ToJSON);
+    AssertNoStreamSchema(lDoc);
+  finally
+    lDoc.Free;
+  end;
+end;
+
+procedure TSwaggerFixesTests.SwagResponsesWithoutModelIsBinaryOfItsProducesMediaType;
+var
+  lDoc: TJsonObject;
+begin
+  lDoc := Fetch(SWAGFIX_NATIVE_PORT, '/openapi.json', 'fix_native.json');
+  try
+    Assert.AreEqual('{"image/png":{"schema":{"type":"string","format":"binary"}}}',
+      ResponseContent(lDoc, '/api/bin/thumbnail', 'get').ToJSON);
+  finally
+    lDoc.Free;
+  end;
+end;
+
+procedure TSwaggerFixesTests.SwagResponsesDataEnvelopeWrapsTheModel;
+var
+  lDoc, lSchema: TJsonObject;
+begin
+  lDoc := Fetch(SWAGFIX_NATIVE_PORT, '/openapi.json', 'fix_native.json');
+  try
+    lSchema := ResponseContent(lDoc, '/api/bin/wrapped', 'get').O['application/json'].O['schema'];
+    Assert.AreEqual(
+      '{"type":"object","properties":{"data":{"type":"array","items":{"$ref":"#/components/schemas/TSwagFixDTO"}}}}',
+      lSchema.ToJSON);
+  finally
+    lDoc.Free;
+  end;
+end;
+
+procedure TSwaggerFixesTests.OpenAPIHTTPFilterAddsTheSourcesItIsGiven;
+var
+  lDoc: TJsonObject;
+begin
+  lDoc := Fetch(SWAGFIX_NATIVE_PORT, '/openapi.json', 'fix_native.json');
+  try
+    Assert.AreEqual('extraOperation', lDoc.O['paths'].O['/extra'].O['get'].S['operationId'],
+      lDoc.O['paths'].ToJSON);
+    // the built-in sources are still there
+    Assert.IsTrue(lDoc.O['paths'].Contains('/api/fix/dto'), lDoc.O['paths'].ToJSON);
   finally
     lDoc.Free;
   end;

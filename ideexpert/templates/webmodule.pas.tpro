@@ -37,10 +37,10 @@ uses
 {{if webmodule_middleware_jwt}}
   {{:authentication_unit_name}},
   MVCFramework.JWT,
-  MVCFramework.Middleware.JWT,
 {{if webmodule_middleware_jwt_asymmetric}}
   MVCFramework.JWT.RSA,
 {{endif}}
+  MVCFramework.Filters.Authentication,
 {{endif}}
   System.IOUtils,
   System.DateUtils,
@@ -60,7 +60,6 @@ uses
   MVCFramework.Commons,
   MVCFramework.Logger,
 {{if webmodule_middleware_activerecord}}
-  MVCFramework.Middleware.ActiveRecord,
   // ActiveRecord needs the FireDAC driver and the SQL generator of the database in
   // the connection definitions file: SQLite there by default. Another database:
   // replace the SQLite units, e.g. FireDAC.Phys.PG + MVCFramework.SQLGenerators.PostgreSQL.
@@ -70,42 +69,15 @@ uses
 {$ENDIF}
   MVCFramework.SQLGenerators.Sqlite,
 {{endif}}
-{{if webmodule_middleware_session_memory}}
-  MVCFramework.Middleware.Session,
-{{endif}}
-{{if webmodule_middleware_session_file}}
-  MVCFramework.Middleware.Session,
-{{endif}}
-{{if webmodule_middleware_session_database}}
-  MVCFramework.Middleware.Session,
-{{endif}}
-{{if program_ssv_any}}
-  MVCFramework.Middleware.Redirect,
-{{endif}}
-{{if @(program_ssv_any or webmodule_middleware_staticfiles or program_openapi_swagger)}}
-  MVCFramework.Middleware.StaticFiles,
-{{endif}}
 {{if program_openapi_swagger}}
   MVCFramework.Swagger.Commons,
-  MVCFramework.Middleware.Swagger,
+  MVCFramework.Filters.Swagger,
 {{endif}}
-{{if webmodule_middleware_analytics}}
-  MVCFramework.Middleware.Analytics,
+{{if @(webmodule_middleware_activerecord or webmodule_middleware_session_database)}}
+  MVCFramework.Filters.ActiveRecord,
 {{endif}}
-{{if webmodule_middleware_trace}}
-  MVCFramework.Middleware.Trace,
-{{endif}}
-{{if webmodule_middleware_cors}}
-  MVCFramework.Middleware.CORS,
-{{endif}}
-{{if webmodule_middleware_etag}}
-  MVCFramework.Middleware.ETag,
-{{endif}}
-{{if webmodule_middleware_ratelimit}}
-  MVCFramework.Middleware.RateLimit,
-{{endif}}
-{{if webmodule_middleware_compression}}
-  MVCFramework.Middleware.Compression,
+{{if @(webmodule_middleware_jwt or program_ssv_any or webmodule_middleware_staticfiles or webmodule_middleware_analytics or webmodule_middleware_trace or webmodule_middleware_cors or webmodule_middleware_etag or webmodule_middleware_compression or webmodule_middleware_ratelimit or webmodule_middleware_activerecord or webmodule_middleware_session_memory or webmodule_middleware_session_file or webmodule_middleware_session_database or program_openapi_swagger)}}
+  MVCFramework.Filters,
 {{endif}}
   System.SysUtils;
 
@@ -114,12 +86,13 @@ procedure {{:webmodule_classname}}.WebModuleCreate(Sender: TObject);
 var
 {{endif}}
 {{if webmodule_middleware_ratelimit}}
-  lRateLimitMiddleware: TMVCRateLimitMiddleware;
+  lRateLimitOptions: TMVCRateLimitOptions;
 {{endif}}
 {{if webmodule_middleware_jwt}}
-  lJWTClaimsSetup: TJWTClaimsSetup;
-{{if webmodule_middleware_jwt_asymmetric}}
-  lSigner: IJWTSigner;
+{{if program_ssv_any}}
+  lJWTOptions: TMVCJWTCookieAuthenticationOptions;
+{{else}}
+  lJWTOptions: TMVCJWTAuthenticationOptions;
 {{endif}}
 {{endif}}
 {{if @(program_ssv_any or webmodule_middleware_staticfiles)}}
@@ -127,6 +100,7 @@ var
 {{endif}}
 {{if program_openapi_swagger}}
   lSwaggerInfo: TMVCSwaggerInfo;
+  lSwaggerUIOptions: TMVCStaticFilesOptions;
 {{endif}}
 begin
   fMVC := TMVCEngine.Create(Self,
@@ -135,7 +109,7 @@ begin
       AConfig[TMVCConfigKey.DefaultContentType] := dotEnv.Env('dmvc.default.content_type', {{:default_media_type}});
       AConfig[TMVCConfigKey.DefaultContentCharset] := dotEnv.Env('dmvc.default.content_charset', TMVCConstants.DEFAULT_CONTENT_CHARSET);
       AConfig[TMVCConfigKey.AllowUnhandledAction] := dotEnv.Env('dmvc.allow_unhandled_actions', 'false');
-      AConfig[TMVCConfigKey.LoadSystemControllers] := dotEnv.Env('dmvc.load_system_controllers', 'true');
+      AConfig[TMVCConfigKey.LoadSystemControllers] := dotEnv.Env('dmvc.load_system_controllers', 'false');
       AConfig[TMVCConfigKey.DefaultViewFileExtension] := dotEnv.Env('dmvc.default.view_file_extension', 'html');
       AConfig[TMVCConfigKey.ViewPath] := dotEnv.Env('dmvc.view_path', TPath.Combine(AppPath, 'templates'));
 {{if program_ssv_templatepro}}
@@ -170,105 +144,44 @@ begin
 {{if program_ssv_mustache}}
   fMVC.SetViewEngine(TMVCMustacheViewEngine);
 {{endif}}
+{{if @(program_ssv_any or webmodule_middleware_staticfiles or webmodule_middleware_analytics or webmodule_middleware_trace or webmodule_middleware_cors or webmodule_middleware_etag or webmodule_middleware_compression or webmodule_middleware_ratelimit or webmodule_middleware_activerecord or webmodule_middleware_session_memory or webmodule_middleware_session_file or webmodule_middleware_session_database or program_openapi_swagger)}}
 
-{{if webmodule_middleware_ratelimit}}
-
-  lRateLimitMiddleware := TMVCRateLimitMiddleware.Create(
-    10,           // max requests
-    60,           // window seconds
-    rlkIPAddress
-  );
-  // lRateLimitMiddleware.AddExcludedPath('/health');
-  lRateLimitMiddleware.SetOnRateLimitExceeded(
-  procedure(const AContext: TWebContext; const AKey: string;
-    const ALimit: Integer; const AWindowSeconds: Integer)
-  begin
-    LogW(Format('Rate limit exceeded for key: %s (Limit: %d requests per %d seconds)',
-      [AKey, ALimit, AWindowSeconds]));
-  end
-  );
-{{endif}}
-{{if webmodule_middleware_jwt}}
-
-  lJWTClaimsSetup := procedure(const JWT: TJWT)
-    begin
-      JWT.Claims.Issuer := dotEnv.Env('JWT_ISSUER', '{{:program_name}}');
-      JWT.Claims.ExpirationTime := Now + OneHour;
-      JWT.Claims.NotBefore := Now - OneMinute * 5;
-      JWT.Claims.IssuedAt := Now;
-      // JWT.CustomClaims['app'] := '{{:program_name}}';
-    end;
-{{if webmodule_middleware_jwt_asymmetric}}
-
-  // RS256: generate keys with openssl genrsa / openssl rsa -pubout
-  lSigner := TRSAJWTSigner.CreateFromFiles(
-    JWT_RS256,
-    dotEnv.Env('JWT_PRIVATE_KEY_FILE', TPath.Combine(AppPath, 'jwt-private.pem')),
-    dotEnv.Env('JWT_PUBLIC_KEY_FILE', TPath.Combine(AppPath, 'jwt-public.pem'))
-  );
-{{endif}}
-{{endif}}
-
-  // Middleware
+  // HTTPFilter chain (engine-wide). Order matters: first = outermost. The filters wrap the whole
+  // request: the classic middleware, the routing and the action.
 {{if program_ssv_any}}
-  fMVC.AddMiddleware(TMVCRedirectMiddleware.Create(['/'], '/web'));
-{{endif}}
-{{if webmodule_middleware_ratelimit}}
-  fMVC.AddMiddleware(lRateLimitMiddleware);
-{{endif}}
-{{if webmodule_middleware_jwt}}
-{{if program_ssv_any}}
-  // JWT cookie auth (HTTP-only cookie, for browser clients)
-  fMVC.AddMiddleware(
-    UseJWTCookieAuthentication(
-      {{:authentication_classname}}.Create,
-      lJWTClaimsSetup,
-{{if webmodule_middleware_jwt_asymmetric}}
-      lSigner,
-{{else}}
-      dotEnv.Env('JWT_SECRET'),  // no fallback: a missing key must fail, not sign with a public string
-{{endif}}
-      '/login',
-      '/logout',
-      [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt],
-      300  // leeway seconds
-    )
-    // Set JWT_COOKIE_SECURE=false in .env only for local development over HTTP.
-    .SetCookieSecure(dotEnv.Env('JWT_COOKIE_SECURE', True))
-  );
-{{else}}
-  // JWT Bearer auth (Authorization header, for API clients)
-  fMVC.AddMiddleware(
-    UseJWTMiddleware(
-      {{:authentication_classname}}.Create,
-      lJWTClaimsSetup,
-{{if webmodule_middleware_jwt_asymmetric}}
-      lSigner,
-{{else}}
-      dotEnv.Env('JWT_SECRET'),  // no fallback: a missing key must fail, not sign with a public string
-{{endif}}
-      '/login',
-      [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt],
-      300  // leeway seconds
-    )
-  );
-{{endif}}
-{{endif}}
-{{if webmodule_middleware_session_memory}}
-  fMVC.AddMiddleware(UseMemorySessionMiddleware({{:webmodule_middleware_session_timeout}}, True, dotEnv.Env('SESSION_COOKIE_SECURE', True)));
-{{endif}}
-{{if webmodule_middleware_session_file}}
-  fMVC.AddMiddleware(UseFileSessionMiddleware({{:webmodule_middleware_session_timeout}}, True, TPath.Combine(AppPath, 'sessions'), dotEnv.Env('SESSION_COOKIE_SECURE', True)));
-{{endif}}
-{{if webmodule_middleware_session_database}}
-  // Database session: requires ActiveRecord middleware + dmvc_sessions table
-  fMVC.AddMiddleware(UseDatabaseSessionMiddleware({{:webmodule_middleware_session_timeout}}, True, dotEnv.Env('SESSION_COOKIE_SECURE', True)));
-{{endif}}
-{{if webmodule_middleware_analytics}}
-  fMVC.AddMiddleware(TMVCAnalyticsMiddleware.Create(GetAnalyticsDefaultLogger));
+  fMVC.Use(RedirectHTTPFilter(['/'], '/web'));
 {{endif}}
 {{if @(program_ssv_any or webmodule_middleware_staticfiles)}}
-  fMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create('/static', lWwwPath));
+  fMVC.Use(FileServerBundle('/static', lWwwPath));
+{{endif}}
+{{if webmodule_middleware_analytics}}
+  fMVC.Use(AnalyticsHTTPFilter());
+{{endif}}
+{{if webmodule_middleware_trace}}
+  fMVC.Use(TraceHTTPFilter());
+{{endif}}
+{{if webmodule_middleware_cors}}
+  fMVC.Use(CORSHTTPFilter('*'));
+{{endif}}
+{{if webmodule_middleware_etag}}
+  fMVC.Use(ETagHTTPFilter());
+{{endif}}
+{{if webmodule_middleware_compression}}
+  fMVC.Use(CompressionHTTPFilter(1024));
+{{endif}}
+{{if webmodule_middleware_ratelimit}}
+  lRateLimitOptions := TMVCRateLimitOptions.Default;
+  lRateLimitOptions.MaxRequests := 10;
+  lRateLimitOptions.WindowSeconds := 60;
+  // lRateLimitOptions.ExcludedPaths := ['/health'];
+  lRateLimitOptions.OnExceeded :=
+    procedure(const AContext: TWebContext; const AKey: string;
+      const ALimit: Integer; const AWindowSeconds: Integer)
+    begin
+      LogW(Format('Rate limit exceeded for key: %s (Limit: %d requests per %d seconds)',
+        [AKey, ALimit, AWindowSeconds]));
+    end;
+  fMVC.Use(RateLimitHTTPFilter(lRateLimitOptions));
 {{endif}}
 {{if program_openapi_swagger}}
   // API documentation: OpenAPI 3 document at {{:program_openapi_url}}, Swagger UI at /swagger.
@@ -278,31 +191,72 @@ begin
     lSwaggerInfo.Title := '{{:program_name}}';
     lSwaggerInfo.Version := 'v1';
     lSwaggerInfo.Description := '{{:program_name}} API';
-    fMVC.AddMiddleware(TMVCSwaggerMiddleware.Create(fMVC, lSwaggerInfo, '{{:program_openapi_url}}',
-      JWT_DEFAULT_DESCRIPTION, False, '', '', '', {{:program_openapi_schemes}}, False, ssvOpenAPI3));
-    fMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create('/swagger',
-      TPath.Combine(TPath.Combine(AppPath, 'www'), 'swagger')));
+    fMVC.Use(SwaggerHTTPFilter(fMVC, lSwaggerInfo, '{{:program_openapi_url}}',
+      JWT_DEFAULT_DESCRIPTION, {{if @(webmodule_middleware_jwt and (not program_ssv_any))}}[sauBearer]{{else}}[]{{endif}}, '', '', '', {{:program_openapi_schemes}}, ssvOpenAPI3));
+    lSwaggerUIOptions := TMVCStaticFilesOptions.Default; // redirects /swagger to /swagger/
+    lSwaggerUIOptions.Prefix := '/swagger';
+    lSwaggerUIOptions.RootFolder := TPath.Combine(TPath.Combine(AppPath, 'www'), 'swagger');
+    fMVC.Use(StaticFilesHTTPFilter(lSwaggerUIOptions));
   end;
 {{endif}}
-{{if webmodule_middleware_trace}}
-  fMVC.AddMiddleware(TMVCTraceMiddleware.Create);
-{{endif}}
-{{if webmodule_middleware_compression}}
-  fMVC.AddMiddleware(TMVCCompressionMiddleware.Create);
-{{endif}}
-{{if webmodule_middleware_etag}}
-  fMVC.AddMiddleware(TMVCETagMiddleware.Create);
-{{endif}}
-{{if webmodule_middleware_cors}}
-  fMVC.AddMiddleware(TMVCCORSMiddleware.Create);
-{{endif}}
 {{if webmodule_middleware_activerecord}}
-  fMVC.AddMiddleware(TMVCActiveRecordMiddleware.Create(
+  fMVC.Use(ActiveRecordHTTPFilter(
     dotEnv.Env('firedac.connection_definition_name', '{{:webmodule_middleware_activerecord_con_def_name}}'),
     dotEnv.Env('firedac.connection_definitions_filename', TPath.Combine(AppPath, '{{:con_def_filename}}'))
   ));
 {{endif}}
-  // Middleware - END
+{{if webmodule_middleware_session_memory}}
+  fMVC.Use(MemorySessionHTTPFilter({{:webmodule_middleware_session_timeout}}, SessionCookieFlags(dotEnv.Env('SESSION_COOKIE_SECURE', True))));
+{{endif}}
+{{if webmodule_middleware_session_file}}
+  fMVC.Use(FileSessionHTTPFilter({{:webmodule_middleware_session_timeout}}, TPath.Combine(AppPath, 'sessions'), SessionCookieFlags(dotEnv.Env('SESSION_COOKIE_SECURE', True))));
+{{endif}}
+{{if webmodule_middleware_session_database}}
+  // Database session: requires ActiveRecordHTTPFilter above + dmvc_sessions table
+  fMVC.Use(DatabaseSessionHTTPFilter({{:webmodule_middleware_session_timeout}}, SessionCookieFlags(dotEnv.Env('SESSION_COOKIE_SECURE', True))));
+{{endif}}
+{{endif}}
+{{if webmodule_middleware_jwt}}
+
+{{if program_ssv_any}}
+  // JWT in an HTTP-only cookie, for browser clients. POST /login with Basic credentials or the jwtusername / jwtpassword headers.
+  lJWTOptions := TMVCJWTCookieAuthenticationOptions.Default;
+{{else}}
+  // JWT Bearer (Authorization header), for API clients. POST /login with Basic credentials or the jwtusername / jwtpassword headers.
+  lJWTOptions := TMVCJWTAuthenticationOptions.Default;
+{{endif}}
+  lJWTOptions.Handler := {{:authentication_classname}}.Create;
+  lJWTOptions.ClaimsSetup := procedure(const JWT: TJWT)
+    begin
+      JWT.Claims.Issuer := dotEnv.Env('JWT_ISSUER', '{{:program_name}}');
+      JWT.Claims.ExpirationTime := Now + OneHour;
+      JWT.Claims.NotBefore := Now - OneMinute * 5;
+      JWT.Claims.IssuedAt := Now;
+      // JWT.CustomClaims['app'] := '{{:program_name}}';
+    end;
+{{if webmodule_middleware_jwt_asymmetric}}
+  // RS256: generate keys with openssl genrsa / openssl rsa -pubout
+  lJWTOptions.Signer := TRSAJWTSigner.CreateFromFiles(
+    JWT_RS256,
+    dotEnv.Env('JWT_PRIVATE_KEY_FILE', TPath.Combine(AppPath, 'jwt-private.pem')),
+    dotEnv.Env('JWT_PUBLIC_KEY_FILE', TPath.Combine(AppPath, 'jwt-public.pem'))
+  );
+{{else}}
+  lJWTOptions.Secret := dotEnv.Env('JWT_SECRET'); // no fallback: a missing key must fail, not sign with a public string
+{{endif}}
+  lJWTOptions.ClaimsToCheck := [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt];
+{{if program_ssv_any}}
+  // Set JWT_COOKIE_SECURE=false in .env only for local development over HTTP.
+  lJWTOptions.Cookie.Secure := dotEnv.Env('JWT_COOKIE_SECURE', True);
+  // only these origins may POST /login: a page of another site cannot log the browser in to its own account
+  lJWTOptions.LoginAllowedOrigins := dotEnv.Env('LOGIN_ALLOWED_ORIGINS', '').Split([',']);
+  if Length(lJWTOptions.LoginAllowedOrigins) = 0 then // an empty list would check no origin
+    raise Exception.Create('LOGIN_ALLOWED_ORIGINS is empty: set it in .env, the origins a browser may POST /login from');
+  fMVC.Use(JWTCookieAuthenticationBundle(lJWTOptions));
+{{else}}
+  fMVC.Use(JWTAuthenticationBundle(lJWTOptions));
+{{endif}}
+{{endif}}
 {{if program_ssv_templatepro}}
 
   // Browser requests get the HTML error view; API clients get RFC 7807 problem+json.

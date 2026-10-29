@@ -186,7 +186,7 @@ begin
   AForm.chkAnalyticsMiddleware.Checked := False;
   AForm.chkTrace.Checked := False;
   AForm.chkRateLimit.Checked := False;
-  AForm.chkOpenAPI.Checked := True;       // lambda routes: native OpenAPI() filter
+  AForm.chkOpenAPI.Checked := True;       // lambda routes: native OpenAPIHTTPFilter() filter
   AForm.chkActiveRecord.Checked := False;
   AForm.cbSessionType.ItemIndex := 0; // None
 
@@ -263,7 +263,7 @@ begin
   AForm.chkHtmx.Checked := True;
   AForm.chkHtmx.Visible := True;
   AForm.chkCustomConfigDotEnv.Checked := False;
-  AForm.rgJWTAlgorithm.ItemIndex := 0; // None — auth is the RequireLogin filter in Routes.RootU
+  AForm.rgJWTAlgorithm.ItemIndex := 0; // None — auth is RequireLoginEndpointFilter in Routes.RootU
 
   // Middleware
   AForm.chkCORS.Checked := False;

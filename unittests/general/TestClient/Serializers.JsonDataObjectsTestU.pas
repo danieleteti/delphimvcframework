@@ -2021,37 +2021,42 @@ const
 var
   LEntity: TEntityCustomWithGuid;
   LJson: string;
+  lSavedNameCase: TMVCNameCase;
 begin
+  lSavedNameCase := MVCNameCaseDefault; // a global: the tests that follow must not see it changed
   MVCNameCaseDefault := ncAsIs;
-
-  LEntity := TEntityCustomWithGuid.Create;
   try
-    LEntity.Id := 1;
-    LEntity.Code := 2;
-    LEntity.Name := 'João Antônio';
-    LEntity.GuidValue := StringToGUID('{AEED1A0F-9061-40F0-9FDA-D69AE7F20222}');
-    LEntity.GuidValue2 := StringToGUID('{CA09DC98-85BA-46E8-ABA2-117C2FA8EF25}');
-    LEntity.NullableGuid := StringToGUID('{EABA9B61-6812-4F0A-9469-D247EB2DA8F4}');
-    LEntity.NullableGuid2 := StringToGUID('{FA51CAA7-7D48-46BA-BFDE-34C1F740E066}');
+    LEntity := TEntityCustomWithGuid.Create;
+    try
+      LEntity.Id := 1;
+      LEntity.Code := 2;
+      LEntity.Name := 'João Antônio';
+      LEntity.GuidValue := StringToGUID('{AEED1A0F-9061-40F0-9FDA-D69AE7F20222}');
+      LEntity.GuidValue2 := StringToGUID('{CA09DC98-85BA-46E8-ABA2-117C2FA8EF25}');
+      LEntity.NullableGuid := StringToGUID('{EABA9B61-6812-4F0A-9469-D247EB2DA8F4}');
+      LEntity.NullableGuid2 := StringToGUID('{FA51CAA7-7D48-46BA-BFDE-34C1F740E066}');
 
-    LJson := fSerializer.SerializeObject(LEntity);
-    Assert.AreEqual(JSON, LJson);
-  finally
-    LEntity.Free;
-  end;
+      LJson := fSerializer.SerializeObject(LEntity);
+      Assert.AreEqual(JSON, LJson);
+    finally
+      LEntity.Free;
+    end;
 
-  LEntity := TEntityCustomWithGuid.Create;
-  try
-    fSerializer.DeserializeObject(LJson, LEntity);
-    Assert.AreEqual(int64(1), LEntity.Id);
-    Assert.AreEqual(Integer(2), LEntity.Code);
-    Assert.AreEqual('João Antônio', LEntity.Name);
-    Assert.AreEqual(StringToGUID('{AEED1A0F-9061-40F0-9FDA-D69AE7F20222}'), LEntity.GuidValue);
-    Assert.AreEqual(StringToGUID('{CA09DC98-85BA-46E8-ABA2-117C2FA8EF25}'), LEntity.GuidValue2);
-    Assert.AreEqual(StringToGUID('{EABA9B61-6812-4F0A-9469-D247EB2DA8F4}'), LEntity.NullableGuid.Value);
-    Assert.AreEqual(StringToGUID('{FA51CAA7-7D48-46BA-BFDE-34C1F740E066}'), LEntity.NullableGuid2.Value);
+    LEntity := TEntityCustomWithGuid.Create;
+    try
+      fSerializer.DeserializeObject(LJson, LEntity);
+      Assert.AreEqual(int64(1), LEntity.Id);
+      Assert.AreEqual(Integer(2), LEntity.Code);
+      Assert.AreEqual('João Antônio', LEntity.Name);
+      Assert.AreEqual(StringToGUID('{AEED1A0F-9061-40F0-9FDA-D69AE7F20222}'), LEntity.GuidValue);
+      Assert.AreEqual(StringToGUID('{CA09DC98-85BA-46E8-ABA2-117C2FA8EF25}'), LEntity.GuidValue2);
+      Assert.AreEqual(StringToGUID('{EABA9B61-6812-4F0A-9469-D247EB2DA8F4}'), LEntity.NullableGuid.Value);
+      Assert.AreEqual(StringToGUID('{FA51CAA7-7D48-46BA-BFDE-34C1F740E066}'), LEntity.NullableGuid2.Value);
+    finally
+      LEntity.Free;
+    end;
   finally
-    LEntity.Free;
+    MVCNameCaseDefault := lSavedNameCase;
   end;
 end;
 

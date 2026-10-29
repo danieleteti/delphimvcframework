@@ -26,6 +26,8 @@ unit MVCFramework.JWT.RefreshToken;
 
 {$I dmvcframework.inc}
 
+{$WARN SYMBOL_DEPRECATED OFF} // the middleware is deprecated for its users, not inside its own unit
+
 interface
 
 uses
@@ -58,6 +60,7 @@ type
     RefreshURLSegment: string;
     AccessTokenTTLSeconds: Integer;
     RefreshTokenTTLSeconds: Integer;
+    Signer: IJWTSigner; // nil: the access tokens are signed with Secret and HMACAlgorithm
     class function Default(const ASecret: string): TMVCRefreshTokenConfig; static;
   end;
 
@@ -113,7 +116,7 @@ type
     procedure OnAfterControllerAction(AContext: TWebContext;
       const AControllerQualifiedClassName: string; const AActionName: string; const AHandled: Boolean);
     procedure OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
-  end;
+  end deprecated 'Use the refresh token of the JWT filter bundle: RefreshTokenStore in the options of AEngine.Use(JWTAuthenticationBundle(...)) (MVCFramework.Filters.Authentication); with a login of your own, LoginURL empty and the login outside the check (a controller action the handler OnRequest makes public, or the bundle on a route group)';
 
   // Reference in-memory store. Rotation + reuse-detection via token families.
   // Not durable across restarts: use the ActiveRecord store in production.
@@ -170,6 +173,7 @@ begin
   Result.RefreshURLSegment := '/auth/refresh';
   Result.AccessTokenTTLSeconds := 15 * 60;
   Result.RefreshTokenTTLSeconds := 7 * 24 * 60 * 60;
+  Result.Signer := nil;
 end;
 
 { TMVCRefreshTokenCore }
@@ -185,12 +189,20 @@ end;
 function TMVCRefreshTokenCore.BuildAccessToken(const AUsername, ARoles: string): string;
 var
   lJWT: TJWT;
+  lID: TGUID;
 begin
-  lJWT := TJWT.Create(fConfig.Secret, 0, fConfig.HMACAlgorithm);
+  if Assigned(fConfig.Signer) then
+    lJWT := TJWT.Create(fConfig.Signer, 0)
+  else
+    lJWT := TJWT.Create(fConfig.Secret, 0, fConfig.HMACAlgorithm);
   try
     lJWT.Claims.Issuer := fConfig.Issuer;
     lJWT.Claims.Subject := AUsername;
+    // two logins of a user in the same second would give the same token: a logout would end both
+    CreateGUID(lID);
+    lJWT.Claims.JWT_ID := GUIDToString(lID);
     lJWT.Claims.IssuedAt := Now;
+    lJWT.Claims.NotBefore := Now; // a check with NotBefore in its claims refuses a token without nbf
     lJWT.Claims.ExpirationTime := Now + (fConfig.AccessTokenTTLSeconds * OneSecond);
     lJWT.CustomClaims['username'] := AUsername;
     lJWT.CustomClaims['roles'] := ARoles;

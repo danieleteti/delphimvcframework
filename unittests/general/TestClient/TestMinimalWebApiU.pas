@@ -84,6 +84,14 @@ type
     [Test]
     procedure Test_Wildcard_segment_matches_empty_tail;
     [Test]
+    procedure Test_TGUID_argument_binds_a_route_segment;
+    [Test]
+    procedure Test_Record_field_without_RTTI_is_skipped;
+    // Apache passes a route segment to the Minimal API still percent-encoded ({ } as %7B %7D): open item
+    [Test]
+    [Category('NotOnApache')]
+    procedure Test_TGUID_argument_with_braces_binds_a_route_segment;
+    [Test]
     procedure Test_RequireRole_unauthenticated_is_401;
     [Test]
     procedure Test_RequireRole_wrong_role_is_403;
@@ -201,7 +209,7 @@ begin
   try
     lPaths := lJson.O['paths'];
     Assert.IsTrue(lPaths.Contains('/minimal-web/web-visible'),
-      'Web route opted in with .WithOpenAPI(True) must be in spec');
+      'Web route opted in with .WithOpenAPI() must be in spec');
   finally
     lJson.Free;
   end;
@@ -458,6 +466,49 @@ begin
   lResp := RESTClient.Get('/minimal-feat/files/a/b/c.txt');
   Assert.AreEqual<Integer>(200, lResp.StatusCode);
   Assert.Contains(lResp.Content, 'path=a/b/c.txt');
+end;
+
+procedure TTestMinimalWebApi.Test_TGUID_argument_binds_a_route_segment;
+var
+  lResp: IMVCRESTResponse;
+  lJson, lParam: TJsonObject;
+begin
+  // the same forms and the same answers as the controller (TestTypedTGuid1)
+  lResp := RESTClient.Get('/minimal-feat/guid/161BEA56480B40A8AF0E7FDF6B08E121');
+  Assert.AreEqual<Integer>(200, lResp.StatusCode, lResp.Content);
+  Assert.Contains(lResp.Content, 'id={161BEA56-480B-40A8-AF0E-7FDF6B08E121}');
+  lResp := RESTClient.Get('/minimal-feat/guid/not-a-guid');
+  Assert.AreEqual<Integer>(400, lResp.StatusCode, lResp.Content);
+  Assert.AreEqual<Integer>(400, RESTClient.Get('/typed/tguid1/not-a-guid').StatusCode, 'controller');
+  // and a string/uuid path parameter in the OpenAPI document
+  lResp := RESTClient.Get('/openapi.json');
+  Assert.AreEqual<Integer>(200, lResp.StatusCode, lResp.Content);
+  lJson := TJsonObject.Parse(lResp.Content) as TJsonObject;
+  try
+    lParam := lJson.O['paths'].O['/minimal-feat/guid/{id}'].O['get'].A['parameters'].O[0];
+    Assert.AreEqual('path', lParam.S['in'], lParam.ToJSON);
+    Assert.AreEqual('uuid', lParam.O['schema'].S['format'], lParam.ToJSON);
+  finally
+    lJson.Free;
+  end;
+end;
+
+procedure TTestMinimalWebApi.Test_TGUID_argument_with_braces_binds_a_route_segment;
+var
+  lResp: IMVCRESTResponse;
+begin
+  lResp := RESTClient.Get('/minimal-feat/guid/{161BEA56-480B-40A8-AF0E-7FDF6B08E121}');
+  Assert.AreEqual<Integer>(200, lResp.StatusCode, lResp.Content);
+  Assert.Contains(lResp.Content, 'id={161BEA56-480B-40A8-AF0E-7FDF6B08E121}');
+end;
+
+procedure TTestMinimalWebApi.Test_Record_field_without_RTTI_is_skipped;
+var
+  lResp: IMVCRESTResponse;
+begin
+  lResp := RESTClient.Get('/minimal-feat/rawfield?name=ada');
+  Assert.AreEqual<Integer>(200, lResp.StatusCode, lResp.Content);
+  Assert.Contains(lResp.Content, 'name=ada');
 end;
 
 procedure TTestMinimalWebApi.Test_Wildcard_segment_matches_empty_tail;

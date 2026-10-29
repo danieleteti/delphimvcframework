@@ -9,7 +9,7 @@
 //  resolved against a per-request threadvar (set by the minimal-API
 //  middleware on entry, cleared on exit).
 //
-//  The /admin subtree is protected by the RequireLogin filter (cookie session
+//  The /admin subtree is protected by the RequireLoginEndpointFilter (cookie session
 //  driven). Login form posts a TLoginForm record whose fields are filled from
 //  application/x-www-form-urlencoded body via [MVCFromContentField].
 // =============================================================================
@@ -46,7 +46,7 @@ type
 // Express-style filter recipe: redirect to ARedirectTo unless the session
 // carries a 'user' value. Returned as a TMVCEndpointFilter so it can be
 // attached with .Use(...) to a group built via .AsWeb.
-function RequireLogin(const ARedirectTo: string): TMVCEndpointFilter;
+function RequireLoginEndpointFilter(const ARedirectTo: string): TMVCEndpointFilter;
 begin
   Result :=
     function (const Ctx: TWebContext; const Next: TMVCEndpointFilterNext): IMVCResponse
@@ -71,7 +71,7 @@ begin
   // below) inherits it through the normal filter-inheritance rules. No
   // classic IMVCMiddleware involved.
   // ---------------------------------------------------------------------------
-  lWeb := AEngine.Root.AsWeb.Use(MemorySession(10));
+  lWeb := AEngine.Root.AsWeb.Use(MemorySessionEndpointFilter(10));
 
   lWeb.MapGet<TWebContext>('/',
     function (Ctx: TWebContext): IMVCResponse
@@ -148,11 +148,11 @@ begin
 
   // ---------------------------------------------------------------------------
   // Session-protected admin subtree. Built as a nested Prefix of lWeb so it
-  // inherits the MemorySession filter applied above. The .Use(RequireLogin)
+  // inherits the MemorySession filter applied above. The .Use(RequireLoginEndpointFilter)
   // filter sits ahead of every handler in this group; if it short-circuits
   // with a redirect, the handler never runs.
   // ---------------------------------------------------------------------------
-  lAdmin := lWeb.Prefix('/admin').Use(RequireLogin('/login'));
+  lAdmin := lWeb.Prefix('/admin').Use(RequireLoginEndpointFilter('/login'));
 
   lAdmin.MapGet<TWebContext>('/',
     function (Ctx: TWebContext): IMVCResponse

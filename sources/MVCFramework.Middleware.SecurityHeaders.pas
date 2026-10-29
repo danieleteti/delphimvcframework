@@ -26,6 +26,8 @@ unit MVCFramework.Middleware.SecurityHeaders;
 
 {$I dmvcframework.inc}
 
+{$WARN SYMBOL_DEPRECATED OFF} // the class is deprecated for its users, not inside its own unit
+
 interface
 
 uses
@@ -42,7 +44,7 @@ type
       const AControllerQualifiedClassName: string; const AActionName: string;
       const AHandled: Boolean);
     procedure OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
-  end;
+  end deprecated 'Use the SecurityHeaders HTTP filter (MVCFramework.Filters): AEngine.Use(SecurityHeadersHTTPFilter())';
 
 implementation
 

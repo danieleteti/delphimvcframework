@@ -22,36 +22,51 @@
 //
 // ***************************************************************************
 //
-// Filter helpers for the minimal-API surface.
+// Ready-made filters, for controllers and Minimal API routes.
 //
 // Two kinds of filter live here:
 //
-//   * EndpointFilter  — per-route-group, wraps the handler, returns
-//                       IMVCResponse. Registered via .Use(...) on a group.
+//   * EndpointFilter  — after routing, wraps the action or the handler, returns
+//                       IMVCResponse. Registered engine-wide via
+//                       lEngine.Use(...), or via .Use(...) on a group.
 //   * HTTPFilter      — engine-wide, wraps the entire dispatch including
-//                       routing. Registered via lEngine.UseHTTPFilter(...).
+//                       routing. Registered via lEngine.Use(...).
 //
-// The base filter types (TMVCEndpointFilter, TMVCHTTPFilter, *Next) live in
-// MVCFramework.MinimalAPI — this unit only provides the off-the-shelf helpers
-// that build on top of them.
+// The base filter types (TMVCEndpointFilter, TMVCHTTPFilter, *Next) are declared
+// in MVCFramework; this unit only provides the off-the-shelf helpers.
 //
 // Helpers exposed here:
 //
-//   EndpointFilter (per-group):
-//     CORS, JWT, BasicAuth, ActiveRecord,
-//     MemorySession, FileSession, DatabaseSession
+//   EndpointFilter (per-group, or engine-wide with lEngine.Use):
+//     CORSEndpointFilter, BasicAuthEndpointFilter, CSRFEndpointFilter,
+//     AuthorizeEndpointFilter, RequireRoleEndpointFilter,
+//     MemorySessionEndpointFilter, FileSessionEndpointFilter, SessionEndpointFilter
 //
 //   HTTPFilter (engine-wide):
-//     StaticFiles, Compression, ETag, IPBlock, RateLimit, RequestLog,
-//     CORSFilter, SecurityHeaders, Shutdown, RangeMedia,
-//     BearerAuthFilter, AllowedOriginFilter, AllowedHostFilter,
-//     Analytics, Trace, Redirect, OpenAPI, Swagger
+//     StaticFilesHTTPFilter, CompressionHTTPFilter, ETagHTTPFilter, IPBlockHTTPFilter,
+//     RateLimitHTTPFilter, RequestLogHTTPFilter, CORSHTTPFilter,
+//     SecurityHeadersHTTPFilter, ShutdownHTTPFilter, RangeMediaHTTPFilter,
+//     BearerAuthHTTPFilter, AllowedOriginHTTPFilter, AllowedHostHTTPFilter, AllowedMethodsHTTPFilter,
+//     AnalyticsHTTPFilter, TraceHTTPFilter, RedirectHTTPFilter,
+//     MemorySessionHTTPFilter, FileSessionHTTPFilter, SessionHTTPFilter,
+//     CSRFHTTPFilter
+//
+//   Bundle (lEngine.Use): FileServerBundle — StaticFiles + the Range of RangeMedia + SPA.
 //
 //   Plus top-level helpers: WaitForShutdownOrConsoleReturn.
 //
-// Redis-backed companion unit (optional, avoids pulling DelphiRedisClient
-// into every Filters consumer):
-//     MVCFramework.Filters.Redis — RateLimitRedis
+// Authentication: MVCFramework.Filters.Authentication — JWTAuthenticationBundle,
+//     JWTCookieAuthenticationBundle, BasicAuthenticationBundle, CustomAuthenticationBundle
+//     (lEngine.Use(...), or .Use(...) on a group). See "Authentication" below.
+//
+// Companion units, one per optional feature (a consumer of MVCFramework.Filters
+// does not pull in FireDAC, SwagDoc or a Redis client):
+//     MVCFramework.Filters.ActiveRecord — ActiveRecordEndpointFilter, ActiveRecordHTTPFilter,
+//                                         DatabaseSessionEndpointFilter, DatabaseSessionHTTPFilter
+//     MVCFramework.Filters.Swagger      — SwaggerHTTPFilter
+//     MVCFramework.Filters.OpenAPI      — OpenAPIHTTPFilter
+//     MVCFramework.Filters.OIDC         — OIDCAuthenticationBundle
+//     MVCFramework.Filters.Redis        — RateLimitRedisHTTPFilter
 //
 // ***************************************************************************
 
@@ -65,19 +80,52 @@ uses
   System.Classes,
   System.SysUtils,
   System.Generics.Collections,
+  System.SyncObjs,                             // TCriticalSection (TMVCInMemoryRateLimitStorage)
   LoggerPro,                                   // ILogWriter (Analytics helper)
   MVCFramework,
   MVCFramework.Commons,
-  MVCFramework.MinimalAPI,                     // TMVCEndpointFilter, TMVCHTTPFilter, *Next
-  MVCFramework.JWT,                            // TJWT, TJWTCheckableClaims (JWT helper)
-  MVCFramework.Middleware.Authentication,      // IMVCAuthenticationHandler (JWT + BasicAuth)
-  MVCFramework.Middleware.StaticFiles,         // TMVCStaticFileRulesProc, TMVCStaticFileMediaTypesCustomizer
-  MVCFramework.OpenAPI3,                       // TMVCOpenAPIInfo (OpenAPI helper)
-  MVCFramework.Swagger.Commons,                // TMVCSwaggerInfo, JWT_DEFAULT_DESCRIPTION (Swagger helper)
-  Swag.Common.Types;                           // TMVCTransferProtocolSchemes (Swagger helper)
+  MVCFramework.JWT,                            // TMVCJWTCookieSameSite (TMVCAuthCookieOptions)
+  MVCFramework.Session;                        // TMVCWebSessionFactory (Session / SessionHTTPFilter)
+
+type
+  // Flags of the session cookie, for the session filters (HTTP and endpoint).
+  // The default is [scfHttpOnly].
+  //
+  //   FileSessionHTTPFilter(10, 'sessions', [scfHttpOnly, scfSecure])
+  TMVCSessionCookieFlag = (scfHttpOnly, scfSecure);
+  TMVCSessionCookieFlags = set of TMVCSessionCookieFlag;
+
+  // Status of the Redirect HTTP filter: 302 (temporary) or 301 (permanent).
+  TMVCRedirectKind = (rdkTemporary, rdkPermanent);
+  // What the Redirect HTTP filter does with the query string of the request.
+  TMVCRedirectQuery = (
+    rdqPreserve, // appended to the target: /old?a=1 -> /new?a=1
+    rdqDrop      // left out: /old?a=1 -> /new
+  );
+
+  TMVCTraceFlag = (
+    tfLogAuthorization, // the request Authorization is logged raw instead of 'Bearer ***' (leaks tokens to the log)
+    tfLogNonTextBody    // the body of a non-text content type is logged too
+  );
+  TMVCTraceFlags = set of TMVCTraceFlag;
+
+// HttpOnly, plus Secure when ASecure: the flags for a Secure setting that is
+// read at run time (e.g. from .env).
+//
+//   MemorySessionHTTPFilter(30, SessionCookieFlags(dotEnv.Env('SESSION_COOKIE_SECURE', True)))
+function SessionCookieFlags(const ASecure: Boolean): TMVCSessionCookieFlags;
+
+// Session filters for any session factory: every request passing through gets
+// AFactory, which the filter owns (freed when the filter is dropped, typically
+// at engine shutdown). SessionEndpointFilter is the endpoint filter,
+// SessionHTTPFilter the engine-wide one. MemorySessionEndpointFilter,
+// FileSessionEndpointFilter and the database ones of
+// MVCFramework.Filters.ActiveRecord are built on them.
+function SessionEndpointFilter(const AFactory: TMVCWebSessionFactory): TMVCEndpointFilter;
+function SessionHTTPFilter(const AFactory: TMVCWebSessionFactory): TMVCHTTPFilter;
 
 // -------------------------------------------------------------------------
-// EndpointFilter helpers (per route group, attached via group.Use).
+// EndpointFilter helpers (group.Use, or engine-wide with lEngine.Use).
 // -------------------------------------------------------------------------
 
 // Returns a filter that wires an in-memory session factory onto every request
@@ -85,25 +133,24 @@ uses
 // the standard filter-inheritance rules).
 //
 //   lEngine.Root.AsWeb
-//     .Use(MemorySession(10))         // 10-minute idle timeout, HttpOnly on
+//     .Use(MemorySessionEndpointFilter(10))         // 10-minute idle timeout, HttpOnly on
 //     .MapGet('/', HomeHandler);
 //
 // The factory is owned by the filter via an interface-managed holder, so it is
 // freed when the filter is dropped (typically engine shutdown). The session
 // itself is read/written via the usual TWebContext.Session API.
-function MemorySession(const ATimeoutInMinutes: Integer = 0;
-  const AHttpOnly: Boolean = True;
-  const ASecure: Boolean = False): TMVCEndpointFilter;
+function MemorySessionEndpointFilter(const ATimeoutInMinutes: Integer = 0;
+  const AFlags: TMVCSessionCookieFlags = [scfHttpOnly]): TMVCEndpointFilter;
 
 // CORS endpoint filter: stamps the Access-Control-* headers on the responses of
 // the group's routes. Like every endpoint filter it runs only on a matched route,
 // so it answers a browser preflight (OPTIONS) only on a route registered for
 // OPTIONS too; an OPTIONS on a GET/POST-only route is a 404 from the router
 // before this filter runs. To answer preflights for the whole API use
-// CORSFilter, the HTTP filter, which runs before routing.
+// CORSHTTPFilter, the HTTP filter, which runs before routing.
 // Defaults match the typical permissive setup used by the classic
 // TMVCCORSMiddleware.
-function CORS(
+function CORSEndpointFilter(
   const AAllowedOriginURLs: string = '*';
   const AAllowsCredentials: Boolean = True;
   const AExposeHeaders: string = '';
@@ -111,56 +158,50 @@ function CORS(
   const AAllowsMethods: string = 'GET, POST, PUT, DELETE, OPTIONS';
   const AAccessControlMaxAge: Integer = 86400): TMVCEndpointFilter;
 
-// JWT bearer-auth filter. Reads the Authorization header, verifies the
-// token against ASecret with AHMACAlgorithm, validates the standard claims
-// listed in AClaimsToCheck, and populates Context.LoggedUser on success.
-// On failure short-circuits with a 401 (Status response, {"message": ...}).
-// Special-cases the configured login URL: a POST to ALoginURLSegment is
-// forwarded to AAuthenticationHandler.OnAuthentication for credential
-// verification, then a freshly-minted token is returned in the
-// Authorization response header.
-function JWT(
-  const AAuthenticationHandler: IMVCAuthenticationHandler;
-  const AClaimsSetup: TJWTClaimsSetup;
-  const ASecret: string = MVC_JWT_INSECURE_DEFAULT_SECRET;
-  const ALoginURLSegment: string = '/login';
-  const AClaimsToCheck: TJWTCheckableClaims = [];
-  const ALeewaySeconds: Cardinal = 300;
-  const AHMACAlgorithm: string = 'HS512'): TMVCEndpointFilter;
-
-// ActiveRecord lifecycle filter. Acquires a FireDAC connection from the
-// FDManager pool keyed by ADefaultConnectionDefName before the handler
-// runs and releases it inside a `finally` so the connection is returned
-// to the pool even when the handler raises. The FireDAC connection
-// definitions must already be loaded (typically in BootConfigU at startup).
-function ActiveRecord(
-  const ADefaultConnectionDefName: string): TMVCEndpointFilter;
-
 // -------------------------------------------------------------------------
-// HTTPFilter helpers (engine-wide, attached via lEngine.UseHTTPFilter).
+// HTTPFilter helpers (engine-wide, attached via lEngine.Use).
 // -------------------------------------------------------------------------
 
-// HTTPFilter that serves static files from ARootFolder under APrefix.
-// Requests matching the prefix and pointing to an existing file short-
-// circuit with the file contents; everything else falls through to Next()
-// (route matching + handlers).
-// Path traversal is rejected (any '..' or absolute paths return 403).
-// MIME type is inferred from the file extension; unknown types fall back
-// to application/octet-stream.
+type
+  // What StaticFiles does with a request under its prefix that is not a file.
+  TMVCStaticFilesMode = (
+    sfmFiles,  // the request goes on to routing (a 404 when nothing matches)
+    sfmSPA     // single-page application: a 404 of the router becomes the nearest index.html and the client-side router takes over
+  );
+
+// HTTPFilter that serves static files from ARootFolder under APrefix. It is the
+// StaticFilesHTTPFilter(TMVCStaticFilesOptions) filter with default options, so both forms
+// behave the same way:
+//   - an existing file is served with its MIME type, Last-Modified and 304 on
+//     If-Modified-Since;
+//   - a folder is served through its ADefaultDocument (a folder requested
+//     without the trailing '/' is redirected with a 301);
+//   - the prefix is matched case-insensitively, with or without a trailing '/';
+//   - a path that escapes the root folder answers 404;
+//   - anything else goes on to routing (sfmFiles) or is answered with the
+//     nearest index.html (sfmSPA).
+// With sfmSPA the router goes first: a GET/HEAD for which the application has
+// no route, and which would be a 404, is answered with the index.html of the
+// nearest folder instead. The routes of the application (an API next to the
+// SPA, at '/' too) are never hidden by it. Needs AllowUnhandledAction = false
+// (the default), and the router logs "ROUTE NOT FOUND" for each client route.
+// A relative ARootFolder is looked for in the current folder, then in AppPath.
 //
-//   lEngine.UseHTTPFilter(StaticFiles('/static', 'www'));
-function StaticFiles(const APrefix: string; const ARootFolder: string;
+//   lEngine.Use(StaticFilesHTTPFilter('/static', 'www'));
+//   lEngine.Use(StaticFilesHTTPFilter('/app', 'www/app', sfmSPA));
+function StaticFilesHTTPFilter(const APrefix: string; const ARootFolder: string;
+  const AMode: TMVCStaticFilesMode = sfmFiles;
   const ADefaultDocument: string = 'index.html'): TMVCHTTPFilter; overload;
 
 // HTTPFilter that compresses the response body post-Next when:
 //   - response has a ContentStream larger than ACompressionThreshold bytes;
 //   - client advertised a supported encoding via Accept-Encoding (gzip or
-//     deflate; gzip wins if both are listed).
+//     deflate; the first one the client lists wins).
 // Sets Content-Encoding accordingly. No-op for responses below threshold,
 // responses without a ContentStream, or requests without Accept-Encoding.
 //
-//   lEngine.UseHTTPFilter(Compression(1024));
-function Compression(const ACompressionThreshold: Integer = 1024): TMVCHTTPFilter;
+//   lEngine.Use(CompressionHTTPFilter(1024));
+function CompressionHTTPFilter(const ACompressionThreshold: Integer = 1024): TMVCHTTPFilter;
 
 // HTTPFilter that adds RFC 7232 ETag validation post-Next:
 //   - SHA1-hashes the response ContentStream and stamps a strong ETag
@@ -173,24 +214,24 @@ function Compression(const ACompressionThreshold: Integer = 1024): TMVCHTTPFilte
 // and the hash reflects the bytes actually sent on the wire (different
 // ETag per encoding, per RFC).
 //
-//   lEngine.UseHTTPFilter(ETag).UseHTTPFilter(Compression);
-function ETag: TMVCHTTPFilter;
+//   lEngine.Use(ETagHTTPFilter()).Use(CompressionHTTPFilter());
+function ETagHTTPFilter: TMVCHTTPFilter;
 
 // HTTPFilter that short-circuits requests from any client IP in the
 // blocklist with HTTP 403. Comparison is exact-string against
 // Ctx.Request.ClientIp and Ctx.Request.PeerIp; no CIDR matching. Returns the filter as-is so
 // callers can chain registration.
 //
-//   lEngine.UseHTTPFilter(IPBlock(['10.0.0.5', '192.168.1.42']));
-function IPBlock(const ABlockedIPs: TArray<string>): TMVCHTTPFilter;
+//   lEngine.Use(IPBlockHTTPFilter(['10.0.0.5', '192.168.1.42']));
+function IPBlockHTTPFilter(const ABlockedIPs: TArray<string>): TMVCHTTPFilter;
 
 // HTTPFilter that enforces a sliding-window rate limit per client IP.
 // More than AMaxRequests within AWindowSeconds triggers HTTP 429 with a
 // Retry-After header. State is held in a process-wide thread-safe map.
 //
-//   lEngine.UseHTTPFilter(RateLimit(100, 60));   // 100 req / minute / IP
-function RateLimit(const AMaxRequests: Integer = 60;
-  const AWindowSeconds: Integer = 60): TMVCHTTPFilter;
+//   lEngine.Use(RateLimitHTTPFilter(100, 60));   // 100 req / minute / IP
+function RateLimitHTTPFilter(const AMaxRequests: Integer = 60;
+  const AWindowSeconds: Integer = 60): TMVCHTTPFilter; overload;
 
 // HTTPFilter that emits a one-line request log via MVCFramework.Logger
 // after the inner pipeline completes. Format:
@@ -198,19 +239,19 @@ function RateLimit(const AMaxRequests: Integer = 60;
 // Times include any HTTPFilter wrapped inside it; place this filter
 // outermost (first registered) to capture full request latency.
 //
-//   lEngine.UseHTTPFilter(RequestLog);
-function RequestLog: TMVCHTTPFilter;
+//   lEngine.Use(RequestLogHTTPFilter());
+function RequestLogHTTPFilter: TMVCHTTPFilter;
 
 // HTTPFilter version of CORS. Short-circuits OPTIONS preflight requests
 // with the full CORS header set + 200 OK; on every other request stamps
 // the simple CORS headers post-Next so they land on success AND error
-// responses. Equivalent to the EndpointFilter CORS() helper but engine-
+// responses. Equivalent to the EndpointFilter CORSEndpointFilter() helper but engine-
 // wide and runs BEFORE routing — important for preflights that should
 // not be subject to per-group filters or route matching.
 //
-//   lEngine.UseHTTPFilter(CORSFilter('*', False, '', 'Content-Type,Authorization',
+//   lEngine.Use(CORSHTTPFilter('*', False, '', 'Content-Type,Authorization',
 //     'GET,POST,PUT,DELETE,OPTIONS', 1728000));
-function CORSFilter(
+function CORSHTTPFilter(
   const AAllowedOriginURLs: string = '*';
   const AAllowsCredentials: Boolean = False;
   const AExposeHeaders: string = '';
@@ -232,8 +273,8 @@ function MVCMatchCORSOrigin(const AConfiguredOrigins, ARequestOrigin: string): s
 // stricter (or looser) policy is needed for a specific route. Equivalent
 // to the classic TMVCSecurityHeadersMiddleware.
 //
-//   lEngine.UseHTTPFilter(SecurityHeaders);
-function SecurityHeaders: TMVCHTTPFilter;
+//   lEngine.Use(SecurityHeadersHTTPFilter());
+function SecurityHeadersHTTPFilter: TMVCHTTPFilter;
 
 // -------------------------------------------------------------------------
 // Request guards (HTTPFilter): who may talk to a path, and from where.
@@ -246,7 +287,7 @@ function SecurityHeaders: TMVCHTTPFilter;
 // -------------------------------------------------------------------------
 
 type
-  // Token validator for BearerAuthFilter. Return True to accept the token and
+  // Token validator for BearerAuthHTTPFilter. Return True to accept the token and
   // set AUserName (and ARoles) of the identity it stands for; False to refuse.
   TMVCBearerValidator = reference to function(const AToken: string;
     out AUserName: string; var ARoles: TArray<string>): Boolean;
@@ -271,31 +312,31 @@ function StaticBearerTokens(const ATokens: TArray<TPair<string, string>>): TMVCB
 // guarded paths. On success fills Context.LoggedUser (UserName, Roles,
 // LoggedSince); otherwise 401 with `WWW-Authenticate: Bearer`.
 //
-//   lEngine.UseHTTPFilter(BearerAuthFilter(
+//   lEngine.Use(BearerAuthHTTPFilter(
 //     StaticBearerTokens([TPair<string, string>.Create('cli', lToken)]), '/mcp'));
 // No verb is exempt: a browser CORS preflight (OPTIONS) carries no Authorization and
 // gets 401 on the guarded paths. The prefix must be the full routed path.
-function BearerAuthFilter(const AValidator: TMVCBearerValidator;
+function BearerAuthHTTPFilter(const AValidator: TMVCBearerValidator;
   const APathPrefix: string = ''): TMVCHTTPFilter;
 
 // HTTPFilter: refuses with 403 a request that carries an Origin not in the
 // list (case-insensitive, exact). A request with no Origin header passes: it
-// is not a browser cross-origin request. CORSFilter only decides what the
+// is not a browser cross-origin request. CORS only decides what the
 // browser may read; this one stops the request on the server.
-function AllowedOriginFilter(const AOrigins: TArray<string>;
+function AllowedOriginHTTPFilter(const AOrigins: TArray<string>;
   const APathPrefix: string = ''): TMVCHTTPFilter;
 
 // HTTPFilter against DNS rebinding: refuses with 403 a request whose Host
 // header (port ignored) is not localhost, 127.0.0.1, [::1] or one of AHosts.
 // Meant for services that listen on loopback without authentication.
-function AllowedHostFilter(const AHosts: TArray<string>;
+function AllowedHostHTTPFilter(const AHosts: TArray<string>;
   const APathPrefix: string = ''): TMVCHTTPFilter;
 
 // HTTPFilter: limits APath (exact, not its sub-paths) to the verbs in AMethods.
 // A request that does not target APath goes on; one that targets it with a
 // verb not in AMethods, or that targets a sub-path of it, gets 405 with
 // `Allow: <verbs>` (listed in TMVCHTTPMethodType order).
-function AllowedMethodsFilter(const AMethods: TMVCHTTPMethods;
+function AllowedMethodsHTTPFilter(const AMethods: TMVCHTTPMethods;
   const APath: string): TMVCHTTPFilter;
 
 // HTTPFilter that intercepts a POST request to AURLSegment carrying the
@@ -305,11 +346,11 @@ function AllowedMethodsFilter(const AMethods: TMVCHTTPMethods;
 // HTTPFilter so it runs ahead of CORS, Compression, RateLimit etc., and
 // always pair it with a strong, hard-to-guess API key value.
 //
-//   lEngine.UseHTTPFilter(Shutdown('apikey', 'a-strong-secret'));
+//   lEngine.Use(ShutdownHTTPFilter('apikey', 'a-strong-secret'));
 //
 // Pair on the host side with WaitForShutdownOrConsoleReturn (below) to
 // block the main thread until the shutdown actually fires.
-function Shutdown(const AAPIKeyQueryStringParamName: string;
+function ShutdownHTTPFilter(const AAPIKeyQueryStringParamName: string;
   const AAPIKeyQueryStringParamValue: string;
   const AURLSegment: string = '/api/shutdown'): TMVCHTTPFilter;
 
@@ -338,24 +379,22 @@ type
 // populates Context.LoggedUser.UserName / Roles / Realm. On failure replies
 // with 401 + `WWW-Authenticate: Basic realm="..."`.
 //
-//   lProtected := lGroup.Use(BasicAuth(
+//   lProtected := lGroup.Use(BasicAuthEndpointFilter(
 //     function(const U, P: string; var R: TArray<string>): Boolean
 //     begin
 //       Result := SameText(U, 'admin') and (P = 'secret');
 //       if Result then R := ['admin'];
-//     end));
-function BasicAuth(
+//     end, 'Admin area')); // with the realm: without it the call is ambiguous with the handler overload
+function BasicAuthEndpointFilter(
   const AValidator: TMVCBasicAuthValidator;
   const ARealm: string = 'DelphiMVCFramework REALM'): TMVCEndpointFilter; overload;
 
-// Basic Auth EndpointFilter wrapping a full IMVCAuthenticationHandler. Replays
-// the classic TMVCBasicAuthenticationMiddleware semantics (OnRequest +
-// OnAuthentication + OnAuthorization, with 401 vs 403 split based on whether
-// the user was authenticated) — preserves exact parity for callers porting from
-// the classic middleware to the minimal-API surface. AControllerQualifiedClassName
-// and AActionName passed to the handler are empty strings (minimal-API has no
-// controller class / declared action name).
-function BasicAuth(
+// Basic Auth EndpointFilter wrapping a full IMVCAuthenticationHandler: the
+// sequence of TMVCBasicAuthenticationMiddleware (OnRequest, OnAuthentication,
+// OnAuthorization; 401 when not identified, 403 when not authorized), answered
+// with Status responses, and a session used when there is one. The handler is
+// asked as described in "Authentication" below, and is required.
+function BasicAuthEndpointFilter(
   const AHandler: IMVCAuthenticationHandler;
   const ARealm: string = 'DelphiMVCFramework REALM'): TMVCEndpointFilter; overload;
 
@@ -363,33 +402,114 @@ function BasicAuth(
 // Replies 401 (Status response) when no valid user is present. Register AFTER
 // the authentication filter (JWT / BasicAuth / custom) that populates LoggedUser.
 //
-//   lEngine.Prefix('/admin').Use(JWT(...)).Use(Authorize);
-function Authorize: TMVCEndpointFilter;
+//   lEngine.Prefix('/admin').Use(JWTAuthenticationBundle(...)).Use(AuthorizeEndpointFilter());
+function AuthorizeEndpointFilter: TMVCEndpointFilter;
 
 // Endpoint filter: require the authenticated user to hold a role. The array
 // overload is ANY-OF (passes when the user holds at least one listed role).
 // Replies 401 when unauthenticated, 403 when authenticated without the role.
 //
-//   lEngine.Prefix('/admin').Use(JWT(...)).Use(RequireRole('admin'));
-function RequireRole(const ARole: string): TMVCEndpointFilter; overload;
-function RequireRole(const ARoles: TArray<string>): TMVCEndpointFilter; overload;
+//   lEngine.Prefix('/admin').Use(JWTAuthenticationBundle(...)).Use(RequireRoleEndpointFilter('admin'));
+function RequireRoleEndpointFilter(const ARole: string): TMVCEndpointFilter; overload;
+function RequireRoleEndpointFilter(const ARoles: TArray<string>): TMVCEndpointFilter; overload;
 
-// File-backed session factory EndpointFilter — sibling of MemorySession with
+// -------------------------------------------------------------------------
+// Authentication: the classic authentication middleware as filter bundles,
+// in MVCFramework.Filters.Authentication (JWTAuthenticationBundle,
+// JWTCookieAuthenticationBundle, BasicAuthenticationBundle,
+// CustomAuthenticationBundle) and MVCFramework.Filters.OIDC
+// (OIDCAuthenticationBundle), plus BasicAuthEndpointFilter here.
+//
+// Each part runs the code of its middleware, so it checks and answers the same
+// way. Where the middleware has a part that needs no route (login, logout, the
+// OIDC callback) that part is an HTTP filter, on the engine also when the
+// bundle goes on a group; the check of the request is an endpoint filter:
+// engine-wide for controllers and Minimal API routes (AEngine.Use), or on a
+// route group (AGroup.Use). Register the session filter, when one is needed,
+// before them.
+//
+// The handler (IMVCAuthenticationHandler) is asked as by the middleware:
+//   - for a controller action, OnRequest and OnAuthorization get the qualified
+//     class name of the controller and the name of the action;
+//   - a Minimal API route has no controller: the filter attached to its group
+//     (or engine-wide) is what asks for authentication, so OnRequest is not
+//     asked there and authentication is always required; OnAuthorization gets
+//     an empty class name and "VERB pattern" as the action.
+// The endpoint filters run after OnBeforeControllerAction of every classic
+// middleware, whatever the order of registration: a classic hook that reads
+// Context.LoggedUser there sees no user yet. Make it an endpoint filter
+// registered after the authentication one.
+// The HTTP filters (the logins) run before every classic middleware: a rate
+// limit, an IP block, CORS or a CSRF check that must cover the login has to be
+// an HTTP filter registered before it (RateLimitHTTPFilter, IPBlockHTTPFilter, CORSHTTPFilter, CSRFHTTPFilter).
+// The JWT logins answer any verb: without the CORS filter before them, the
+// browser preflight (OPTIONS) of a cross-origin login gets their 401.
+// -------------------------------------------------------------------------
+
+type
+  // The cookie of JWTCookieAuthenticationBundle (MVCFramework.Filters.Authentication) and of
+  // OIDCAuthenticationBundle (MVCFramework.Filters.OIDC). The cookie is always HttpOnly. SameSite=None
+  // needs Secure: a bundle built with SameSite=None and Secure=False raises.
+  TMVCAuthCookieOptions = record
+    Name: string;                       // 'jwt_token'
+    Secure: Boolean;                    // True: sent only over HTTPS. False only for local development over HTTP
+    SameSite: TMVCJWTCookieSameSite;    // ssStrict
+    Path: string;                       // '/'
+    Domain: string;                     // '': the host of the request
+    class function Default: TMVCAuthCookieOptions; static;
+  end;
+
+// Endpoint filter: CSRF protection (synchronizer token, stateless: the
+// token is HMAC-SHA256(ASecret, session id) and ATokenSource gives the session
+// id of the request). POST, PUT, PATCH, DELETE and QUERY must carry the token
+// in AHeaderName or in the form field AFormFieldName, and an Origin, when
+// present, must be the Host or one of AAllowedHosts: otherwise 403 (text) and
+// the action does not run. AExemptPaths are matched against PathInfo, case-
+// sensitively, on a '/' boundary; with an endpoint filter a group without it
+// is simpler. A secret shorter than 16 characters, or an invalid exempt path or
+// host, raises. As an endpoint filter it checks only requests that have a
+// route: one without gets the 404 of the router.
+//
+//   AEngine.Use(CSRFEndpointFilter(lSecret,
+//     function(AContext: TWebContext): string
+//     begin
+//       Result := AContext.Request.Cookie('jwt_token');
+//     end));
+function CSRFEndpointFilter(const ASecret: string;
+  const ATokenSource: TFunc<TWebContext, string>;
+  const AHeaderName: string = 'X-CSRF-Token';
+  const AFormFieldName: string = 'csrf_token';
+  const AExemptPaths: TArray<string> = [];
+  const AAllowedHosts: TArray<string> = []): TMVCEndpointFilter;
+
+// HTTP filter: the same CSRF check before routing, for every request, as
+// TMVCCSRFMiddleware does. Registered first, it also checks the unsafe
+// requests answered by the HTTP filters after it, which an endpoint filter
+// never sees. Safe verbs are not checked: the
+// logouts of JWTCookieAuthenticationBundle, of the blacklist of JWTAuthenticationBundle and of
+// OIDCAuthenticationBundle answer GET too. A login has no session yet, so no token: exempt it, and
+// refuse a cross-site login with AllowedOriginHTTPFilter(origins, '/login') (an
+// exempt path is not checked for Origin either). CustomAuthenticationBundle logs
+// out (DELETE) at its login URL: exempting that login exempts its logout.
+function CSRFHTTPFilter(const ASecret: string;
+  const ATokenSource: TFunc<TWebContext, string>;
+  const AHeaderName: string = 'X-CSRF-Token';
+  const AFormFieldName: string = 'csrf_token';
+  const AExemptPaths: TArray<string> = [];
+  const AAllowedHosts: TArray<string> = []): TMVCHTTPFilter;
+
+// The CSRF token of a session id (lowercase hex HMAC-SHA256), to put in the
+// pages and forms the CSRF filters will check. The session id must not change
+// while those pages are open: not the raw JWT cookie when JWTCookieAuthenticationBundle renews it
+// (a live validity window), rather a claim that stays (e.g. "jti").
+function CSRFToken(const ASecret, ASessionId: string): string;
+
+// File-backed session factory EndpointFilter — sibling of MemorySessionEndpointFilter with
 // the same per-group / nested-inheritance shape. Sessions survive process
 // restart (data stored under ASessionFolder).
-function FileSession(const ATimeoutInMinutes: Integer = 0;
+function FileSessionEndpointFilter(const ATimeoutInMinutes: Integer = 0;
   const ASessionFolder: string = 'dmvc_sessions';
-  const AHttpOnly: Boolean = True;
-  const ASecure: Boolean = False): TMVCEndpointFilter;
-
-// Database-backed session factory EndpointFilter — sibling of MemorySession.
-// Requires an ActiveRecord connection in scope on the same group (i.e. the
-// dmvc_sessions table is read/written via TMVCActiveRecord on the ambient
-// connection). Combine with ActiveRecord(...) earlier in the filter chain.
-function DatabaseSession(const ATimeoutInMinutes: Integer = 0;
-  const AConnectionDefName: string = '';
-  const AHttpOnly: Boolean = True;
-  const ASecure: Boolean = False): TMVCEndpointFilter;
+  const AFlags: TMVCSessionCookieFlags = [scfHttpOnly]): TMVCEndpointFilter;
 
 // -------------------------------------------------------------------------
 // Extended HTTPFilter helpers
@@ -400,39 +520,50 @@ function DatabaseSession(const ATimeoutInMinutes: Integer = 0;
 //   <ip>;<method>;<path>;<status>;<route-name-or-empty>;<resp-len>;<host>
 // When ALogWriter is nil, uses GetAnalyticsDefaultLogger (rotates CSV files
 // under AppPath\analytics — same behavior as the classic Analytics middleware).
-function Analytics(const ALogWriter: ILogWriter = nil): TMVCHTTPFilter;
+function AnalyticsHTTPFilter(const ALogWriter: ILogWriter = nil): TMVCHTTPFilter;
+
+// The CSV logger of the Analytics filter and middleware (files rotated under
+// AppPath\analytics), built on first use and shared by every caller.
+function GetAnalyticsDefaultLogger: ILogWriter;
 
 // Trace HTTPFilter — full pre/post request/response dump via Log.Debug with
-// ALogTag. Body truncated to AMaxBodySize bytes; non-text content types are
-// hidden when AHideNonTextBody is True. The Authorization header is redacted
-// to '<redacted>' by default; pass ALogAuthorization=True to log it raw (matches
-// classic Trace middleware behavior — useful for debugging but leaks bearer
-// tokens to your log files).
-function Trace(const AMaxBodySize: Int64 = 4096;
+// ALogTag, as TMVCTraceMiddleware does. Every line carries a correlation id
+// ([rid:...]): the one the request brings in the ACorrelationHeaderName header
+// (or X-Correlation-ID), otherwise a generated one; it is echoed in the
+// response header of the same name. The body is cut to AMaxBodySize characters;
+// non-text content types are hidden unless AFlags has tfLogNonTextBody. The
+// request Authorization is masked ('Bearer ***'), and so are Authorization,
+// Cookie and Set-Cookie among the response headers; tfLogAuthorization logs the
+// request Authorization raw (useful for debugging, leaks bearer tokens to your
+// log files).
+//
+//   lEngine.Use(TraceHTTPFilter(4096, 'trace', [tfLogAuthorization]));
+function TraceHTTPFilter(const AMaxBodySize: Int64 = 1024;
   const ALogTag: string = 'trace';
-  const ALogAuthorization: Boolean = False;
-  const AHideNonTextBody: Boolean = True): TMVCHTTPFilter;
+  const AFlags: TMVCTraceFlags = [];
+  const ACorrelationHeaderName: string = 'X-Request-ID'): TMVCHTTPFilter;
 
 // Redirect HTTPFilter — pattern-based pre-Next short-circuit. Exact case-
 // insensitive PathInfo match against APaths; on match returns 301 (permanent)
-// or 302 (temporary) with Location: ATargetURL. Optional query string
-// preservation (default True) appends `?<qs>` to the target.
+// or 302 (temporary) with Location: ATargetURL. With rdqPreserve (default) the
+// query string is appended to the target as `?<qs>`; rdqDrop leaves it out.
 //
-//   lEngine.UseHTTPFilter(Redirect(['/'], '/web'));
-function Redirect(const APaths: TArray<string>;
+//   lEngine.Use(RedirectHTTPFilter(['/'], '/web'));
+//   lEngine.Use(RedirectHTTPFilter(['/old'], '/new', rdkPermanent, rdqDrop));
+function RedirectHTTPFilter(const APaths: TArray<string>;
   const ATargetURL: string;
-  const APermanent: Boolean = False;
-  const APreserveQuery: Boolean = True): TMVCHTTPFilter; overload;
+  const AKind: TMVCRedirectKind = rdkTemporary;
+  const AQuery: TMVCRedirectQuery = rdqPreserve): TMVCHTTPFilter; overload;
 
 // Redirect HTTPFilter — per-rule (from, to) overload for more flexible
 // rewrites. Same matching semantics as the single-target overload.
 //
-//   lEngine.UseHTTPFilter(Redirect([
+//   lEngine.Use(RedirectHTTPFilter([
 //     TPair<string,string>.Create('/old',  '/new'),
 //     TPair<string,string>.Create('/docs', 'https://docs.example.com')]));
-function Redirect(const ARules: TArray<TPair<string, string>>;
-  const APermanent: Boolean = False;
-  const APreserveQuery: Boolean = True): TMVCHTTPFilter; overload;
+function RedirectHTTPFilter(const ARules: TArray<TPair<string, string>>;
+  const AKind: TMVCRedirectKind = rdkTemporary;
+  const AQuery: TMVCRedirectQuery = rdqPreserve): TMVCHTTPFilter; overload;
 
 // RangeMedia HTTPFilter — serves files from ADocumentRoot under AURLPath with
 // HTTP Range request support (RFC 7233). Returns 206 Partial Content for
@@ -448,8 +579,8 @@ function Redirect(const ARules: TArray<TPair<string, string>>;
 // Path-traversal is blocked by full-path normalization against the
 // resolved document root.
 //
-//   lEngine.UseHTTPFilter(RangeMedia('/static/media', 'static/media'));
-function RangeMedia(const AURLPath: string;
+//   lEngine.Use(RangeMediaHTTPFilter('/static/media', 'static/media'));
+function RangeMediaHTTPFilter(const AURLPath: string;
   const ADocumentRoot: string): TMVCHTTPFilter;
 
 // -------------------------------------------------------------------------
@@ -457,63 +588,191 @@ function RangeMedia(const AURLPath: string;
 // -------------------------------------------------------------------------
 
 type
+  // Per-request rule of StaticFiles, before the file system is touched: it can rewrite PathInfo,
+  // and setting Handled (True on entry) to False ends the request with what the rule answered.
+  TMVCStaticFileRulesProc = reference to procedure(const Context: TWebContext; var PathInfo: String; var Handled: Boolean);
+  // Adds or overrides the MIME types of StaticFiles (file extension -> media type).
+  TMVCStaticFileMediaTypesCustomizer = reference to procedure(const MediaTypes: TMVCStringDictionary);
+
   // Full StaticFiles HTTPFilter options — parity with TMVCStaticFilesMiddleware
   // (sanity check, charset, SPA fallback, MIME customization, request rules,
   // case-insensitive prefix). Build via TMVCStaticFilesOptions.Default and
   // override fields as needed.
+  TMVCStaticFilesFlag = (
+    sffCaseSensitivePrefix  // the prefix is matched case-sensitively
+  );
+  TMVCStaticFilesFlags = set of TMVCStaticFilesFlag;
+
   TMVCStaticFilesOptions = record
     Prefix: string;                                       // URL prefix (e.g. '/static')
     RootFolder: string;                                   // Filesystem root. If relative + not existing, resolved against AppPath.
     IndexDocument: string;                                // Default file for directory requests (e.g. 'index.html')
     Charset: string;                                      // Charset applied to text/* + json MIME types (e.g. 'UTF-8')
-    SPAWebAppSupport: Boolean;                            // When True, falls back to index.html walking up to the nearest existing folder
-    CaseSensitivePrefix: Boolean;                         // When False (default), prefix matching is case-insensitive (Windows-friendly)
+    Mode: TMVCStaticFilesMode;                            // sfmFiles (default, as in the simple form); sfmSPA: a GET/HEAD the router has no route for gets the index.html of the nearest existing folder
+    Flags: TMVCStaticFilesFlags;                          // [] (default): the prefix is matched case-insensitively (Windows-friendly)
     MediaTypesCustomizer: TMVCStaticFileMediaTypesCustomizer;  // Optional callback to add/override MIME types
     Rules: TMVCStaticFileRulesProc;                       // Optional per-request allow/deny + path rewrite
     class function Default: TMVCStaticFilesOptions; static;
   end;
 
-// StaticFiles HTTPFilter — full-parity overload. Honors directory listing
-// redirect (301 + trailing slash), SPA fallback, MIME customizer, request rules,
-// sanity check (raises if root missing), case-insensitive prefix matching, and
-// delegates actual file send to TMVCStaticContents.SendFile so If-Modified-Since
-// + Last-Modified are honored.
-function StaticFiles(const AOptions: TMVCStaticFilesOptions): TMVCHTTPFilter; overload;
+// StaticFiles HTTPFilter — the full implementation, the simple form calls it.
+// Honors directory redirect (301 + trailing slash), SPA fallback, MIME
+// customizer, request rules, sanity check (raises on the first request under
+// the prefix if the root folder is missing), case-insensitive prefix matching,
+// and delegates the file send to TMVCStaticContents.SendFile so
+// If-Modified-Since + Last-Modified are honored.
+function StaticFilesHTTPFilter(const AOptions: TMVCStaticFilesOptions): TMVCHTTPFilter; overload;
 
-// -------------------------------------------------------------------------
-// API documentation helpers
-// -------------------------------------------------------------------------
+type
+  // What FileServerBundle does with a request under its prefix that is not a file.
+  TMVCFileServerMode = (
+    fsmFiles,  // the request goes on to routing (a 404 when nothing matches)
+    fsmSPA     // a GET/HEAD the router has no route for gets the nearest index.html
+  );
 
-// OpenAPI HTTPFilter — exposes a freshly-built OpenAPI 3.x document at AURL
-// (default '/openapi.json'). Auto-discovers minimal-API routes via the engine's
-// TMVCMinimalAPIMiddleware AND classic controllers. Wraps the existing
-// TMVCOpenAPI3Middleware.
+  TMVCFileServerFlag = (
+    fsfRanges,              // a Range request for a file gets 206 Partial Content, as RangeMediaHTTPFilter answers
+    fsfCaseSensitivePrefix  // the prefix is matched case-sensitively
+  );
+  TMVCFileServerFlags = set of TMVCFileServerFlag;
+
+  // Options of FileServerBundle. Build via TMVCFileServerOptions.Default and
+  // override the fields you need.
+  TMVCFileServerOptions = record
+    URLPrefix: string;                                    // default '/static'
+    DocumentRoot: string;                                 // default '.\www'; a relative one is looked for in the current folder, then in AppPath
+    Mode: TMVCFileServerMode;                             // default fsmFiles
+    DefaultDocument: string;                              // file served for a folder, default 'index.html'
+    Charset: string;                                      // charset of the text MIME types, default '' (none added)
+    Flags: TMVCFileServerFlags;                           // default [fsfRanges]
+    MediaTypesCustomizer: TMVCStaticFileMediaTypesCustomizer;  // adds or overrides MIME types
+    Rules: TMVCStaticFileRulesProc;                       // per-request allow/deny + path rewrite
+    class function Default: TMVCFileServerOptions; static;
+  end;
+
+// A folder served under a URL prefix, in one Use: the files of
+// StaticFilesHTTPFilter (MIME type, Last-Modified and 304, default document,
+// the 301 of a folder, path traversal refused, Rules and MediaTypesCustomizer)
+// plus, with fsfRanges, the 206 Partial Content of RangeMediaHTTPFilter for a
+// request that carries a Range header (and the audio/video MIME types of
+// RangeMedia). A request without Range gets the whole file, with Last-Modified.
+// With fsmSPA a GET/HEAD the router has no route for (and would answer 404)
+// gets the nearest index.html: an API on the same prefix keeps its routes
+// (AllowUnhandledAction must be false, the default).
+// An HTTP part only, which runs before routing: register it like any other Use.
 //
-//   var lInfo: TMVCOpenAPIInfo;
-//   lInfo.Title := 'My API';
-//   lInfo.Version := '1.0';
-//   lEngine.UseHTTPFilter(OpenAPI(lEngine, lInfo));
-function OpenAPI(AEngine: TMVCEngine; const AInfo: TMVCOpenAPIInfo;
-  const AURL: string = '/openapi.json'): TMVCHTTPFilter;
+//   AEngine.Use(FileServerBundle('/', TPath.Combine(AppPath, 'www')));
+//   AEngine.Use(FileServerBundle('/', TPath.Combine(AppPath, 'www'), fsmSPA));
+function FileServerBundle(const AURLPrefix, ADocumentRoot: string;
+  const AMode: TMVCFileServerMode = fsmFiles): IMVCFilterBundle; overload;
+function FileServerBundle(const AOptions: TMVCFileServerOptions): IMVCFilterBundle; overload;
 
-// Swagger HTTPFilter — exposes the Swagger JSON document at AURL: Swagger 2.0
-// by default, OpenAPI 3 with ASpecVersion = ssvOpenAPI3 (same URL, same
-// attributes). Full parity wrapper around TMVCSwaggerMiddleware: auto-discovers
-// JWT middleware, supports MVCSwagAuthentication / MVCSwagJSONSchemaField /
-// MVCSWAGDefaultModel / MVCRequiresAuthentication / TMVCActiveRecordController
-// CRUD doc generation — features the newer OpenAPI 3 helper does not yet cover.
-// Pull in MVCFramework.Filters to call this; SwagDoc is transitively required.
-function Swagger(AEngine: TMVCEngine;
-  const AInfo: TMVCSwaggerInfo;
-  const AURL: string = '/swagger.json';
-  const AJWTDescription: string = JWT_DEFAULT_DESCRIPTION;
-  const AEnableBasicAuthentication: Boolean = False;
-  const AHost: string = '';
-  const ABasePath: string = '';
-  const APathFilter: string = '';
-  const ATransferProtocolSchemes: TMVCTransferProtocolSchemes = [psHTTP, psHTTPS];
-  const AEnableBearerAuthentication: Boolean = False;
-  const ASpecVersion: TMVCSwaggerSpecVersion = ssvSwagger2): TMVCHTTPFilter;
+// -------------------------------------------------------------------------
+// Sessions, ActiveRecord and RateLimit with options as HTTPFilters. Engine-
+// wide, so controllers use them too (the endpoint filters of the same name
+// attach to Minimal API route groups only).
+// -------------------------------------------------------------------------
+
+// Session factory HTTPFilters: every request passing through gets the session
+// factory, the session itself is read/written via TWebContext.Session.
+//
+//   lEngine.Use(MemorySessionHTTPFilter(10));      // 10-minute idle timeout
+//   lEngine.Use(FileSessionHTTPFilter(10, 'sessions'));
+function MemorySessionHTTPFilter(const ATimeoutInMinutes: Integer = 0;
+  const AFlags: TMVCSessionCookieFlags = [scfHttpOnly]): TMVCHTTPFilter;
+function FileSessionHTTPFilter(const ATimeoutInMinutes: Integer = 0;
+  const ASessionFolder: string = 'dmvc_sessions';
+  const AFlags: TMVCSessionCookieFlags = [scfHttpOnly]): TMVCHTTPFilter;
+type
+  // Strategy of TMVCInMemoryRateLimitStorage.
+  TMVCRateLimitStrategy = (
+    rlsFixedWindow,   // a counter that resets at fixed intervals
+    rlsSlidingWindow, // a counter that considers the request timestamps
+    rlsTokenBucket    // allows bursts, tokens refill over time
+  );
+
+  // What a request is counted by.
+  TMVCRateLimitKeyType = (
+    rlkIPAddress, // the client IP
+    rlkUserID,    // the logged user (session or JWT), the client IP when nobody is logged in
+    rlkAPIKey,    // the API key header, the client IP when it is missing
+    rlkCustom     // the KeyExtractor callback, the client IP when it is not set
+  );
+
+  TMVCRateLimitKeyExtractor = reference to function(const AContext: TWebContext): string;
+
+  // Called when a request is over the limit, before the 429 is written.
+  TMVCRateLimitExceededProc = reference to procedure(
+    const AContext: TWebContext;
+    const AKey: string;
+    const ALimit: Integer;
+    const AWindowSeconds: Integer
+  );
+
+  // Rate limit storage: implement it for Redis, Memcached, etc.
+  IMVCRateLimitStorage = interface
+    ['{8E5F9A7C-2D4B-4B8E-9F3A-1C6D8E9A7B5C}']
+    // Increments the counter of AKey: True when the limit is exceeded.
+    function CheckRateLimit(const AKey: string; const ALimit: Integer;
+      const AWindowSeconds: Integer; out ARemaining: Integer;
+      out AResetTime: TDateTime): Boolean;
+    procedure ResetKey(const AKey: string);
+    procedure Clear;
+  end;
+
+  // In-memory rate limit storage, thread-safe.
+  TMVCInMemoryRateLimitStorage = class(TInterfacedObject, IMVCRateLimitStorage)
+  private
+    type
+      TRateLimitEntry = record
+        Count: Integer;
+        WindowStart: TDateTime;
+        ResetTime: TDateTime;
+      end;
+  private
+    fStorage: TDictionary<string, TRateLimitEntry>;
+    fLastCleanup: TDateTime;
+    fCeilingReported: Boolean;
+    fLock: TCriticalSection;
+    fStrategy: TMVCRateLimitStrategy;
+    procedure CleanupExpiredEntries;
+  public
+    constructor Create(const AStrategy: TMVCRateLimitStrategy = rlsFixedWindow);
+    destructor Destroy; override;
+    function CheckRateLimit(const AKey: string; const ALimit: Integer;
+      const AWindowSeconds: Integer; out ARemaining: Integer;
+      out AResetTime: TDateTime): Boolean;
+    procedure ResetKey(const AKey: string);
+    procedure Clear;
+    // Number of distinct keys currently held. Not on IMVCRateLimitStorage on
+    // purpose: widening the interface would break third-party implementations.
+    function KeyCount: Integer;
+  end;
+
+  // RateLimit options. Empty strings keep the defaults of the classic
+  // TMVCRateLimitMiddleware ('X-API-Key', 'X-RateLimit-').
+  TMVCRateLimitOptions = record
+    MaxRequests: Integer;                       // requests allowed per window
+    WindowSeconds: Integer;
+    KeyType: TMVCRateLimitKeyType;              // client IP, user id, API key or custom
+    KeyExtractor: TMVCRateLimitKeyExtractor;    // only for rlkCustom
+    APIKeyHeaderName: string;                   // only for rlkAPIKey
+    HeaderPrefix: string;                       // prefix of the X-RateLimit-* response headers
+    ExcludedPaths: TArray<string>;              // path prefixes that are not limited (e.g. '/health')
+    OnExceeded: TMVCRateLimitExceededProc;      // called when a request is refused
+    Storage: IMVCRateLimitStorage;              // nil: in-memory
+    class function Default: TMVCRateLimitOptions; static;
+  end;
+
+// RateLimit HTTPFilter with the same options and the same answer as the
+// classic TMVCRateLimitMiddleware: 429 + Retry-After + JSON body, and the
+// X-RateLimit-* headers on every response.
+//
+//   lOptions := TMVCRateLimitOptions.Default;
+//   lOptions.MaxRequests := 10;
+//   lOptions.ExcludedPaths := ['/health'];
+//   lEngine.Use(RateLimitHTTPFilter(lOptions));
+function RateLimitHTTPFilter(const AOptions: TMVCRateLimitOptions): TMVCHTTPFilter; overload;
 
 implementation
 
@@ -523,32 +782,26 @@ uses
   WinAPI.Windows,                   // GetStdHandle, PeekConsoleInput (WaitForShutdownOrConsoleReturn)
 {$ENDIF}
   System.Diagnostics,
-  System.StrUtils,
-  System.SyncObjs,
   System.TypInfo,
   System.Math,                      // Min (Trace HTTPFilter)
   System.IOUtils,                   // TPath, TFile, TDirectory (StaticFiles HTTPFilter)
   System.ZLib,                      // TZCompressionStream (Compression HTTPFilter)
   System.Hash,                      // THashSHA1 (ETag HTTPFilter)
   System.DateUtils,                 // IncSecond (RateLimit HTTPFilter)
-  System.NetEncoding,               // TNetEncoding.Base64 (BasicAuth helper)
+  System.NetEncoding,               // TNetEncoding.URL (path decoding)
   MVCFramework.Logger,              // Log.Debug, LogI, LogW (RequestLog/Trace/Shutdown)
-  MVCFramework.Middleware.RateLimit,// TMVCInMemoryRateLimitStorage (RateLimit HTTPFilter)
   MVCFramework.Serializer.Commons,  // TMVCSerializerHelper.DecodeString (BasicAuth)
-  MVCFramework.Session,
-  MVCFramework.Session.Database,    // TMVCWebSessionDatabaseFactory (DatabaseSession)
-  MVCFramework.ActiveRecord,        // ActiveRecordConnectionsRegistry (ActiveRecord filter)
-  MVCFramework.Middleware.Analytics,    // GetAnalyticsDefaultLogger (Analytics helper)
-  MVCFramework.Middleware.OpenAPI3,     // TMVCOpenAPI3Middleware (OpenAPI helper)
-  MVCFramework.Middleware.Swagger,      // TMVCSwaggerMiddleware (Swagger helper)
-  FireDAC.Comp.Client;              // FDManager (ActiveRecord filter)
+  MVCFramework.HMAC,                // HMAC (CSRF token)
+  LoggerPro.FileAppender,           // TLoggerProSimpleFileAppender (Analytics default logger)
+  LoggerPro.Builder,                // LoggerProBuilder (Analytics default logger)
+  MVCFramework.Filters.Internal;    // FilterAuthHandler, CheckHandler, SameSecret, CSRFCheck, MVCRateLimitExceeded
 
 const
   { Largest slice served in a single 206 response. }
   MAX_RANGE_SLICE = 8 * 1024 * 1024;
 
 type
-  // Holds the lifetime of a session factory for the MemorySession filter.
+  // Holds the lifetime of a session factory for the MemorySessionEndpointFilter filter.
   // The filter closure captures an ISessionFactoryHolder reference; when the
   // closure is released (filter dropped at engine shutdown), the interface's
   // refcount drops to zero and the destructor frees the underlying factory.
@@ -583,18 +836,23 @@ begin
   Result := fFactory;
 end;
 
-function MemorySession(const ATimeoutInMinutes: Integer;
-  const AHttpOnly: Boolean; const ASecure: Boolean): TMVCEndpointFilter;
+function SessionCookieFlags(const ASecure: Boolean): TMVCSessionCookieFlags;
+begin
+  Result := [scfHttpOnly];
+  if ASecure then
+    Include(Result, scfSecure);
+end;
+
+function SessionEndpointFilter(const AFactory: TMVCWebSessionFactory): TMVCEndpointFilter;
 var
   lHolder: ISessionFactoryHolder;
 begin
-  // Allocate the factory and wrap it in an interface-managed holder. The
-  // closure below captures `lHolder` (an interface), so the holder's lifetime
-  // follows the closure's: when the filter is dropped (engine shutdown) the
-  // closure is freed, the captured interface refcount drops to zero, and the
-  // holder's destructor frees the factory.
-  lHolder := TSessionFactoryHolder.Create(
-    TMVCWebSessionMemoryFactory.Create(AHttpOnly, ATimeoutInMinutes, ASecure));
+  // Wrap the factory in an interface-managed holder. The closure below
+  // captures `lHolder` (an interface), so the holder's lifetime follows the
+  // closure's: when the filter is dropped (engine shutdown) the closure is
+  // freed, the captured interface refcount drops to zero, and the holder's
+  // destructor frees the factory.
+  lHolder := TSessionFactoryHolder.Create(AFactory);
   Result :=
     function (const AContext: TWebContext;
               const ANext: TMVCEndpointFilterNext): IMVCResponse
@@ -604,194 +862,54 @@ begin
     end;
 end;
 
-{ -------------------------------------------------------------------------- }
-{ Native filter implementations: Compression / CORS / JWT / ActiveRecord     }
-{ -------------------------------------------------------------------------- }
-
-// --- ActiveRecord ---------------------------------------------------------
-
-var
-  // Single-shot guard for FDConnectionDefs.ini load. Equivalent to the
-  // gCONNECTION_DEF_FILE_LOADED flag in the classic middleware: the file
-  // is parsed once per process, not on every filter construction.
-  gMinimalARConnDefFileLoaded: Integer = 0;
-
-function ActiveRecord(
-  const ADefaultConnectionDefName: string): TMVCEndpointFilter;
-const
-  cConnectionDefFileName = 'FDConnectionDefs.ini';
-var
-  lInitLock: TObject;
-  lInitialized: Boolean;
+function MemorySessionEndpointFilter(const ATimeoutInMinutes: Integer;
+  const AFlags: TMVCSessionCookieFlags): TMVCEndpointFilter;
 begin
-  lInitLock := TObject.Create;
-  lInitialized := False;
-  Result :=
-    function (const AContext: TWebContext;
-              const ANext: TMVCEndpointFilterNext): IMVCResponse
-    begin
-      // Lazy connection-definitions load (idempotent across filter instances).
-      if not lInitialized then
-      begin
-        TMonitor.Enter(lInitLock);
-        try
-          if not lInitialized then
-          begin
-            if TInterlocked.CompareExchange(gMinimalARConnDefFileLoaded, 1, 0) = 0 then
-            begin
-              FDManager.ConnectionDefFileAutoLoad := False;
-              FDManager.ConnectionDefFileName := cConnectionDefFileName;
-              if not FDManager.ConnectionDefFileLoaded then
-                FDManager.LoadConnectionDefFile;
-              if (ADefaultConnectionDefName <> '')
-                and (not FDManager.IsConnectionDef(ADefaultConnectionDefName)) then
-              begin
-                // the full path goes to the log, the client gets the file name
-                LogE('Connection definitions file: ' + FDManager.ActualConnectionDefFileName);
-                raise EMVCConfigException.CreateFmt(
-                  'ConnectionDefName "%s" not found in config file "%s" - or config file not present',
-                  [ADefaultConnectionDefName, ExtractFileName(FDManager.ActualConnectionDefFileName)]);
-              end;
-            end;
-            lInitialized := True;
-          end;
-        finally
-          TMonitor.Exit(lInitLock);
-        end;
-      end;
-
-      // Acquire connection BEFORE Next(), release inside try..finally so the
-      // connection is returned to the pool even if the handler raises. The
-      // classic IMVCMiddleware OnBeforeRouting/OnAfterRouting hooks can't
-      // express this — an exception in the handler skips OnAfterRouting and
-      // leaks the connection.
-      if ADefaultConnectionDefName <> '' then
-        ActiveRecordConnectionsRegistry.AddDefaultConnection(ADefaultConnectionDefName);
-      try
-        Result := ANext();
-      finally
-        if ADefaultConnectionDefName <> '' then
-          ActiveRecordConnectionsRegistry.RemoveDefaultConnection(False);
-      end;
-    end;
+  Result := SessionEndpointFilter(
+    TMVCWebSessionMemoryFactory.Create(scfHttpOnly in AFlags, ATimeoutInMinutes, scfSecure in AFlags));
 end;
+
+{ -------------------------------------------------------------------------- }
+{ Filter implementations                                                     }
+{ -------------------------------------------------------------------------- }
 
 // --- StaticFiles HTTPFilter ----------------------------------------------
 
-function DetectStaticMimeType(const AFile: string): string;
+function StaticFilesHTTPFilter(const APrefix: string; const ARootFolder: string;
+  const AMode: TMVCStaticFilesMode; const ADefaultDocument: string): TMVCHTTPFilter;
 var
-  lExt: string;
+  lOptions: TMVCStaticFilesOptions;
 begin
-  lExt := ExtractFileExt(AFile).ToLower;
-  if (lExt = '.html') or (lExt = '.htm') then Exit('text/html; charset=utf-8');
-  if lExt = '.css'  then Exit('text/css; charset=utf-8');
-  if lExt = '.js'   then Exit('application/javascript; charset=utf-8');
-  if lExt = '.json' then Exit('application/json; charset=utf-8');
-  if lExt = '.svg'  then Exit('image/svg+xml');
-  if lExt = '.png'  then Exit('image/png');
-  if (lExt = '.jpg') or (lExt = '.jpeg') then Exit('image/jpeg');
-  if lExt = '.gif'  then Exit('image/gif');
-  if lExt = '.webp' then Exit('image/webp');
-  if lExt = '.ico'  then Exit('image/x-icon');
-  if lExt = '.woff' then Exit('font/woff');
-  if lExt = '.woff2' then Exit('font/woff2');
-  if lExt = '.ttf'  then Exit('font/ttf');
-  if lExt = '.pdf'  then Exit('application/pdf');
-  if lExt = '.txt'  then Exit('text/plain; charset=utf-8');
-  if lExt = '.xml'  then Exit('application/xml');
-  Result := 'application/octet-stream';
-end;
-
-function StaticFiles(const APrefix: string; const ARootFolder: string;
-  const ADefaultDocument: string): TMVCHTTPFilter;
-begin
-  Result :=
-    procedure (const AContext: TWebContext;
-               const ANext: TMVCHTTPFilterNext)
-    var
-      lPath, lSuffix, lFile, lAbsRoot, lAbsFile, lMime: string;
-      lStream: TFileStream;
-    begin
-      lPath := AContext.Request.PathInfo;
-
-      // Only act on requests inside the prefix. Exact match or sub-path.
-      if (lPath <> APrefix) and (not lPath.StartsWith(APrefix + '/')) then
-      begin
-        ANext();
-        Exit;
-      end;
-
-      lSuffix := Copy(lPath, Length(APrefix) + 1, MaxInt).TrimLeft(['/']);
-
-      // Default document for directory-style requests (e.g. /static -> /static/index.html).
-      if (lSuffix = '') and (ADefaultDocument <> '') then
-        lSuffix := ADefaultDocument;
-
-      // Reject path traversal up front. The canonicalization check below is
-      // the real defense, but rejecting obvious patterns lets us return 403
-      // without touching the filesystem.
-      if lSuffix.Contains('..') or (Pos(':', lSuffix) > 0) then
-      begin
-        AContext.Response.StatusCode := 403;
-        Exit;
-      end;
-
-      lFile := TPath.Combine(ARootFolder, lSuffix.Replace('/', PathDelim));
-
-      // Canonicalize and ensure the file stays inside the root folder.
-      // GetFullPath collapses '..' segments; if the result escapes the root,
-      // the request is rejected.
-      lAbsRoot := IncludeTrailingPathDelimiter(TPath.GetFullPath(ARootFolder));
-      lAbsFile := TPath.GetFullPath(lFile);
-      if not lAbsFile.StartsWith(lAbsRoot, True) then
-      begin
-        AContext.Response.StatusCode := 403;
-        Exit;
-      end;
-
-      if not TFile.Exists(lAbsFile) then
-      begin
-        // File doesn't exist under our prefix. Let routing try to match —
-        // there may be a lambda handler for the same path. If nothing
-        // matches the request will end as a 404 anyway.
-        ANext();
-        Exit;
-      end;
-
-      lMime := DetectStaticMimeType(lAbsFile);
-      lStream := TFileStream.Create(lAbsFile, fmOpenRead or fmShareDenyWrite);
-      AContext.Response.StatusCode := 200;
-      AContext.Response.SetContentStream(lStream, lMime);
-      // No ANext() — short-circuit: routing / handlers don't run for this request.
-    end;
+  lOptions := TMVCStaticFilesOptions.Default;
+  lOptions.Prefix := APrefix;
+  lOptions.RootFolder := ARootFolder;
+  lOptions.IndexDocument := ADefaultDocument;
+  lOptions.Mode := AMode;
+  Result := StaticFilesHTTPFilter(lOptions);
 end;
 
 // --- Compression ----------------------------------------------------------
 
-// Picks the first supported encoding from a comma-separated Accept-Encoding
-// header. Returns ctGZIP, ctDeflate, or ctNone. gzip wins if both are listed
-// because every modern client supports it and the framing is unambiguous.
+// Picks the first supported encoding of a comma-separated Accept-Encoding
+// header, in the order the client lists them (as the classic middleware does).
+// Returns ctGZIP, ctDeflate, or ctNone.
 function PickCompressionEncoding(const AAcceptEncoding: string): TMVCCompressionType;
 var
-  lLower: string;
-  lTokens: TArray<string>;
   lToken: string;
 begin
   Result := TMVCCompressionType.ctNone;
   if AAcceptEncoding = '' then
     Exit;
-  lLower := AAcceptEncoding.Trim.ToLower;
-  lTokens := lLower.Split([',']);
-  // First pass: prefer gzip (most universally interoperable).
-  for lToken in lTokens do
+  for lToken in AAcceptEncoding.ToLower.Split([',']) do
+  begin
     if lToken.Trim = 'gzip' then
       Exit(TMVCCompressionType.ctGZIP);
-  for lToken in lTokens do
     if lToken.Trim = 'deflate' then
       Exit(TMVCCompressionType.ctDeflate);
+  end;
 end;
 
-function Compression(const ACompressionThreshold: Integer): TMVCHTTPFilter;
+function CompressionHTTPFilter(const ACompressionThreshold: Integer): TMVCHTTPFilter;
 begin
   Result :=
     procedure (const AContext: TWebContext;
@@ -853,7 +971,7 @@ end;
 
 // --- ETag -----------------------------------------------------------------
 
-function ETag: TMVCHTTPFilter;
+function ETagHTTPFilter: TMVCHTTPFilter;
 begin
   Result :=
     procedure (const AContext: TWebContext;
@@ -897,7 +1015,7 @@ end;
 
 // --- SecurityHeaders -----------------------------------------------------
 
-function SecurityHeaders: TMVCHTTPFilter;
+function SecurityHeadersHTTPFilter: TMVCHTTPFilter;
 begin
   Result :=
     procedure (const AContext: TWebContext;
@@ -988,20 +1106,6 @@ begin
   Result := PathMatchesNormalized(AContext, lPrefix, lPrefix + '/', AExact);
 end;
 
-// Same length is not secret, the content is: no early exit on the first
-// different character.
-function SameSecret(const A, B: string): Boolean;
-var
-  I, lDiff: Integer;
-begin
-  if Length(A) <> Length(B) then
-    Exit(False);
-  lDiff := 0;
-  for I := 1 to Length(A) do
-    lDiff := lDiff or (Ord(A[I]) xor Ord(B[I]));
-  Result := lDiff = 0;
-end;
-
 function StaticBearerTokens(const ATokens: TArray<TPair<string, string>>): TMVCBearerValidator;
 var
   lTokens: TArray<TPair<string, string>>;
@@ -1036,7 +1140,7 @@ begin
     end;
 end;
 
-function BearerAuthFilter(const AValidator: TMVCBearerValidator;
+function BearerAuthHTTPFilter(const AValidator: TMVCBearerValidator;
   const APathPrefix: string): TMVCHTTPFilter;
 var
   lPrefix, lSlashPrefix: string;
@@ -1097,7 +1201,7 @@ begin
       Result := Result + [lValue.Trim];
 end;
 
-function AllowedOriginFilter(const AOrigins: TArray<string>;
+function AllowedOriginHTTPFilter(const AOrigins: TArray<string>;
   const APathPrefix: string): TMVCHTTPFilter;
 var
   lOrigins: TArray<string>;
@@ -1165,7 +1269,7 @@ begin
   Result := Result.Substring(0, lPos);
 end;
 
-function AllowedHostFilter(const AHosts: TArray<string>;
+function AllowedHostHTTPFilter(const AHosts: TArray<string>;
   const APathPrefix: string): TMVCHTTPFilter;
 var
   lHosts: TArray<string>;
@@ -1190,7 +1294,7 @@ begin
     end;
 end;
 
-function AllowedMethodsFilter(const AMethods: TMVCHTTPMethods;
+function AllowedMethodsHTTPFilter(const AMethods: TMVCHTTPMethods;
   const APath: string): TMVCHTTPFilter;
 var
   lPrefix, lSlashPrefix, lAllow: string;
@@ -1198,7 +1302,7 @@ var
 begin
   lPrefix := MVCNormalizePath(APath);
   if lPrefix = '' then
-    raise EMVCException.Create('AllowedMethodsFilter needs a path: '''' would limit the whole application');
+    raise EMVCException.Create('AllowedMethodsHTTPFilter needs a path: '''' would limit the whole application');
   lSlashPrefix := lPrefix + '/';
   lAllow := '';
   for lMethod := Low(TMVCHTTPMethodType) to High(TMVCHTTPMethodType) do
@@ -1231,7 +1335,7 @@ end;
 
 // --- Shutdown ------------------------------------------------------------
 
-function Shutdown(const AAPIKeyQueryStringParamName: string;
+function ShutdownHTTPFilter(const AAPIKeyQueryStringParamName: string;
   const AAPIKeyQueryStringParamValue: string;
   const AURLSegment: string): TMVCHTTPFilter;
 var
@@ -1308,7 +1412,7 @@ end;
 
 // --- IPBlock --------------------------------------------------------------
 
-function IPBlock(const ABlockedIPs: TArray<string>): TMVCHTTPFilter;
+function IPBlockHTTPFilter(const ABlockedIPs: TArray<string>): TMVCHTTPFilter;
 var
   lBlocked: TArray<string>;
 begin
@@ -1336,8 +1440,184 @@ end;
 
 // --- RateLimit ------------------------------------------------------------
 
-function RateLimit(const AMaxRequests: Integer;
-  const AWindowSeconds: Integer): TMVCHTTPFilter;
+const
+  { Hard ceiling on distinct keys held by the in-memory store. }
+  MAX_RATELIMIT_KEYS = 100000;
+
+constructor TMVCInMemoryRateLimitStorage.Create(const AStrategy: TMVCRateLimitStrategy);
+begin
+  inherited Create;
+  fStorage := TDictionary<string, TRateLimitEntry>.Create;
+  fLock := TCriticalSection.Create;
+  fStrategy := AStrategy;
+end;
+
+destructor TMVCInMemoryRateLimitStorage.Destroy;
+begin
+  fStorage.Free;
+  fLock.Free;
+  inherited;
+end;
+
+function TMVCInMemoryRateLimitStorage.KeyCount: Integer;
+begin
+  fLock.Acquire;
+  try
+    Result := fStorage.Count;
+  finally
+    fLock.Release;
+  end;
+end;
+
+procedure TMVCInMemoryRateLimitStorage.CleanupExpiredEntries;
+var
+  lKey: string;
+  lEntry: TRateLimitEntry;
+  lKeysToRemove: TArray<string>;
+  lNow: TDateTime;
+begin
+  // This is called within a lock, so no need for additional synchronization
+  lNow := Now;
+  { Throttled: this is a full scan of the store under the one lock, and it used
+    to run on every single request. With a large store that serialises every
+    request thread behind an O(N) walk. Nothing expires faster than a window, so
+    once a second is often enough. }
+  if (fLastCleanup > 0) and (SecondsBetween(lNow, fLastCleanup) < 1) then
+    Exit;
+  fLastCleanup := lNow;
+  SetLength(lKeysToRemove, 0);
+
+  for lKey in fStorage.Keys do
+  begin
+    if fStorage.TryGetValue(lKey, lEntry) then
+    begin
+      if lNow > lEntry.ResetTime then
+      begin
+        SetLength(lKeysToRemove, Length(lKeysToRemove) + 1);
+        lKeysToRemove[High(lKeysToRemove)] := lKey;
+      end;
+    end;
+  end;
+
+  for lKey in lKeysToRemove do
+    fStorage.Remove(lKey);
+end;
+
+function TMVCInMemoryRateLimitStorage.CheckRateLimit(const AKey: string;
+  const ALimit: Integer; const AWindowSeconds: Integer; out ARemaining: Integer;
+  out AResetTime: TDateTime): Boolean;
+var
+  lEntry: TRateLimitEntry;
+  lNow: TDateTime;
+  lNewEntry: TRateLimitEntry;
+begin
+  fLock.Acquire;
+  try
+    CleanupExpiredEntries;
+
+    lNow := Now;
+
+    { CleanupExpiredEntries only drops windows that have already closed, so a
+      caller rotating its key - X-API-Key for rlkAPIKey, the callback value for
+      rlkCustom, and X-Forwarded-For for rlkIPAddress wherever forwarded headers
+      are trusted - escapes its own limit and grows this dictionary for a whole
+      window. Past the ceiling a key that is not already known is refused rather
+      than admitted. Clearing the store instead, which is the obvious move,
+      would hand the flooder a reset of everybody else's counter: the mitigation
+      would be a better bypass than the bug. }
+    if (fStorage.Count >= MAX_RATELIMIT_KEYS) and (not fStorage.ContainsKey(AKey)) then
+    begin
+      if not fCeilingReported then
+      begin
+        fCeilingReported := True;
+        LogW('Rate limit store reached ' + IntToStr(MAX_RATELIMIT_KEYS) +
+          ' keys: new keys are being refused. This is what key rotation looks ' +
+          'like when the key is client-controlled - validate it before the ' +
+          'limiter runs.');
+      end;
+      { True means "limit exceeded" to every caller of this interface, so the
+        refusal has to be True. Exit(False) here would have ADMITTED the key and
+        never stored it, which makes it take this branch again on the next
+        request: past the ceiling the limiter would have been off for every key
+        it did not already know. }
+      ARemaining := 0;
+      AResetTime := IncSecond(lNow, AWindowSeconds);
+      Exit(True);
+    end;
+
+    if not fStorage.TryGetValue(AKey, lEntry) then
+    begin
+      // First request from this key
+      lNewEntry.Count := 1;
+      lNewEntry.WindowStart := lNow;
+      lNewEntry.ResetTime := IncSecond(lNow, AWindowSeconds);
+      fStorage.AddOrSetValue(AKey, lNewEntry);
+
+      ARemaining := ALimit - 1;
+      AResetTime := lNewEntry.ResetTime;
+      Result := False;
+      Exit;
+    end;
+
+    // Check if window has expired
+    if lNow >= lEntry.ResetTime then
+    begin
+      // Start new window
+      lNewEntry.Count := 1;
+      lNewEntry.WindowStart := lNow;
+      lNewEntry.ResetTime := IncSecond(lNow, AWindowSeconds);
+      fStorage.AddOrSetValue(AKey, lNewEntry);
+
+      ARemaining := ALimit - 1;
+      AResetTime := lNewEntry.ResetTime;
+      Result := False;
+      Exit;
+    end;
+
+    // Within current window
+    if lEntry.Count >= ALimit then
+    begin
+      // Rate limit exceeded
+      ARemaining := 0;
+      AResetTime := lEntry.ResetTime;
+      Result := True;
+      Exit;
+    end;
+
+    // Increment counter
+    lEntry.Count := lEntry.Count + 1;
+    fStorage.AddOrSetValue(AKey, lEntry);
+
+    ARemaining := ALimit - lEntry.Count;
+    AResetTime := lEntry.ResetTime;
+    Result := False;
+  finally
+    fLock.Release;
+  end;
+end;
+
+procedure TMVCInMemoryRateLimitStorage.ResetKey(const AKey: string);
+begin
+  fLock.Acquire;
+  try
+    fStorage.Remove(AKey);
+  finally
+    fLock.Release;
+  end;
+end;
+
+procedure TMVCInMemoryRateLimitStorage.Clear;
+begin
+  fLock.Acquire;
+  try
+    fStorage.Clear;
+  finally
+    fLock.Release;
+  end;
+end;
+
+function RateLimitHTTPFilter(const AMaxRequests: Integer;
+  const AWindowSeconds: Integer): TMVCHTTPFilter; overload;
 var
   lStorage: IMVCRateLimitStorage;
 begin
@@ -1369,7 +1649,7 @@ end;
 
 // --- RequestLog -----------------------------------------------------------
 
-function RequestLog: TMVCHTTPFilter;
+function RequestLogHTTPFilter: TMVCHTTPFilter;
 begin
   Result :=
     procedure (const AContext: TWebContext;
@@ -1395,14 +1675,14 @@ end;
 // --- CORS (HTTPFilter version) --------------------------------------------
 
 // Forward — defined later under "CORS (EndpointFilter)" because the
-// original classic CORS() helper also calls it. Single source of truth.
+// original CORSEndpointFilter() helper also calls it. Single source of truth.
 function SplitCORSOrigins(const AConfiguredOrigins: string): TArray<string>; forward;
 procedure StampSimpleCORSHeaders(const AContext: TWebContext;
   const AAllowedOrigins: TArray<string>;
   const AAllowsCredentials: Boolean;
   const AExposeHeaders: string); forward;
 
-function CORSFilter(
+function CORSHTTPFilter(
   const AAllowedOriginURLs: string;
   const AAllowsCredentials: Boolean;
   const AExposeHeaders: string;
@@ -1448,7 +1728,7 @@ end;
 
 // Stamps the "simple" CORS response headers (origin, credentials, expose).
 // Extracted to a module-level proc because anonymous methods cannot capture
-// nested procedures (E2555). The closure inside CORS() calls it twice — for
+// nested procedures (E2555). The closure inside CORSHTTPFilter() calls it twice — for
 // the preflight branch and the post-handler branch.
 function SplitCORSOrigins(const AConfiguredOrigins: string): TArray<string>;
 var
@@ -1510,7 +1790,7 @@ begin
     AContext.Response.SetCustomHeader('Access-Control-Expose-Headers', AExposeHeaders);
 end;
 
-function CORS(
+function CORSEndpointFilter(
   const AAllowedOriginURLs: string;
   const AAllowsCredentials: Boolean;
   const AExposeHeaders: string;
@@ -1554,148 +1834,64 @@ begin
     end;
 end;
 
-// --- JWT ------------------------------------------------------------------
+// --- Authentication (the bundles are in MVCFramework.Filters.Authentication) ---
 
-// Module-level helper extracted from JWT() so the closure can call it
-// (anonymous methods cannot capture nested procedures — E2555).
-function BuildJWTLoginResponse(const AContext: TWebContext;
-  const AUserName: string;
-  const ARolesList: TList<string>;
-  const ASessionData: TDictionary<string, string>;
-  const AClaimsSetup: TJWTClaimsSetup;
-  const ASecret, AHMACAlgorithm: string;
-  const ALeewaySeconds: Cardinal): IMVCResponse;
-var
-  lJWT: TJWT;
-  lToken: string;
-  lResp: TMVCResponse;
-  lKey: string;
+class function TMVCAuthCookieOptions.Default: TMVCAuthCookieOptions;
 begin
-  lJWT := TJWT.Create(ASecret, ALeewaySeconds);
-  try
-    lJWT.HMACAlgorithm := AHMACAlgorithm;
-    // Apply caller-provided baseline claims (issuer, audience, expiry).
-    if Assigned(AClaimsSetup) then
-      AClaimsSetup(lJWT);
-    // LoggedUser.IsValid needs a login time: "iat" unless the setup gave one
-    if lJWT.Claims.IssuedAt <= 0 then // an absent claim reads as 0001-01-01, not 0
-      lJWT.Claims.IssuedAt := Now;
-    // Custom claims: roles + session data set by the auth handler.
-    // All roles go into ONE comma-joined 'roles' claim (the framework's standard
-    // shape, read back via Split(',')). The previous per-iteration assignment
-    // overwrote the claim each loop and kept only the last role.
-    // 'username' + 'roles': the claims TMVCJWTAuthenticationMiddleware writes and
-    // reads, so a token from either side fills LoggedUser on the other
-    lJWT.CustomClaims.Items['username'] := AUserName;
-    if ARolesList.Count > 0 then
-      lJWT.CustomClaims.Items['roles'] := string.Join(',', ARolesList.ToArray);
-    if Assigned(ASessionData) then
-      for lKey in ASessionData.Keys do
-        lJWT.CustomClaims.Items[lKey] := ASessionData[lKey];
-    lToken := lJWT.GetToken;
-  finally
-    lJWT.Free;
-  end;
-  lResp := TMVCResponse.Create;
-  lResp.StatusCode := http_status.OK;
-  AContext.Response.SetCustomHeader('Authorization', 'bearer ' + lToken);
-  Result := lResp;
+  Result.Name := 'jwt_token';
+  Result.Secure := True;
+  Result.SameSite := ssStrict;
+  Result.Path := '/';
+  Result.Domain := '';
 end;
 
-function JWT(
-  const AAuthenticationHandler: IMVCAuthenticationHandler;
-  const AClaimsSetup: TJWTClaimsSetup;
-  const ASecret: string;
-  const ALoginURLSegment: string;
-  const AClaimsToCheck: TJWTCheckableClaims;
-  const ALeewaySeconds: Cardinal;
-  const AHMACAlgorithm: string): TMVCEndpointFilter;
-const
-  cAuthHeader      = 'Authorization';
-  cBearerPrefix    = 'bearer ';
-  cUserNameHeader  = 'jwtusername';
-  cPasswordHeader  = 'jwtpassword';
+// --- CSRF -----------------------------------------------------------------
+
+function CSRFToken(const ASecret, ASessionId: string): string;
 begin
-  // Fail while building the filter, not on the first forged request
-  // (GHSA-hgv7-ch4w-2f47).
-  CheckJWTSecret(ASecret);
+  Result := BytesToHex(HMAC(HMAC_SHA256, ASessionId, ASecret));
+end;
+
+function CSRFEndpointFilter(const ASecret: string; const ATokenSource: TFunc<TWebContext, string>;
+  const AHeaderName, AFormFieldName: string; const AExemptPaths, AAllowedHosts: TArray<string>): TMVCEndpointFilter;
+var
+  lCheck: TFunc<TWebContext, Boolean>;
+begin
+  lCheck := CSRFCheck(ASecret, ATokenSource, AHeaderName, AFormFieldName, AExemptPaths, AAllowedHosts);
+  // the same check as before routing: here it runs once the route is known
   Result :=
-    function (const AContext: TWebContext;
-              const ANext: TMVCEndpointFilterNext): IMVCResponse
-    var
-      lAuthHeader, lToken, lError: string;
-      lJWT: TJWT;
-      lAccepted: Boolean;
-      lRoles: TList<string>;
-      lSession: TSessionData;
-      lUserName, lPassword: string;
+    function(const AContext: TWebContext; const ANext: TMVCEndpointFilterNext): IMVCResponse
     begin
-      // Login endpoint: special-case credential exchange -> token.
-      // POST /login with jwtusername + jwtpassword headers returns a token.
-      if SameText(AContext.Request.PathInfo, ALoginURLSegment)
-        and (AContext.Request.HTTPMethod = httpPOST) then
-      begin
-        lUserName := AContext.Request.Headers[cUserNameHeader];
-        lPassword := AContext.Request.Headers[cPasswordHeader];
-        if (lUserName = '') or (lPassword = '') then
-          Exit(Status(http_status.Unauthorized, 'Missing credentials'));
-        lRoles := TList<string>.Create;
-        lSession := TSessionData.Create;
-        try
-          lAccepted := False;
-          AAuthenticationHandler.OnAuthentication(AContext,
-            lUserName, lPassword, lRoles, lAccepted, lSession);
-          if not lAccepted then
-            Exit(Status(http_status.Unauthorized, 'Invalid credentials'));
-          Result := BuildJWTLoginResponse(AContext, lUserName, lRoles, lSession,
-            AClaimsSetup, ASecret, AHMACAlgorithm, ALeewaySeconds);
-        finally
-          lRoles.Free;
-          lSession.Free;
-        end;
-        Exit;
-      end;
-
-      // All other endpoints: require a valid bearer token.
-      lAuthHeader := AContext.Request.Headers[cAuthHeader];
-      if not lAuthHeader.ToLower.StartsWith(cBearerPrefix) then
-        Exit(Status(http_status.Unauthorized, 'Missing or malformed bearer token'));
-      lToken := Copy(lAuthHeader, Length(cBearerPrefix) + 1, MaxInt).Trim;
-
-      lJWT := TJWT.Create(ASecret, ALeewaySeconds);
-      try
-        lJWT.HMACAlgorithm := AHMACAlgorithm;
-        lJWT.RegClaimsToChecks := AClaimsToCheck;
-        if not lJWT.LoadToken(lToken, lError) then
-          Exit(Status(http_status.Unauthorized, 'Invalid token: ' + lError));
-        // Make claims available to the handler via the framework's
-        // LoggedUser slot — same surface controller-based apps use.
-        // Filled as TMVCJWTAuthenticationMiddleware does, so Authorize / RequireRole
-        // work behind JWT(...). "sub" stays a fallback for tokens issued elsewhere.
-        AContext.LoggedUser.Clear;
-        AContext.LoggedUser.UserName := lJWT.CustomClaims['username'];
-        if AContext.LoggedUser.UserName = '' then
-          AContext.LoggedUser.UserName := lJWT.Claims.Subject;
-        if lJWT.CustomClaims['roles'] <> '' then
-          AContext.LoggedUser.Roles.AddRange(lJWT.CustomClaims['roles'].Split([',']));
-        if lJWT.Claims.IssuedAt > 0 then
-          AContext.LoggedUser.LoggedSince := lJWT.Claims.IssuedAt
-        else // a valid token with no "iat" (it reads as 0001-01-01): IsValid needs a time
-          AContext.LoggedUser.LoggedSince := Now;
-        AContext.LoggedUser.CustomData := lJWT.CustomClaims.AsCustomData;
-      finally
-        lJWT.Free;
-      end;
-
+      if not lCheck(AContext) then
+        Exit(nil); // the 403 is written
       Result := ANext();
+    end;
+end;
+
+function CSRFHTTPFilter(const ASecret: string; const ATokenSource: TFunc<TWebContext, string>;
+  const AHeaderName, AFormFieldName: string; const AExemptPaths, AAllowedHosts: TArray<string>): TMVCHTTPFilter;
+var
+  lCheck: TFunc<TWebContext, Boolean>;
+begin
+  lCheck := CSRFCheck(ASecret, ATokenSource, AHeaderName, AFormFieldName, AExemptPaths, AAllowedHosts);
+  Result :=
+    procedure(const AContext: TWebContext; const ANext: TMVCHTTPFilterNext)
+    begin
+      if lCheck(AContext) then
+        ANext(); // otherwise the 403 is written
     end;
 end;
 
 // --- BasicAuth (EndpointFilter) ------------------------------------------
 
 function Build401WithWWWAuthenticate(const AContext: TWebContext;
-  const ARealm: string): IMVCResponse;
+  const ARealm: string; const AStopSession: Boolean = False): IMVCResponse;
 begin
+  AContext.LoggedUser.Clear;
+  // the handler overload keeps the identity in the session, as TMVCBasicAuthenticationMiddleware:
+  // a refused one leaves no session behind. The validator overload never uses the session
+  if AStopSession and AContext.HasSessionSupport then
+    AContext.SessionStop(False);
   // Stamp WWW-Authenticate directly on the live response — TMVCResponse.Create
   // initializes fHeaders to nil and the engine's render path does not
   // lazy-instantiate it, so writing via .Headers AVs.
@@ -1729,7 +1925,7 @@ begin
   Result := True;
 end;
 
-function BasicAuth(const AValidator: TMVCBasicAuthValidator;
+function BasicAuthEndpointFilter(const AValidator: TMVCBasicAuthValidator;
   const ARealm: string): TMVCEndpointFilter;
 begin
   Result :=
@@ -1756,9 +1952,13 @@ begin
     end;
 end;
 
-function BasicAuth(const AHandler: IMVCAuthenticationHandler;
+function BasicAuthEndpointFilter(const AHandler: IMVCAuthenticationHandler;
   const ARealm: string): TMVCEndpointFilter;
+var
+  lHandler: IMVCAuthenticationHandler;
 begin
+  CheckHandler(AHandler, 'BasicAuth');
+  lHandler := FilterAuthHandler(AHandler);
   Result :=
     function (const AContext: TWebContext;
               const ANext: TMVCEndpointFilterNext): IMVCResponse
@@ -1769,21 +1969,17 @@ begin
       lSession: TSessionData;
       lPair: TPair<string, string>;
     begin
-      // Match classic TMVCBasicAuthenticationMiddleware sequence exactly so
-      // callers porting an IMVCAuthenticationHandler get identical semantics.
-      // Empty strings stand in for ControllerQualifiedClassName / ActionName —
-      // minimal-API has no controller class. Handlers that gate on those will
-      // see them as empty and should treat that as "every action requires auth"
-      // (this filter is per-group; presence on the group implies "auth required").
+      // the sequence of TMVCBasicAuthenticationMiddleware; lHandler does not ask OnRequest on a Minimal API route
       { Deny by default: the parameter is `var`, not `out`, so a handler that
         leaves a branch unassigned would have this read stack garbage - and
         False here skips authentication altogether. }
       lAuthRequired := True;
-      AHandler.OnRequest(AContext, '', '', lAuthRequired);
+      lHandler.OnRequest(AContext, AContext.ControllerQualifiedClassName, AContext.ActionName,
+        lAuthRequired);
       if not lAuthRequired then
         Exit(ANext());
 
-      // Pull cached creds from session if available — mirrors classic line 209.
+      // Pull cached creds from session if available, as the classic middleware.
       // Guard: minimal-API may have no session filter in the chain; touching the
       // session then raises EMVCConfigException. Without a session we just skip
       // the cache — creds are re-read from the Authorization header each request.
@@ -1794,13 +1990,13 @@ begin
       begin
         if not ParseBasicAuthHeader(AContext.Request.Headers['Authorization'],
           lUserName, lPassword) then
-          Exit(Build401WithWWWAuthenticate(AContext, ARealm));
+          Exit(Build401WithWWWAuthenticate(AContext, ARealm, True));
 
         lRoles := TList<string>.Create;
         try
           lSession := TSessionData.Create;
           try
-            AHandler.OnAuthentication(AContext, lUserName, lPassword,
+            lHandler.OnAuthentication(AContext, lUserName, lPassword,
               lRoles, lIsValid, lSession);
             if lIsValid then
             begin
@@ -1827,24 +2023,24 @@ begin
 
       lIsAuthorized := False;
       if lIsValid then
-        AHandler.OnAuthorization(AContext, AContext.LoggedUser.Roles,
-          '', '', lIsAuthorized);
+        lHandler.OnAuthorization(AContext, AContext.LoggedUser.Roles,
+          AContext.ControllerQualifiedClassName, AContext.ActionName, lIsAuthorized);
 
       if lIsAuthorized then
         Exit(ANext());
 
-      // Mirror classic split (line 261-266): 403 if user is identified but lacks
+      // As the classic middleware: 403 if user is identified but lacks
       // authorization, 401 (challenge again) if not even identified.
       if lIsValid then
         Result := Build403Forbidden
       else
-        Result := Build401WithWWWAuthenticate(AContext, ARealm);
+        Result := Build401WithWWWAuthenticate(AContext, ARealm, True);
     end;
 end;
 
 // --- Authorize / RequireRole (EndpointFilter) ----------------------------
 
-function Authorize: TMVCEndpointFilter;
+function AuthorizeEndpointFilter: TMVCEndpointFilter;
 begin
   Result :=
     function (const Ctx: TWebContext;
@@ -1856,7 +2052,7 @@ begin
     end;
 end;
 
-function RequireRole(const ARoles: TArray<string>): TMVCEndpointFilter;
+function RequireRoleEndpointFilter(const ARoles: TArray<string>): TMVCEndpointFilter;
 begin
   Result :=
     function (const Ctx: TWebContext;
@@ -1880,51 +2076,19 @@ begin
     end;
 end;
 
-function RequireRole(const ARole: string): TMVCEndpointFilter;
+function RequireRoleEndpointFilter(const ARole: string): TMVCEndpointFilter;
 begin
-  Result := RequireRole(TArray<string>.Create(ARole));
+  Result := RequireRoleEndpointFilter(TArray<string>.Create(ARole));
 end;
 
 // --- FileSession (EndpointFilter) ----------------------------------------
 
-function FileSession(const ATimeoutInMinutes: Integer;
+function FileSessionEndpointFilter(const ATimeoutInMinutes: Integer;
   const ASessionFolder: string;
-  const AHttpOnly: Boolean; const ASecure: Boolean): TMVCEndpointFilter;
-var
-  lHolder: ISessionFactoryHolder;
+  const AFlags: TMVCSessionCookieFlags): TMVCEndpointFilter;
 begin
-  lHolder := TSessionFactoryHolder.Create(
-    TMVCWebSessionFileFactory.Create(AHttpOnly, ATimeoutInMinutes, ASessionFolder, ASecure));
-  Result :=
-    function (const AContext: TWebContext;
-              const ANext: TMVCEndpointFilterNext): IMVCResponse
-    begin
-      AContext.SetSessionFactory(lHolder.Factory);
-      Result := ANext();
-    end;
-end;
-
-// --- DatabaseSession (EndpointFilter) ------------------------------------
-
-function DatabaseSession(const ATimeoutInMinutes: Integer;
-  const AConnectionDefName: string;
-  const AHttpOnly: Boolean; const ASecure: Boolean): TMVCEndpointFilter;
-var
-  lHolder: ISessionFactoryHolder;
-begin
-  // AConnectionDefName is currently inert in TMVCWebSessionDatabaseFactory
-  // (it relies on the ambient ActiveRecord default connection) — kept on the
-  // signature for forward compatibility and to document the dependency on
-  // ActiveRecord(...) earlier in the filter chain.
-  lHolder := TSessionFactoryHolder.Create(
-    TMVCWebSessionDatabaseFactory.Create(AHttpOnly, ATimeoutInMinutes, AConnectionDefName, ASecure));
-  Result :=
-    function (const AContext: TWebContext;
-              const ANext: TMVCEndpointFilterNext): IMVCResponse
-    begin
-      AContext.SetSessionFactory(lHolder.Factory);
-      Result := ANext();
-    end;
+  Result := SessionEndpointFilter(
+    TMVCWebSessionFileFactory.Create(scfHttpOnly in AFlags, ATimeoutInMinutes, ASessionFolder, scfSecure in AFlags));
 end;
 
 // --- Analytics (HTTPFilter) ----------------------------------------------
@@ -1934,21 +2098,32 @@ const
 
 var
   // Lazy default logger cache — analytics CSV appender shared across every
-  // Analytics() filter built without an explicit ALogWriter. Initialised on
-  // first use, kept until process exit.
+  // AnalyticsHTTPFilter() filter built without an explicit ALogWriter (and the
+  // classic middleware). Initialised on first use, kept until process exit.
   gAnalyticsLogger: ILogWriter = nil;
   gAnalyticsLoggerLock: TObject = nil;
 
-function GetSharedAnalyticsLogger: ILogWriter;
+function GetAnalyticsDefaultLogger: ILogWriter;
+var
+  lLog: ILogAppender;
 begin
   if gAnalyticsLogger = nil then
   begin
     TMonitor.Enter(gAnalyticsLoggerLock);
     try
-      if gAnalyticsLogger = nil then
-        // Delegate to the classic middleware's well-tested CSV file appender
-        // (LoggerProSimpleFileAppender writing under AppPath + 'analytics').
-        gAnalyticsLogger := GetAnalyticsDefaultLogger;
+      if gAnalyticsLogger = nil then // double check locking (https://en.wikipedia.org/wiki/Double-checked_locking)
+      begin
+        lLog := TLoggerProSimpleFileAppender.Create(10, 5000, AppPath + 'analytics',
+          TPath.ChangeExtension(TLoggerProSimpleFileAppender.DEFAULT_FILENAME_FORMAT, 'csv'));
+        TLoggerProAppenderBase(lLog).OnLogRow := procedure(const LogItem: TLogItem; out LogRow: string)
+          begin
+            LogRow := Format('%s;%s;%s', [
+              FormatDateTime('yyyy-mm-dd hh:nn:ss', LogItem.TimeStamp),
+              LogItem.LogTypeAsString,
+              LogItem.LogMessage]);
+          end;
+        gAnalyticsLogger := LoggerProBuilder.WriteToAppender(lLog).Build;
+      end;
     finally
       TMonitor.Exit(gAnalyticsLoggerLock);
     end;
@@ -1956,7 +2131,7 @@ begin
   Result := gAnalyticsLogger;
 end;
 
-function Analytics(const ALogWriter: ILogWriter): TMVCHTTPFilter;
+function AnalyticsHTTPFilter(const ALogWriter: ILogWriter): TMVCHTTPFilter;
 const
   // Map HTTP status class to log level: 1xx/2xx/3xx -> Info, 4xx -> Warning,
   // 5xx -> Error. Mirrors LOG_LEVEL[] in the classic Analytics middleware.
@@ -1981,7 +2156,7 @@ begin
       finally
         lEffective := lConfigured;
         if lEffective = nil then
-          lEffective := GetSharedAnalyticsLogger;
+          lEffective := GetAnalyticsDefaultLogger;
         lReq := AContext.Request;
         lResp := AContext.Response;
         // Column layout matches the classic Analytics middleware:
@@ -2018,10 +2193,19 @@ begin
     lLower.StartsWith('text/');
 end;
 
-function Trace(const AMaxBodySize: Int64;
+var
+  // process-wide counter: the correlation id of a request that does not bring one
+  gTraceRequestCounter: Int64 = 0;
+
+function TraceClamp(const AValue: string; const AMaxLength: Int64): string;
+begin
+  Result := Copy(AValue, 1, Integer(Min(AMaxLength, MaxInt)));
+end;
+
+function TraceHTTPFilter(const AMaxBodySize: Int64;
   const ALogTag: string;
-  const ALogAuthorization: Boolean;
-  const AHideNonTextBody: Boolean): TMVCHTTPFilter;
+  const AFlags: TMVCTraceFlags;
+  const ACorrelationHeaderName: string): TMVCHTTPFilter;
 begin
   Result :=
     procedure (const AContext: TWebContext;
@@ -2029,32 +2213,39 @@ begin
     var
       lSW: TStopwatch;
       lReq: TMVCWebRequest;
-      lAuth, lBody: string;
+      lAuth, lBody, lId, lRid: string;
       lDump: TStringStream;
     begin
+      // Correlation id: honor the one of the caller (proxy, gateway, tracing),
+      // otherwise a short process-unique one, and echo it to the caller.
+      lId := AContext.Request.Headers[ACorrelationHeaderName];
+      if lId = '' then
+        lId := AContext.Request.Headers['X-Correlation-ID'];
+      if lId = '' then
+        lId := IntToHex(TInterlocked.Increment(gTraceRequestCounter), 6);
+      AContext.Response.SetCustomHeader(ACorrelationHeaderName, lId);
+      lRid := '[rid:' + lId + '] ';
+
       // Pre-Next: REQUEST -------------------------------------------------
       AContext.Request.ReadTotalContent;
       lReq := AContext.Request;
-      if ALogAuthorization then
+      if tfLogAuthorization in AFlags then
         lAuth := lReq.Authorization
-      else if lReq.Authorization = '' then
-        lAuth := ''
       else
-        lAuth := '<redacted>';
-      Log.Debug(Format('[TRACE][REQ][%s][IP:%s][URL:%s][QS:%s][LEN:%d][ACCEPT:%s][UA:%s][AUTH:%s]', [
-        lReq.HTTPMethodAsString, lReq.ClientIp, lReq.PathInfo,
+        lAuth := MVCRedactSecret(lReq.Authorization);
+      Log.Debug(Format('%s[TRACE][REQ][%s][IP:%s][URL:%s][QS:%s][LEN:%d][ACCEPT:%s][UA:%s][AUTH:%s]', [
+        lRid, lReq.HTTPMethodAsString, lReq.ClientIp, lReq.PathInfo,
         lReq.QueryFieldsDelimitedText, lReq.ContentLength,
         lReq.Accept, lReq.UserAgent, lAuth]), ALogTag);
 
       if lReq.HTTPMethod in [httpPOST, httpPUT, httpPATCH] then
       begin
-        if (not AHideNonTextBody) or
+        if (tfLogNonTextBody in AFlags) or
            TraceIsTextContentType(lReq.Headers['content-type']) then
-          lBody := TEncoding.UTF8.GetString(lReq.RawContent)
-                     .Substring(0, AMaxBodySize)
+          lBody := TraceClamp(TEncoding.UTF8.GetString(lReq.RawContent), AMaxBodySize)
         else
           lBody := '<hidden non text content>';
-        Log.Debug('[TRACE][REQ][BODY] ' + lBody, ALogTag);
+        Log.Debug(lRid + '[TRACE][REQ][BODY] ' + lBody, ALogTag);
       end;
 
       // Inner pipeline ----------------------------------------------------
@@ -2065,15 +2256,16 @@ begin
         lSW.Stop;
 
         // Post-Next: RESPONSE ---------------------------------------------
-        Log.Debug(Format('[TRACE][RES][STATUS] %d %s (%dms)', [
+        Log.Debug(Format('%s[TRACE][RES][STATUS] %d %s (%dms)', [
+          lRid,
           AContext.Response.StatusCode,
           AContext.Response.ReasonString,
           lSW.ElapsedMilliseconds]), ALogTag);
-        Log.Debug('[TRACE][RES][HEADERS] ' + string.Join(' | ',
-          AContext.Response.CustomHeaders.ToStringArray), ALogTag);
-        Log.Debug('[TRACE][RES][CT] ' + AContext.Response.ContentType, ALogTag);
+        Log.Debug(lRid + '[TRACE][RES][HEADERS] ' +
+          MVCRedactedHeaders(AContext.Response.CustomHeaders), ALogTag);
+        Log.Debug(lRid + '[TRACE][RES][CT] ' + AContext.Response.ContentType, ALogTag);
 
-        if (not AHideNonTextBody) or
+        if (tfLogNonTextBody in AFlags) or
            TraceIsTextContentType(AContext.Response.ContentType) then
         begin
           lDump := TStringStream.Create;
@@ -2086,14 +2278,14 @@ begin
               AContext.Response.ContentStream.Position := 0;
             end
             else
-              lDump.WriteString(AContext.Response.Content.Substring(0, AMaxBodySize));
-            Log.Debug('[TRACE][RES][BODY] ' + lDump.DataString, ALogTag);
+              lDump.WriteString(TraceClamp(AContext.Response.Content, AMaxBodySize));
+            Log.Debug(lRid + '[TRACE][RES][BODY] ' + lDump.DataString, ALogTag);
           finally
             lDump.Free;
           end;
         end
         else
-          Log.Debug('[TRACE][RES][BODY] <hidden non text content>', ALogTag);
+          Log.Debug(lRid + '[TRACE][RES][BODY] <hidden non text content>', ALogTag);
       end;
     end;
 end;
@@ -2102,19 +2294,19 @@ end;
 
 function BuildRedirectResponse(const AContext: TWebContext;
   const ATarget: string;
-  const APermanent, APreserveQuery: Boolean): Boolean;
+  const AKind: TMVCRedirectKind; const AQuery: TMVCRedirectQuery): Boolean;
 var
   lTarget, lQS: string;
 begin
   lTarget := ATarget;
-  if APreserveQuery then
+  if AQuery = rdqPreserve then
   begin
     lQS := AContext.Request.QueryString;
     if lQS <> '' then
       lTarget := lTarget + '?' + lQS;
   end;
   AContext.Response.CustomHeaders.Values['Location'] := lTarget;
-  if APermanent then
+  if AKind = rdkPermanent then
     AContext.Response.StatusCode := http_status.MovedPermanently
   else
     AContext.Response.StatusCode := http_status.Found;
@@ -2122,10 +2314,10 @@ begin
   Result := True;
 end;
 
-function Redirect(const APaths: TArray<string>;
+function RedirectHTTPFilter(const APaths: TArray<string>;
   const ATargetURL: string;
-  const APermanent: Boolean;
-  const APreserveQuery: Boolean): TMVCHTTPFilter;
+  const AKind: TMVCRedirectKind;
+  const AQuery: TMVCRedirectQuery): TMVCHTTPFilter;
 var
   lPaths: TArray<string>;
 begin
@@ -2140,16 +2332,16 @@ begin
       for lMatch in lPaths do
         if SameText(lPath, lMatch) then
         begin
-          BuildRedirectResponse(AContext, ATargetURL, APermanent, APreserveQuery);
+          BuildRedirectResponse(AContext, ATargetURL, AKind, AQuery);
           Exit; // short-circuit
         end;
       ANext();
     end;
 end;
 
-function Redirect(const ARules: TArray<TPair<string, string>>;
-  const APermanent: Boolean;
-  const APreserveQuery: Boolean): TMVCHTTPFilter;
+function RedirectHTTPFilter(const ARules: TArray<TPair<string, string>>;
+  const AKind: TMVCRedirectKind;
+  const AQuery: TMVCRedirectQuery): TMVCHTTPFilter;
 var
   lRules: TArray<TPair<string, string>>;
 begin
@@ -2165,7 +2357,7 @@ begin
       for lRule in lRules do
         if SameText(lPath, lRule.Key) then
         begin
-          BuildRedirectResponse(AContext, lRule.Value, APermanent, APreserveQuery);
+          BuildRedirectResponse(AContext, lRule.Value, AKind, AQuery);
           Exit;
         end;
       ANext();
@@ -2182,60 +2374,63 @@ type
     ['{2E5A7B8C-4A13-4E62-9F2A-7C8D1E4B6F02}']
     function URLPath: string;
     function DocumentRoot: string;
-    function MediaTypes: TDictionary<string, string>;
+    function MediaTypes: TMVCStringDictionary;
   end;
 
   TRangeMediaState = class(TInterfacedObject, IRangeMediaState)
   strict private
     fURLPath: string;
     fDocumentRoot: string;
-    fMediaTypes: TDictionary<string, string>;
-    procedure InitMediaTypes;
+    fMediaTypes: TMVCStringDictionary;
   public
     constructor Create(const AURLPath, ADocumentRoot: string);
     destructor Destroy; override;
     function URLPath: string;
     function DocumentRoot: string;
-    function MediaTypes: TDictionary<string, string>;
+    function MediaTypes: TMVCStringDictionary;
   end;
+
+// the audio and video types of RangeMedia, also in the table of FileServerBundle
+procedure AddRangeMediaTypes(const AMap: TMVCStringDictionary);
+begin
+  // Audio
+  AMap.Add('.m4a',  'audio/mp4');
+  AMap.Add('.mp3',  'audio/mpeg');
+  AMap.Add('.ogg',  'audio/ogg');
+  AMap.Add('.opus', 'audio/opus');
+  AMap.Add('.wav',  'audio/wav');
+  AMap.Add('.flac', 'audio/flac');
+  AMap.Add('.aac',  'audio/aac');
+  AMap.Add('.weba', 'audio/webm');
+  // Video
+  AMap.Add('.mp4',  'video/mp4');
+  AMap.Add('.webm', 'video/webm');
+  AMap.Add('.ogv',  'video/ogg');
+  AMap.Add('.mkv',  'video/x-matroska');
+  AMap.Add('.avi',  'video/x-msvideo');
+  AMap.Add('.mov',  'video/quicktime');
+end;
 
 constructor TRangeMediaState.Create(const AURLPath, ADocumentRoot: string);
 begin
   inherited Create;
   fURLPath := AURLPath.TrimRight(['/']);
-  fDocumentRoot := TPath.Combine(AppPath, ADocumentRoot);
+  { GetFullPath: 'www/media' joined to AppPath keeps a mix of '/' and '\', while
+    the full path of a file is all backslashes. The StartsWith check below would
+    then fail for every file, and the folder that is right there would answer 404. }
+  fDocumentRoot := TPath.GetFullPath(TPath.Combine(AppPath, ADocumentRoot));
   // Trailing separator makes the StartsWith check unambiguous —
   // '/app/media/' must not match the sibling '/app/media_evil/'.
   if not fDocumentRoot.EndsWith(TPath.DirectorySeparatorChar) then
     fDocumentRoot := fDocumentRoot + TPath.DirectorySeparatorChar;
-  fMediaTypes := TDictionary<string, string>.Create;
-  InitMediaTypes;
+  fMediaTypes := TMVCStringDictionary.Create;
+  AddRangeMediaTypes(fMediaTypes);
 end;
 
 destructor TRangeMediaState.Destroy;
 begin
   fMediaTypes.Free;
   inherited;
-end;
-
-procedure TRangeMediaState.InitMediaTypes;
-begin
-  // Audio
-  fMediaTypes.Add('.m4a',  'audio/mp4');
-  fMediaTypes.Add('.mp3',  'audio/mpeg');
-  fMediaTypes.Add('.ogg',  'audio/ogg');
-  fMediaTypes.Add('.opus', 'audio/opus');
-  fMediaTypes.Add('.wav',  'audio/wav');
-  fMediaTypes.Add('.flac', 'audio/flac');
-  fMediaTypes.Add('.aac',  'audio/aac');
-  fMediaTypes.Add('.weba', 'audio/webm');
-  // Video
-  fMediaTypes.Add('.mp4',  'video/mp4');
-  fMediaTypes.Add('.webm', 'video/webm');
-  fMediaTypes.Add('.ogv',  'video/ogg');
-  fMediaTypes.Add('.mkv',  'video/x-matroska');
-  fMediaTypes.Add('.avi',  'video/x-msvideo');
-  fMediaTypes.Add('.mov',  'video/quicktime');
 end;
 
 function TRangeMediaState.URLPath: string;
@@ -2248,7 +2443,7 @@ begin
   Result := fDocumentRoot;
 end;
 
-function TRangeMediaState.MediaTypes: TDictionary<string, string>;
+function TRangeMediaState.MediaTypes: TMVCStringDictionary;
 begin
   Result := fMediaTypes;
 end;
@@ -2330,7 +2525,141 @@ begin
     (ARangeEnd < AFileSize);
 end;
 
-function RangeMedia(const AURLPath: string;
+type
+  // The bytes [AStart, AStart + ACount) of a file, read in place: a 206 is sent
+  // from the file, without a copy, and a HEAD reads nothing. Owns the file.
+  // Size can only shrink the window (the ETag middleware empties a 304 with Size := 0).
+  TFileRangeStream = class(TStream)
+  strict private
+    fFile: TFileStream;
+    fStart, fCount, fPosition: Int64;
+  protected
+    function GetSize: Int64; override;
+    procedure SetSize(const NewSize: Int64); override;
+  public
+    constructor Create(const AFile: TFileStream; const AStart, ACount: Int64);
+    destructor Destroy; override;
+    function Read(var ABuffer; ACount: Longint): Longint; override;
+    function Write(const ABuffer; ACount: Longint): Longint; override;
+    function Seek(const AOffset: Int64; AOrigin: TSeekOrigin): Int64; override;
+  end;
+
+constructor TFileRangeStream.Create(const AFile: TFileStream; const AStart, ACount: Int64);
+begin
+  inherited Create;
+  fFile := AFile;
+  fStart := AStart;
+  fCount := ACount;
+  fPosition := 0;
+  fFile.Position := AStart; // then only Seek moves it: the reads are sequential
+end;
+
+destructor TFileRangeStream.Destroy;
+begin
+  fFile.Free;
+  inherited;
+end;
+
+function TFileRangeStream.GetSize: Int64;
+begin
+  Result := fCount;
+end;
+
+procedure TFileRangeStream.SetSize(const NewSize: Int64);
+begin
+  if NewSize < 0 then
+    fCount := 0
+  else if NewSize < fCount then
+    fCount := NewSize;
+end;
+
+function TFileRangeStream.Read(var ABuffer; ACount: Longint): Longint;
+begin
+  if (ACount <= 0) or (fPosition >= fCount) then
+    Exit(0);
+  if ACount > fCount - fPosition then
+    ACount := Longint(fCount - fPosition); // less than ACount: it fits
+  Result := fFile.Read(ABuffer, ACount);
+  Inc(fPosition, Result);
+end;
+
+function TFileRangeStream.Write(const ABuffer; ACount: Longint): Longint;
+begin
+  Result := 0; // read-only: WriteBuffer raises EWriteError
+end;
+
+function TFileRangeStream.Seek(const AOffset: Int64; AOrigin: TSeekOrigin): Int64;
+begin
+  if (AOrigin = soCurrent) and (AOffset = 0) then
+    Exit(fPosition); // a read of Position: the file stays where it is
+  case AOrigin of
+    soBeginning:
+      fPosition := AOffset;
+    soCurrent:
+      fPosition := fPosition + AOffset;
+    soEnd:
+      fPosition := fCount + AOffset;
+  end;
+  if fPosition < 0 then
+    fPosition := 0;
+  fFile.Position := fStart + fPosition;
+  Result := fPosition;
+end;
+
+// The answer of RangeMedia for a file already resolved: 200 without a Range
+// header, 206 with a single range, 416 with one it cannot satisfy. Shared with
+// FileServerBundle, whose path checks and MIME table are those of StaticFiles.
+procedure RangeMediaSendFile(const AContext: TWebContext; const AFileName, AContentType, ARangeHeader: string);
+var
+  lFileStream: TFileStream;
+  lFileSize, lRangeStart, lRangeEnd: Int64;
+begin
+  lFileStream := TFileStream.Create(AFileName, fmOpenRead or fmShareDenyNone);
+  try
+    lFileSize := lFileStream.Size;
+
+    AContext.Response.SetCustomHeader('Accept-Ranges',    'bytes');
+    // Prevent Compression (if wrapped outside) from re-encoding the
+    // body — would break Content-Range semantics.
+    AContext.Response.SetCustomHeader('Content-Encoding', 'identity');
+    // Chromium media cache ignores no-cache for <video>/<audio>.
+    AContext.Response.SetCustomHeader('Cache-Control',    'no-store');
+
+    if ARangeHeader.IsEmpty then
+    begin
+      AContext.Response.StatusCode := HTTP_STATUS.OK;
+      lFileStream.Position := 0;
+      AContext.Response.SetContentStream(lFileStream, AContentType);
+      lFileStream := nil; // ownership transferred — guard finally
+      Exit;
+    end;
+
+    if not RangeMediaParseHeader(ARangeHeader, lFileSize,
+      lRangeStart, lRangeEnd) then
+    begin
+      AContext.Response.StatusCode := HTTP_STATUS.RequestedRangeNotSatisfiable;
+      AContext.Response.SetCustomHeader('Content-Range',
+        'bytes */' + IntToStr(lFileSize));
+      Exit;
+    end;
+
+    // 206 Partial Content: the slice of the file, owned by the response from here.
+    { Same cap as the RangeMedia middleware: see MAX_RANGE_SLICE there (a host
+      that buffers the body, HTTP.sys, would hold the whole file for "bytes=0-"). }
+    if (lRangeEnd - lRangeStart + 1) > MAX_RANGE_SLICE then
+      lRangeEnd := lRangeStart + MAX_RANGE_SLICE - 1;
+    AContext.Response.StatusCode := HTTP_STATUS.PartialContent;
+    AContext.Response.SetCustomHeader('Content-Range',
+      Format('bytes %d-%d/%d', [lRangeStart, lRangeEnd, lFileSize]));
+    AContext.Response.SetContentStream(TFileRangeStream.Create(lFileStream, lRangeStart,
+      lRangeEnd - lRangeStart + 1), AContentType);
+    lFileStream := nil; // owned by the range stream
+  finally
+    lFileStream.Free;
+  end;
+end;
+
+function RangeMediaHTTPFilter(const AURLPath: string;
   const ADocumentRoot: string): TMVCHTTPFilter;
 var
   lState: IRangeMediaState;
@@ -2340,10 +2669,7 @@ begin
     procedure (const AContext: TWebContext;
                const ANext: TMVCHTTPFilterNext)
     var
-      lPathInfo, lFileName, lRangeHeader, lContentType: string;
-      lFileStream: TFileStream;
-      lPartialStream: TMemoryStream;
-      lFileSize, lRangeStart, lRangeEnd, lContentLength: Int64;
+      lPathInfo, lFileName: string;
     begin
       lPathInfo := AContext.Request.PathInfo;
 
@@ -2377,62 +2703,8 @@ begin
         Exit;
       end;
 
-      lContentType := RangeMediaGetMediaType(lState, lFileName);
-      lFileStream := TFileStream.Create(lFileName, fmOpenRead or fmShareDenyNone);
-      try
-        lFileSize := lFileStream.Size;
-        lRangeHeader := AContext.Request.Headers['Range'];
-
-        AContext.Response.SetCustomHeader('Accept-Ranges',    'bytes');
-        // Prevent Compression (if wrapped outside) from re-encoding the
-        // body — would break Content-Range semantics.
-        AContext.Response.SetCustomHeader('Content-Encoding', 'identity');
-        // Chromium media cache ignores no-cache for <video>/<audio>.
-        AContext.Response.SetCustomHeader('Cache-Control',    'no-store');
-
-        if lRangeHeader.IsEmpty then
-        begin
-          AContext.Response.StatusCode := HTTP_STATUS.OK;
-          lFileStream.Position := 0;
-          AContext.Response.SetContentStream(lFileStream, lContentType);
-          lFileStream := nil; // ownership transferred — guard finally
-          Exit;
-        end;
-
-        if not RangeMediaParseHeader(lRangeHeader, lFileSize,
-          lRangeStart, lRangeEnd) then
-        begin
-          AContext.Response.StatusCode := HTTP_STATUS.RequestedRangeNotSatisfiable;
-          AContext.Response.SetCustomHeader('Content-Range',
-            'bytes */' + IntToStr(lFileSize));
-          Exit;
-        end;
-
-        // 206 Partial Content — slice into a fresh memory stream and hand
-        // it off; the response sink owns it from here.
-        { Same cap as the RangeMedia middleware: see MAX_RANGE_SLICE there.
-          "Range: bytes=0-" is a whole-file allocation without it. }
-        if (lRangeEnd - lRangeStart + 1) > MAX_RANGE_SLICE then
-          lRangeEnd := lRangeStart + MAX_RANGE_SLICE - 1;
-        lContentLength := lRangeEnd - lRangeStart + 1;
-        lPartialStream := TMemoryStream.Create;
-        try
-          lPartialStream.SetSize(lContentLength);
-          lFileStream.Position := lRangeStart;
-          lPartialStream.CopyFrom(lFileStream, lContentLength);
-          lPartialStream.Position := 0;
-        except
-          lPartialStream.Free;
-          raise;
-        end;
-
-        AContext.Response.StatusCode := HTTP_STATUS.PartialContent;
-        AContext.Response.SetCustomHeader('Content-Range',
-          Format('bytes %d-%d/%d', [lRangeStart, lRangeEnd, lFileSize]));
-        AContext.Response.SetContentStream(lPartialStream, lContentType);
-      finally
-        lFileStream.Free;
-      end;
+      RangeMediaSendFile(AContext, lFileName, RangeMediaGetMediaType(lState, lFileName),
+        AContext.Request.Headers['Range']);
     end;
 end;
 
@@ -2444,8 +2716,8 @@ begin
   Result.RootFolder := '.\www';
   Result.IndexDocument := 'index.html';
   Result.Charset := '';
-  Result.SPAWebAppSupport := True;
-  Result.CaseSensitivePrefix := False;
+  Result.Mode := sfmFiles; // as StaticFilesHTTPFilter(prefix, folder): files only
+  Result.Flags := [];
   Result.MediaTypesCustomizer := nil;
   Result.Rules := nil;
 end;
@@ -2489,6 +2761,9 @@ type
     function MediaTypes: TMVCStringDictionary;
     function ResolvedRoot: string;
     function NormalizedPrefix: string;     // always ends with '/'
+    // StaticFilesHTTPFilter: []; FileServerBundle: its flags (fsfRanges: a Range
+    // header gets the answer of RangeMedia)
+    function Flags: TMVCFileServerFlags;
     procedure RunSanityCheckOnce;
   end;
 
@@ -2498,21 +2773,24 @@ type
     fMediaTypes: TMVCStringDictionary;
     fResolvedRoot: string;
     fNormalizedPrefix: string;
+    fFlags: TMVCFileServerFlags;
     fSanityCheckDone: Integer;
   public
-    constructor Create(const AOptions: TMVCStaticFilesOptions);
+    constructor Create(const AOptions: TMVCStaticFilesOptions; const AFlags: TMVCFileServerFlags);
     destructor Destroy; override;
     function Options: TMVCStaticFilesOptions;
     function MediaTypes: TMVCStringDictionary;
     function ResolvedRoot: string;
     function NormalizedPrefix: string;
+    function Flags: TMVCFileServerFlags;
     procedure RunSanityCheckOnce;
   end;
 
-constructor TStaticFilesState.Create(const AOptions: TMVCStaticFilesOptions);
+constructor TStaticFilesState.Create(const AOptions: TMVCStaticFilesOptions; const AFlags: TMVCFileServerFlags);
 begin
   inherited Create;
   fOptions := AOptions;
+  fFlags := AFlags;
   fSanityCheckDone := 0;
 
   fNormalizedPrefix := AOptions.Prefix.Trim;
@@ -2528,6 +2806,8 @@ begin
 
   fMediaTypes := TMVCStringDictionary.Create;
   AddDefaultStaticMediaTypes(fMediaTypes);
+  if fsfRanges in fFlags then
+    AddRangeMediaTypes(fMediaTypes);
   if Assigned(AOptions.MediaTypesCustomizer) then
     AOptions.MediaTypesCustomizer(fMediaTypes);
 end;
@@ -2558,6 +2838,11 @@ begin
   Result := fNormalizedPrefix;
 end;
 
+function TStaticFilesState.Flags: TMVCFileServerFlags;
+begin
+  Result := fFlags;
+end;
+
 procedure TStaticFilesState.RunSanityCheckOnce;
 begin
   if TInterlocked.CompareExchange(fSanityCheckDone, 1, 0) = 0 then
@@ -2572,30 +2857,35 @@ begin
 end;
 
 function StaticFilesSendFileWithMime(const AContext: TWebContext;
-  const AFileName: string;
-  const AMediaTypes: TMVCStringDictionary;
-  const ACharset: string): Boolean;
+  const AFileName: string; const AState: IStaticFilesState; const ACharset: string): Boolean;
 var
-  lContentType: string;
+  lContentType, lRangeHeader: string;
 begin
   Result := False;
   if not TFile.Exists(AFileName) then
     Exit;
-  if AMediaTypes.TryGetValue(LowerCase(ExtractFileExt(AFileName)), lContentType) then
+  if AState.MediaTypes.TryGetValue(LowerCase(ExtractFileExt(AFileName)), lContentType) then
     lContentType := BuildContentType(lContentType, ACharset)
   else
     lContentType := BuildContentType(TMVCMediaType.APPLICATION_OCTETSTREAM, '');
-  // Delegate to TMVCStaticContents.SendFile so If-Modified-Since /
-  // Last-Modified are honored (same as the classic middleware).
-  TMVCStaticContents.SendFile(AFileName, lContentType, AContext);
+  lRangeHeader := '';
+  if (fsfRanges in AState.Flags) and (AContext.Request.HTTPMethod in [httpGET, httpHEAD]) then
+    lRangeHeader := AContext.Request.Headers['Range'];
+  if lRangeHeader <> '' then
+    RangeMediaSendFile(AContext, AFileName, lContentType, lRangeHeader)
+  else
+    // Delegate to TMVCStaticContents.SendFile so If-Modified-Since /
+    // Last-Modified are honored (same as the classic middleware).
+    TMVCStaticContents.SendFile(AFileName, lContentType, AContext);
   Result := True;
 end;
 
-function StaticFiles(const AOptions: TMVCStaticFilesOptions): TMVCHTTPFilter;
+// the filter of StaticFilesHTTPFilter and of FileServerBundle, on its state
+function StaticFilesFilter(const AState: IStaticFilesState): TMVCHTTPFilter;
 var
   lState: IStaticFilesState;
 begin
-  lState := TStaticFilesState.Create(AOptions);
+  lState := AState;
   Result :=
     procedure (const AContext: TWebContext;
                const ANext: TMVCHTTPFilterNext)
@@ -2610,13 +2900,13 @@ begin
       lOpts := lState.Options;
 
       // Prefix match. Case-insensitive by default (Windows-friendly); strict
-      // when CaseSensitivePrefix=True. The trailing-/ tweak mirrors classic
+      // with sffCaseSensitivePrefix. The trailing-/ tweak mirrors classic
       // line 254-267: a folder request missing the trailing slash should still
       // match the prefix so we can issue the 301 below.
-      if not lPathInfo.StartsWith(lState.NormalizedPrefix, not lOpts.CaseSensitivePrefix) then
+      if not lPathInfo.StartsWith(lState.NormalizedPrefix, not (sffCaseSensitivePrefix in lOpts.Flags)) then
       begin
         if (not lPathInfo.EndsWith('/'))
-          and (lPathInfo + '/').StartsWith(lState.NormalizedPrefix, not lOpts.CaseSensitivePrefix) then
+          and (lPathInfo + '/').StartsWith(lState.NormalizedPrefix, not (sffCaseSensitivePrefix in lOpts.Flags)) then
           lPathInfo := lPathInfo + '/'
         else
         begin
@@ -2642,7 +2932,7 @@ begin
       // Compute filesystem path under the resolved root.
       lRelative := lPathInfo;
       if lRelative.StartsWith(lState.NormalizedPrefix,
-        not lOpts.CaseSensitivePrefix) then
+        not (sffCaseSensitivePrefix in lOpts.Flags)) then
         lRelative := lRelative.Remove(0, lState.NormalizedPrefix.Length);
       lRelative := lRelative.Replace('/', PathDelim, [rfReplaceAll]);
       if lRelative.StartsWith(PathDelim) then
@@ -2670,8 +2960,7 @@ begin
       end;
       if lIsStaticFile then
       begin
-        if StaticFilesSendFileWithMime(AContext, lFileName,
-          lState.MediaTypes, lOpts.Charset) then
+        if StaticFilesSendFileWithMime(AContext, lFileName, lState, lOpts.Charset) then
           Exit;
       end;
 
@@ -2688,25 +2977,37 @@ begin
         end;
         if lOpts.IndexDocument <> '' then
           if StaticFilesSendFileWithMime(AContext,
-            TPath.Combine(lFullPathInfo, lOpts.IndexDocument),
-            lState.MediaTypes, lOpts.Charset) then
+            TPath.Combine(lFullPathInfo, lOpts.IndexDocument), lState, lOpts.Charset) then
             Exit;
       end;
 
-      // SPA fallback: walk up to nearest existing directory and serve its
-      // index.html. Lets a single bundle serve every client-routed URL.
-      if lOpts.SPAWebAppSupport and (lOpts.IndexDocument <> '') then
+      // SPA fallback: a single bundle answers every client-routed URL with the
+      // index.html of the nearest existing folder. The router goes first: the
+      // routes of the application (an API next to the SPA) are never hidden by
+      // index.html, only a GET/HEAD the router has no route for (no ActionName)
+      // and answered with a 404 becomes the page.
+      if (lOpts.Mode = sfmSPA) and (lOpts.IndexDocument <> '')
+        and (AContext.Request.HTTPMethod in [httpGET, httpHEAD]) then
       begin
-        while (lFullPathInfo <> '') and (not TDirectory.Exists(lFullPathInfo)) do
-          lFullPathInfo := TDirectory.GetParent(lFullPathInfo);
-        if lFullPathInfo <> '' then
+        ANext();
+        if (AContext.ActionName = '') and (AContext.Response.StatusCode = HTTP_STATUS.NotFound) then
         begin
-          lFileName := TPath.GetFullPath(
-            TPath.Combine(lFullPathInfo, lOpts.IndexDocument));
-          if StaticFilesSendFileWithMime(AContext, lFileName,
-            lState.MediaTypes, lOpts.Charset) then
-            Exit;
+          while (lFullPathInfo <> '') and (not TDirectory.Exists(lFullPathInfo)) do
+            lFullPathInfo := TDirectory.GetParent(lFullPathInfo);
+          if lFullPathInfo <> '' then
+          begin
+            lFileName := TPath.GetFullPath(
+              TPath.Combine(lFullPathInfo, lOpts.IndexDocument));
+            if TFile.Exists(lFileName) then
+            begin
+              AContext.Response.StatusCode := HTTP_STATUS.OK;
+              AContext.Response.ReasonString := 'OK';
+              AContext.Response.Content := '';
+              StaticFilesSendFileWithMime(AContext, lFileName, lState, lOpts.Charset);
+            end;
+          end;
         end;
+        Exit;
       end;
 
       // No match — fall through to routing / handlers (will likely 404).
@@ -2714,58 +3015,131 @@ begin
     end;
 end;
 
-// --- OpenAPI / Swagger (HTTPFilter wrappers) -----------------------------
-
-function OpenAPI(AEngine: TMVCEngine; const AInfo: TMVCOpenAPIInfo;
-  const AURL: string): TMVCHTTPFilter;
+function StaticFilesHTTPFilter(const AOptions: TMVCStaticFilesOptions): TMVCHTTPFilter;
 var
-  lMW: IMVCMiddleware;
+  lState: IStaticFilesState;
 begin
-  // Build the middleware once; closure captures the interface so its lifetime
-  // follows the filter (engine shutdown).
-  lMW := TMVCOpenAPI3Middleware.Create(AEngine, AInfo, AURL);
+  lState := TStaticFilesState.Create(AOptions, []);
+  Result := StaticFilesFilter(lState);
+end;
+
+// --- FileServerBundle ----------------------------------------------------
+
+class function TMVCFileServerOptions.Default: TMVCFileServerOptions;
+begin
+  // the defaults of TMVCStaticFilesOptions, plus the ranges
+  Result.URLPrefix := '/static';
+  Result.DocumentRoot := '.\www';
+  Result.Mode := fsmFiles;
+  Result.DefaultDocument := 'index.html';
+  Result.Charset := '';
+  Result.Flags := [fsfRanges];
+  Result.MediaTypesCustomizer := nil;
+  Result.Rules := nil;
+end;
+
+function FileServerBundle(const AURLPrefix, ADocumentRoot: string;
+  const AMode: TMVCFileServerMode): IMVCFilterBundle;
+var
+  lOptions: TMVCFileServerOptions;
+begin
+  lOptions := TMVCFileServerOptions.Default;
+  lOptions.URLPrefix := AURLPrefix;
+  lOptions.DocumentRoot := ADocumentRoot;
+  lOptions.Mode := AMode;
+  Result := FileServerBundle(lOptions);
+end;
+
+function FileServerBundle(const AOptions: TMVCFileServerOptions): IMVCFilterBundle;
+var
+  lOptions: TMVCStaticFilesOptions;
+  lState: IStaticFilesState;
+begin
+  // one filter: the 206 of RangeMedia is how it sends a file asked with Range, so
+  // the root, the path checks, Rules and the MIME table of StaticFiles hold for both
+  lOptions.Prefix := AOptions.URLPrefix;
+  lOptions.RootFolder := AOptions.DocumentRoot;
+  lOptions.IndexDocument := AOptions.DefaultDocument;
+  lOptions.Charset := AOptions.Charset;
+  if AOptions.Mode = fsmSPA then
+    lOptions.Mode := sfmSPA
+  else
+    lOptions.Mode := sfmFiles;
+  if fsfCaseSensitivePrefix in AOptions.Flags then
+    lOptions.Flags := [sffCaseSensitivePrefix]
+  else
+    lOptions.Flags := [];
+  lOptions.MediaTypesCustomizer := AOptions.MediaTypesCustomizer;
+  lOptions.Rules := AOptions.Rules;
+  lState := TStaticFilesState.Create(lOptions, AOptions.Flags);
+  Result := TMVCFilterBundle.Create([StaticFilesFilter(lState)], []);
+end;
+
+// --- Sessions, RateLimit with options (HTTPFilters) -----------------------
+
+function SessionHTTPFilter(const AFactory: TMVCWebSessionFactory): TMVCHTTPFilter;
+var
+  lHolder: ISessionFactoryHolder;
+begin
+  lHolder := TSessionFactoryHolder.Create(AFactory);
   Result :=
     procedure (const AContext: TWebContext;
                const ANext: TMVCHTTPFilterNext)
-    var
-      lHandled: Boolean;
     begin
-      lHandled := False;
-      lMW.OnBeforeRouting(AContext, lHandled);
-      if lHandled then
-        Exit; // doc served, short-circuit
+      AContext.SetSessionFactory(lHolder.Factory);
       ANext();
     end;
 end;
 
-function Swagger(AEngine: TMVCEngine;
-  const AInfo: TMVCSwaggerInfo;
-  const AURL: string;
-  const AJWTDescription: string;
-  const AEnableBasicAuthentication: Boolean;
-  const AHost: string;
-  const ABasePath: string;
-  const APathFilter: string;
-  const ATransferProtocolSchemes: TMVCTransferProtocolSchemes;
-  const AEnableBearerAuthentication: Boolean;
-  const ASpecVersion: TMVCSwaggerSpecVersion): TMVCHTTPFilter;
-var
-  lMW: IMVCMiddleware;
+function MemorySessionHTTPFilter(const ATimeoutInMinutes: Integer;
+  const AFlags: TMVCSessionCookieFlags): TMVCHTTPFilter;
 begin
-  lMW := TMVCSwaggerMiddleware.Create(AEngine, AInfo, AURL, AJWTDescription,
-    AEnableBasicAuthentication, AHost, ABasePath, APathFilter,
-    ATransferProtocolSchemes, AEnableBearerAuthentication, ASpecVersion);
+  Result := SessionHTTPFilter(TMVCWebSessionMemoryFactory.Create(scfHttpOnly in AFlags, ATimeoutInMinutes, scfSecure in AFlags));
+end;
+
+function FileSessionHTTPFilter(const ATimeoutInMinutes: Integer;
+  const ASessionFolder: string;
+  const AFlags: TMVCSessionCookieFlags): TMVCHTTPFilter;
+begin
+  Result := SessionHTTPFilter(TMVCWebSessionFileFactory.Create(scfHttpOnly in AFlags, ATimeoutInMinutes, ASessionFolder, scfSecure in AFlags));
+end;
+
+class function TMVCRateLimitOptions.Default: TMVCRateLimitOptions;
+begin
+  // every field: a record result may be the caller's variable, with what it held
+  Result.MaxRequests := 60;
+  Result.WindowSeconds := 60;
+  Result.KeyType := rlkIPAddress;
+  Result.KeyExtractor := nil;
+  Result.APIKeyHeaderName := '';
+  Result.HeaderPrefix := '';
+  Result.ExcludedPaths := nil;
+  Result.OnExceeded := nil;
+  Result.Storage := nil;
+end;
+
+function RateLimitHTTPFilter(const AOptions: TMVCRateLimitOptions): TMVCHTTPFilter;
+var
+  lOptions: TMVCRateLimitOptions;
+  I: Integer;
+begin
+  lOptions := AOptions;
+  if not Assigned(lOptions.Storage) then
+    lOptions.Storage := TMVCInMemoryRateLimitStorage.Create(rlsFixedWindow);
+  if lOptions.APIKeyHeaderName = '' then
+    lOptions.APIKeyHeaderName := 'X-API-Key';
+  if lOptions.HeaderPrefix = '' then
+    lOptions.HeaderPrefix := 'X-RateLimit-';
+  // a copy in lower case: the array of the caller is not touched
+  lOptions.ExcludedPaths := nil;
+  SetLength(lOptions.ExcludedPaths, Length(AOptions.ExcludedPaths));
+  for I := 0 to High(AOptions.ExcludedPaths) do
+    lOptions.ExcludedPaths[I] := AOptions.ExcludedPaths[I].ToLower;
   Result :=
-    procedure (const AContext: TWebContext;
-               const ANext: TMVCHTTPFilterNext)
-    var
-      lHandled: Boolean;
+    procedure(const AContext: TWebContext; const ANext: TMVCHTTPFilterNext)
     begin
-      lHandled := False;
-      lMW.OnBeforeRouting(AContext, lHandled);
-      if lHandled then
-        Exit;
-      ANext();
+      if not MVCRateLimitExceeded(AContext, lOptions) then
+        ANext(); // otherwise the 429 is written
     end;
 end;
 

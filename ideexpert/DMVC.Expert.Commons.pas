@@ -76,8 +76,8 @@ type
       // Default False — pre-3.5 controller-based output is unchanged.
       program_minimal_api = 'program.minimal_api';
       // API documentation (OpenAPI 3) + Swagger UI under /swagger.
-      // Controller projects: TMVCSwaggerMiddleware with ssvOpenAPI3.
-      // Minimal API projects: the native OpenAPI() HTTP filter.
+      // Controller projects: the SwaggerHTTPFilter() HTTP filter with ssvOpenAPI3.
+      // Minimal API projects: the native OpenAPIHTTPFilter() HTTP filter.
       program_openapi = 'program.openapi';
       // AGENTS.md / CLAUDE.md / GEMINI.md + delphi-ai-skills in .claude\skills
       // (downloaded when the project is created). Default False.

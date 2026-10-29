@@ -16,7 +16,7 @@ program minimal_api_webapp;
 //    * [MVCFromContentField]       -> form-urlencoded binding into a record
 //    * Ctx.Request.IsHTMX          -> HTMX-aware layout branching
 //    * Ctx.Session                 -> cookie session via session middleware
-//    * RequireLogin filter         -> Express-style auth filter recipe
+//    * RequireLoginEndpointFilter  -> Express-style auth filter recipe
 //
 //  Counterpart to samples/htmx_website_with_templatepro (which uses the
 //  classic controller surface). Same templates, same HTMX behavior, no
@@ -69,7 +69,7 @@ begin
     lEngine.SetViewEngine(TMVCTemplateProViewEngine);
 
     // Wire the lambda routes (WebRoot + WebPrefix groups). Session is added
-    // inside RegisterRoutes as a group-level filter via MemorySession(...),
+    // inside RegisterRoutes as a group-level filter via MemorySessionEndpointFilter(...),
     // no classic IMVCMiddleware involved.
     RegisterRoutes(lEngine);
 

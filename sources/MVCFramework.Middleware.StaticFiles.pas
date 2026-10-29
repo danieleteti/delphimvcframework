@@ -27,11 +27,14 @@
 
 unit MVCFramework.Middleware.StaticFiles;
 
+{$WARN SYMBOL_DEPRECATED OFF} // the class is deprecated for its users, not inside its own unit
+
 interface
 
 uses
   MVCFramework,
   MVCFramework.Commons,
+  MVCFramework.Filters,
   System.Generics.Collections;
 
 type
@@ -54,8 +57,9 @@ type
 
   end;
 
-  TMVCStaticFileRulesProc = reference to procedure(const Context: TWebContext; var PathInfo: String; var Handled: Boolean);
-  TMVCStaticFileMediaTypesCustomizer = reference to procedure(const MediaTypes: TMVCStringDictionary);
+  // moved to MVCFramework.Filters: the aliases keep the code that uses this unit compiling
+  TMVCStaticFileRulesProc = MVCFramework.Filters.TMVCStaticFileRulesProc;
+  TMVCStaticFileMediaTypesCustomizer = MVCFramework.Filters.TMVCStaticFileMediaTypesCustomizer;
   TMVCStaticFilesMiddleware = class(TInterfacedObject, IMVCMiddleware)
   private
     fSanityCheckOK: Boolean;
@@ -90,7 +94,7 @@ type
       const AHandled: Boolean);
 
     procedure OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
-  end;
+  end deprecated 'Use the StaticFiles HTTP filter (MVCFramework.Filters): AEngine.Use(StaticFilesHTTPFilter(...))';
 
   function UseStaticFilesMiddleware(
       const AStaticFilesPath: string = TMVCStaticFilesDefaults.STATIC_FILES_PATH;

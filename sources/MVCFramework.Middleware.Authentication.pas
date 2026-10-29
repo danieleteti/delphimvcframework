@@ -26,16 +26,17 @@ unit MVCFramework.Middleware.Authentication;
 
 {$I dmvcframework.inc}
 
+{$WARN SYMBOL_DEPRECATED OFF} // the classes are deprecated for their users, not inside their own unit
+
 interface
 
 uses
   System.SysUtils,
-  System.StrUtils,
   System.Generics.Collections,
-  System.JSON,
   MVCFramework,
   MVCFramework.Commons,
-  MVCFramework.Serializer.Commons;
+  MVCFramework.Serializer.Commons,
+  MVCFramework.Filters.Authentication.Internal;
 
 type
 
@@ -67,12 +68,11 @@ type
       const AAuthenticationHandler: IMVCAuthenticationHandler;
       const ARealm: string = 'DelphiMVCFramework REALM'
       ); virtual;
-  end;
+  end deprecated 'Use the Basic authentication filter bundle (MVCFramework.Filters.Authentication): AEngine.Use(BasicAuthenticationBundle(AHandler))';
 
   TMVCCustomAuthenticationMiddleware = class(TInterfacedObject, IMVCMiddleware)
   private
-    FAuthenticationHandler: IMVCAuthenticationHandler;
-    FLoginUrl: string;
+    fCore: TMVCCustomAuthenticationCore;
   protected
     procedure OnBeforeRouting(
       AContext: TWebContext;
@@ -104,7 +104,7 @@ type
       const AAuthenticationHandler: IMVCAuthenticationHandler;
       const ALoginUrl: string = '/system/users/logged'
       ); virtual;
-  end;
+  end deprecated 'Use the custom authentication filter bundle (MVCFramework.Filters.Authentication): AEngine.Use(CustomAuthenticationBundle(...)), after a session HTTP filter';
 
 implementation
 
@@ -284,101 +284,20 @@ constructor TMVCCustomAuthenticationMiddleware.Create(
   const ALoginUrl: string);
 begin
   inherited Create;
-  FAuthenticationHandler := AAuthenticationHandler;
-  FLoginUrl := ALoginUrl.ToLower;
+  fCore := TMVCCustomAuthenticationCore.Create(AAuthenticationHandler, ALoginUrl);
 end;
 
 procedure TMVCCustomAuthenticationMiddleware.DoLogin(
   AContext: TWebContext;
   var AHandled: Boolean);
-var
-  Jo: TJSONObject;
-  UserName, Password: string;
-  RolesList: TList<string>;
-  SessionPair: TPair<string, string>;
-  SessionData: TSessionData;
-  IsValid: Boolean;
 begin
-  AContext.SessionStop(False);
-  AContext.LoggedUser.Clear;
-  if not AContext.Request.HasBody then
-  begin
-    AHandled := True;
-    AContext.Response.StatusCode := HTTP_STATUS.BadRequest;
-    AContext.Response.ContentType := TMVCMediaType.APPLICATION_JSON;
-    AContext.Response.Content :=
-      '{"status":"error", "message":"username and password are mandatory in the body request as json object"}';
-    Exit;
-  end;
-
-  Jo := TJSONObject.ParseJSONValue(AContext.Request.Body) as TJSONObject;
-  try
-    if not Assigned(Jo) then
-    begin
-      AHandled := True;
-      SendResponse(AContext, AHandled, HTTP_STATUS.BadRequest);
-      Exit;
-    end;
-
-    UserName := EmptyStr;
-    if (Jo.Get('username') <> nil) then
-      UserName := Jo.Get('username').JsonValue.Value;
-
-    Password := EmptyStr;
-    if (Jo.Get('password') <> nil) then
-      Password := Jo.Get('password').JsonValue.Value;
-
-    if UserName.IsEmpty or Password.IsEmpty then
-    begin
-      AHandled := True;
-      SendResponse(AContext, AHandled);
-      Exit;
-    end;
-
-    RolesList := TList<string>.Create;
-    try
-      SessionData := TSessionData.Create;
-      try
-        IsValid := False;
-        FAuthenticationHandler.OnAuthentication(AContext, UserName, Password, RolesList, IsValid, SessionData);
-        if not IsValid then
-        begin
-          SendResponse(AContext, AHandled);
-          Exit;
-        end;
-
-        AContext.LoggedUser.Roles.AddRange(RolesList);
-        AContext.LoggedUser.UserName := UserName;
-        AContext.LoggedUser.LoggedSince := Now;
-        AContext.LoggedUser.Realm := 'custom';
-        AContext.LoggedUser.SaveToSession(AContext.Session);
-
-        for SessionPair in SessionData do
-          AContext.Session[SessionPair.Key] := SessionPair.Value;
-
-        AContext.Response.StatusCode := HTTP_STATUS.OK;
-        AContext.Response.CustomHeaders.Values['X-LOGOUT-URL'] := FLoginUrl;
-        AContext.Response.CustomHeaders.Values['X-LOGOUT-METHOD'] := 'DELETE';
-        AContext.Response.ContentType := TMVCMediaType.APPLICATION_JSON;
-        AContext.Response.Content := '{"status":"OK"}';
-
-        AHandled := True;
-      finally
-        SessionData.Free;
-      end;
-    finally
-      RolesList.Free;
-    end;
-  finally
-    Jo.Free;
-  end;
+  fCore.DoLogin(AContext, AHandled);
 end;
 
 procedure TMVCCustomAuthenticationMiddleware.DoLogout(
   AContext: TWebContext; var AHandled: Boolean);
 begin
-  AContext.SessionStop(False);
-  SendResponse(AContext, AHandled, HTTP_STATUS.OK);
+  fCore.DoLogout(AContext, AHandled);
 end;
 
 procedure TMVCCustomAuthenticationMiddleware.OnAfterControllerAction(
@@ -398,84 +317,20 @@ procedure TMVCCustomAuthenticationMiddleware.OnBeforeControllerAction(
   AContext: TWebContext;
   const AControllerQualifiedClassName, AActionName: string;
   var AHandled: Boolean);
-var
-  IsValid: Boolean;
-  IsAuthorized: Boolean;
-  AuthRequired: Boolean;
 begin
-  { `var`, not `out`: an unassigned AuthRequired would be stack garbage, and
-    False there skips authentication altogether. }
-  AuthRequired := True;
-  FAuthenticationHandler.OnRequest(AContext, AControllerQualifiedClassName, AActionName, AuthRequired);
-  if not AuthRequired then
-  begin
-    AHandled := False;
-    Exit;
-  end;
-
-  AContext.LoggedUser.LoadFromSession(AContext.Session);
-  IsValid := AContext.LoggedUser.IsValid;
-  if not IsValid then
-  begin
-    AContext.SessionStop(False);
-    SendResponse(AContext, AHandled);
-    Exit;
-  end;
-
-  IsAuthorized := False;
-  FAuthenticationHandler.OnAuthorization(AContext, AContext.LoggedUser.Roles, AControllerQualifiedClassName,
-    AActionName, IsAuthorized);
-  if IsAuthorized then
-    AHandled := False
-  else
-  begin
-    if IsValid then
-      SendResponse(AContext, AHandled, HTTP_STATUS.Forbidden)
-    else
-      SendResponse(AContext, AHandled, HTTP_STATUS.Unauthorized);
-  end;
+  fCore.Check(AContext, AControllerQualifiedClassName, AActionName, AHandled);
 end;
 
 procedure TMVCCustomAuthenticationMiddleware.OnBeforeRouting(
   AContext: TWebContext; var AHandled: Boolean);
 begin
-  if (AContext.Request.PathInfo.ToLower = FLoginUrl) then
-  begin
-    AHandled := False;
-
-    if (AContext.Request.HTTPMethod = httpPOST) and
-      (AContext.Request.ContentType.StartsWith(TMVCMediaType.APPLICATION_JSON)) then
-      DoLogin(AContext, AHandled);
-
-    if (AContext.Request.HTTPMethod = httpDELETE) then
-      DoLogout(AContext, AHandled);
-  end;
+  fCore.BeforeRouting(AContext, AHandled);
 end;
 
 procedure TMVCCustomAuthenticationMiddleware.SendResponse(
   AContext: TWebContext; var AHandled: Boolean; AHttpStatus: Word);
-var
-  IsPositive: Boolean;
-  Msg: string;
 begin
-  AContext.LoggedUser.Clear;
-  AContext.Response.CustomHeaders.Values['X-LOGIN-URL'] := FLoginUrl;
-  AContext.Response.CustomHeaders.Values['X-LOGIN-METHOD'] := 'POST';
-  AContext.Response.StatusCode := AHttpStatus;
-  if AContext.Request.ClientPreferHTML then
-  begin
-    AContext.Response.ContentType := TMVCMediaType.TEXT_HTML;
-    AContext.Response.Content :=
-      Format(CONTENT_HTML_FORMAT, [IntToStr(AHttpStatus), AContext.Config[TMVCConfigKey.ServerName]]);
-  end
-  else
-  begin
-    IsPositive := (AHttpStatus div 100) = 2;
-    Msg := IfThen(IsPositive, 'OK', 'KO');
-    AContext.Response.ContentType := TMVCMediaType.APPLICATION_JSON;
-    AContext.Response.Content := '{"status":"' + Msg + '", "message":"' + IntToStr(AHttpStatus) + '"}';
-  end;
-  AHandled := True;
+  fCore.SendResponse(AContext, AHandled, AHttpStatus);
 end;
 
 end.

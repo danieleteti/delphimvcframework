@@ -11,7 +11,7 @@
 unit DMVC.Expert.ProjectItems;
 
 // What the Project Manager "DMVCFramework" menu adds to an existing project:
-// the new units and views, and where a controller or a route group is wired in.
+// the new units and views, and where a controller, a route group or a filter is wired in.
 // No ToolsAPI here: the menu applies the edits to the IDE buffer, the template
 // test suite applies them to generated projects and compiles the result.
 
@@ -94,6 +94,9 @@ function DatabaseEnvLines(const ADatabase: TDMVCDatabase): string;
 function NewWebController(const AName, AResource, AProgramName: string): TDMVCNewUnit;
 /// Tools.<Name>U with T<Name>Tools: an MCP tool provider that registers itself
 function NewMCPToolProvider(const AName: string): TDMVCNewUnit;
+/// HTTPFilters.<Name>U with <Name>HTTPFilter, or EndpointFilters.<Name>U with <Name>EndpointFilter
+/// (TypeName). ACall is what PlanFilterRegistration adds, e.g. 'Use(TimingHTTPFilter())'.
+function NewFilter(const AName: string; AEndpoint: Boolean; out ACall: string): TDMVCNewUnit;
 /// ACallFmt is the argument PlanRoutesRegistration expects
 function NewRoutesUnit(const AName, AResource, AModelClass, AModelUnit: string; ACrud, AOpenAPI: Boolean;
   out ACallFmt: string): TDMVCNewUnit;
@@ -113,6 +116,10 @@ function PlanControllerRegistration(const ASource, AUnitName, AClassName: string
 /// ConfigureRoutes group parameter, e.g. 'MapOrdersRoutes(%s.Prefix(''/api/orders''))'.
 function PlanRoutesRegistration(const ASource, AUnitName, ACallFmt: string;
   out AEdits: TDMVCCodeEdits): Boolean;
+
+/// <engine>.ACall at the end of ConfigureEngine or, in a unit that creates the TMVCEngine and does not
+/// call ConfigureEngine (a WebModule), at the end of the routine that creates it
+function PlanFilterRegistration(const ASource, AUnitName, ACall: string; out AEdits: TDMVCCodeEdits): Boolean;
 
 /// RegisterType(AClassName, AInterfaceName, SingletonPerRequest) in RegisterServices:
 /// before the scaffold's "// Register other services here", or after the last
@@ -191,7 +198,7 @@ begin
   if AMinimalAPI then
     Result := ASource.Contains('MVCFramework.OpenAPI3')
   else
-    Result := ASource.Contains('MVCFramework.Middleware.Swagger');
+    Result := ASource.Contains('MVCFramework.Swagger.Commons'); // the SwaggerHTTPFilter() HTTP filter needs it for TMVCSwaggerInfo
 end;
 
 // what the OpenAPI metadata of a new item needs
@@ -227,6 +234,24 @@ begin
   finally
     lConfig.Free;
   end;
+end;
+
+function NewFilter(const AName: string; AEndpoint: Boolean; out ACall: string): TDMVCNewUnit;
+const
+  KIND: array [Boolean] of string = ('HTTP', 'Endpoint');
+var
+  lConfig: TJsonObject;
+begin
+  lConfig := TJsonObject.Create;
+  try
+    lConfig.S['function_name'] := AName + KIND[AEndpoint] + 'Filter';
+    lConfig.S['metric_name'] := AName.ToLower; // Server-Timing metric of the HTTP filter
+    Result := RenderUnit('add_filter_' + KIND[AEndpoint].ToLower + '.pas.tpro',
+      KIND[AEndpoint] + 'Filters.' + AName + 'U', lConfig.S['function_name'], lConfig);
+  finally
+    lConfig.Free;
+  end;
+  ACall := 'Use(' + Result.TypeName + '())';
 end;
 
 function ServiceInterfaceName(const AName: string): string;
@@ -566,6 +591,41 @@ begin
   if not PlanUsesInsertion(ASource, AUnitName, AEdits) then
     Exit(False);
   AddEdit(AEdits, lBodyStart + lEnd.Index - 1, '  ' + Format(ACallFmt, [lGroupParam]) + ';' + lNL);
+  Result := True;
+end;
+
+function PlanFilterRegistration(const ASource, AUnitName, ACall: string; out AEdits: TDMVCCodeEdits): Boolean;
+var
+  lNL: string;
+  lHeaders: TMatchCollection;
+  lAnchor, lEnd: TMatch;
+  lBodyStart: Integer;
+begin
+  AEdits := [];
+  lNL := LineBreakOf(ASource);
+  if TRegEx.IsMatch(ASource, '(?i)' + TRegEx.Escape(ACall)) then
+    Exit(False); // already registered: leave the code alone
+  // the last header is the implementation; the first one may be the interface declaration
+  lHeaders := TRegEx.Matches(ASource,
+    '(?im)^procedure\s+ConfigureEngine\s*\(\s*(const\s+|var\s+)?(?<engine>\w+)\s*:\s*TMVCEngine\b');
+  if lHeaders.Count > 0 then
+    lAnchor := lHeaders[lHeaders.Count - 1]
+  else if TRegEx.IsMatch(ASource, '(?i)\bConfigureEngine\s*\(') then
+    Exit(False) // creates the engine and hands it to ConfigureEngine: the filters go there
+  else
+  begin
+    lAnchor := TRegEx.Match(ASource, '(?im)^[ \t]*(?<engine>\w+)\s*:=\s*TMVCEngine\.Create\b');
+    if not lAnchor.Success then
+      Exit(False);
+  end;
+  lBodyStart := lAnchor.Index - 1 + lAnchor.Length;
+  // a routine's own "end;" is the first one at column 0
+  lEnd := TRegEx.Match(ASource.Substring(lBodyStart), '(?m)^end;');
+  if not lEnd.Success then
+    Exit(False);
+  if not PlanUsesInsertion(ASource, AUnitName, AEdits) then
+    Exit(False);
+  AddEdit(AEdits, lBodyStart + lEnd.Index - 1, '  ' + lAnchor.Groups['engine'].Value + '.' + ACall + ';' + lNL);
   Result := True;
 end;
 

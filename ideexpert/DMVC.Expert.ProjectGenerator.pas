@@ -577,7 +577,7 @@ begin
     AConfig.B[TConfigKey.program_openapi] := False;
 
   // API documentation: controller projects use the Swagger middleware with
-  // OpenAPI 3 selected, Minimal API projects the native OpenAPI() filter
+  // OpenAPI 3 selected, Minimal API projects the native OpenAPIHTTPFilter() filter
   // (the Swagger middleware does not see lambda routes).
   AConfig.B['program.openapi.swagger'] := AConfig.B[TConfigKey.program_openapi] and
     not AConfig.B[TConfigKey.program_minimal_api];
@@ -594,6 +594,9 @@ begin
   AConfig.S['program.jwt.secret'] := NewJWTSecret;
   // The Minimal API admin group without JWT is guarded by a static bearer token,
   // generated the same way: fail-closed, the server does not start without it.
+  // The Minimal API templates sign the JWT with JWT_SECRET: RS256 applies to controller projects only.
+  AConfig.B[TConfigKey.webmodule_middleware_jwt_asymmetric] :=
+    AConfig.B[TConfigKey.webmodule_middleware_jwt_asymmetric] and not AConfig.B[TConfigKey.program_minimal_api];
   AConfig.B['program.minimal_api.admin_token'] := AConfig.B[TConfigKey.program_minimal_api] and
     not AConfig.B['program.minimal_api.web'] and not AConfig.B[TConfigKey.webmodule_middleware_jwt];
   AConfig.S['program.admin.token'] := NewJWTSecret;
@@ -982,7 +985,7 @@ begin
       SaveFile('bin' + PathDelim + 'templates' + PathDelim + 'error.' + LTemplateExt,
         ViewText('views\error_view.tpro'));
 
-      // Minimal API web app only: the login form and the page behind RequireLogin
+      // Minimal API web app only: the login form and the page behind RequireLoginEndpointFilter
       if AConfig.B['program.minimal_api.web'] then
       begin
         TDirectory.CreateDirectory(TPath.Combine(LTemplatesPath, 'pages'));

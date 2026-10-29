@@ -45,6 +45,8 @@ unit MVCFramework.Middleware.OpenAPI3;
 
 {$I dmvcframework.inc}
 
+{$WARN SYMBOL_DEPRECATED OFF} // the class is deprecated for its users, not inside its own unit
+
 interface
 
 uses
@@ -79,15 +81,14 @@ type
     // Minimal API routes) are discovered automatically per-request — do not
     // add them here.
     procedure AddSource(const ASource: IMVCOpenAPISource);
-  end;
+  end deprecated 'Use the OpenAPI HTTP filter (MVCFramework.Filters.OpenAPI): AEngine.Use(OpenAPIHTTPFilter(...))';
 
 implementation
 
 uses
   System.SysUtils,
   System.Classes,
-  JsonDataObjects,
-  MVCFramework.MinimalAPI;
+  MVCFramework.Filters.OpenAPI;                // OpenAPIDocumentJSON
 
 { TMVCOpenAPI3Middleware }
 
@@ -125,44 +126,8 @@ begin
 end;
 
 function TMVCOpenAPI3Middleware.BuildDocumentJSON: string;
-var
-  lBuilder: TMVCOpenAPIDocumentBuilder;
-  lMW: IMVCMiddleware;
-  lMinMW: TMVCMinimalAPIMiddleware;
-  lSrc: IMVCOpenAPISource;
-  lDoc: TJsonObject;
 begin
-  lBuilder := TMVCOpenAPIDocumentBuilder.Create(fInfo);
-  try
-    // Auto-discover minimal API source — fresh per request so newly added
-    // routes show up immediately.
-    for lMW in fEngine.Middlewares do
-      if lMW is TMVCMinimalAPIMiddleware then
-      begin
-        lMinMW := TMVCMinimalAPIMiddleware(lMW);
-        lBuilder.AddSource(TMVCMinimalAPIOpenAPISource.Create(lMinMW.Registry));
-        Break;
-      end;
-
-    // Auto-discover classic-controllers source — emits an operation for every
-    // [MVCPath] + [MVCHTTPMethod]-decorated action across all registered
-    // controllers on the engine.
-    if fEngine.Controllers.Count > 0 then
-      lBuilder.AddSource(TMVCControllerOpenAPISource.Create(fEngine));
-
-    // Plus any caller-registered sources.
-    for lSrc in fExtraSources do
-      lBuilder.AddSource(lSrc);
-
-    lDoc := lBuilder.Build;
-    try
-      Result := lDoc.ToJSON(False);
-    finally
-      lDoc.Free;
-    end;
-  finally
-    lBuilder.Free;
-  end;
+  Result := OpenAPIDocumentJSON(fEngine, fInfo, fExtraSources.ToArray);
 end;
 
 procedure TMVCOpenAPI3Middleware.OnBeforeRouting(AContext: TWebContext;

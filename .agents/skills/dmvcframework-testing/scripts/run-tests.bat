@@ -5,7 +5,7 @@ setlocal EnableDelayedExpansion
 :: DMVCFramework — Run DUnitX Test Suite
 ::
 :: Builds the test project (always Debug) then runs the DUnitX
-:: console runner. Outputs a JUnit-compatible XML report to
+:: console runner. Outputs an NUnit XML report to
 :: <project-dir>\TestResults\results.xml for CI integration.
 ::
 :: Usage:
@@ -80,7 +80,7 @@ echo.
 echo [2/2] Running tests...
 echo.
 
-"!EXE!" --format:progress --format:xml --output:"!RESULTS_DIR!\results.xml"
+"!EXE!" --xmlfile:"!RESULTS_DIR!\results.xml"
 set "TEST_EXIT=!ERRORLEVEL!"
 
 echo.

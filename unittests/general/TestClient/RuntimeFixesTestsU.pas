@@ -129,12 +129,20 @@ type
     [MVCPath('/raw/($P)')]
     [MVCHTTPMethod([httpGET])]
     function RawPath(P: string): string;
+    [MVCPath('/seg/($P)')]
+    [MVCHTTPMethod([httpGET])]
+    function Segment(P: string): string;
     [MVCPath('/empty/($Code)')]
     [MVCHTTPMethod([httpGET, httpPOST])]
     function Empty(Code: Integer): IMVCResponse;
     [MVCPath('/emptyraw/($Code)')]
     [MVCHTTPMethod([httpGET, httpPOST])]
     procedure EmptyRaw(Code: Integer);
+    // no MVCHTTPMethod: every verb, HEAD included. The two ways an action writes its body as it goes
+    [MVCPath('/streamed')]
+    function Streamed: TMVCStreamedResponse;
+    [MVCPath('/ssewriter')]
+    procedure SSEWriter;
   end;
 
   TRFRawResponse = record
@@ -148,10 +156,14 @@ type
   TRuntimeFixesTests = class
   private
     fIndy: IMVCServer;
+    fIndyEngine: TMVCEngine; // the servers do not own their engines
+    fHttpSysEngine: TMVCEngine;
     fWebBroker: IMVCServer;
     fHttpSys: IMVCServer;
     function Raw(const APort: Integer; const ARequestLine: string; const AHeaders: array of string;
       const ABody: string = ''): TRFRawResponse;
+    function BytesAfterTheHeaders(const APort: Integer; const ARequestLine: string;
+      out AStatusLine: string): Integer;
   public
     [SetupFixture]
     procedure SetupFixture;
@@ -226,6 +238,11 @@ type
     [TestCase('IndyDirect', '8921')]
     [TestCase('WebBroker', '8922')]
     [TestCase('HttpSys', '8923')]
+    procedure AHeadOnAStreamedAnswerGetsTheHeadersOnly(const APort: Integer);
+    [Test]
+    [TestCase('IndyDirect', '8921')]
+    [TestCase('WebBroker', '8922')]
+    [TestCase('HttpSys', '8923')]
     procedure StatusLineNeverCarriesTheRequestText(const APort: Integer);
     [Test]
     [TestCase('IndyDirect', '8921')]
@@ -275,6 +292,7 @@ type
   TRuntimeFixesSingleHostTests = class
   private
     fServer: IMVCServer;
+    fEngine: TMVCEngine;
     fViewPath: string;
   public
     [SetupFixture]
@@ -319,7 +337,9 @@ uses
   MVCFramework.Logger.ColorConsoleRenderer,
   MVCFramework.MinimalAPI,
   MVCFramework.Filters,
+  MVCFramework.Filters.Authentication,
   MVCFramework.JWT,
+  MVCFramework.SSE.Writer,
   MVCFramework.Server.Factory;
 
 var
@@ -332,6 +352,14 @@ const
 procedure ConfigureRFEngine(const AEngine: TMVCEngine);
 begin
   AEngine.AddController(TRuntimeFixesController);
+  // the twin of TRuntimeFixesController.Segment
+  AEngine.Root.MapGet<TWebContext>('/rfmin/seg/($P)',
+    function(AContext: TWebContext): IMVCResponse
+    begin
+      AContext.Response.ContentType := TMVCMediaType.TEXT_PLAIN;
+      AContext.Response.Content := AContext.Request.Params['P'];
+      Result := nil; // the answer is written
+    end);
 end;
 
 procedure ConfigureRFConfig(AConfig: TMVCConfig);
@@ -417,6 +445,11 @@ begin
   Result := Context.Request.RawPathInfo;
 end;
 
+function TRuntimeFixesController.Segment(P: string): string;
+begin
+  Result := P;
+end;
+
 function TRuntimeFixesController.Empty(Code: Integer): IMVCResponse;
 begin
   Result := MVCFramework.Status(Code); // a status, no body
@@ -427,11 +460,41 @@ begin
   Context.Response.StatusCode := Code; // the MCP notification shape: a status and nothing else
 end;
 
+function TRuntimeFixesController.Streamed: TMVCStreamedResponse;
+var
+  lLeft: Integer;
+begin
+  lLeft := 3;
+  Result := StreamItems<TRFTimes>(
+    function(out AItem: TRFTimes): Boolean
+    begin
+      Result := lLeft > 0;
+      if Result then
+      begin
+        Dec(lLeft);
+        AItem := NewTimes;
+      end;
+    end);
+end;
+
+procedure TRuntimeFixesController.SSEWriter;
+var
+  lSSE: TMVCSSEWriter;
+begin
+  lSSE := TMVCSSEWriter.Create(Context); // Indy hosts only: HTTP.sys answers 500
+  try
+    lSSE.Send('tick', 'one');
+  finally
+    lSSE.Free;
+  end;
+end;
+
 { TRuntimeFixesTests }
 
 procedure TRuntimeFixesTests.SetupFixture;
 begin
-  fIndy := TMVCServerFactory.CreateIndyDirect(NewRFEngine);
+  fIndyEngine := NewRFEngine;
+  fIndy := TMVCServerFactory.CreateIndyDirect(fIndyEngine);
   fIndy.Listen(RF_INDY_PORT, 'localhost');
   fWebBroker := TMVCServerFactory.CreateWebBroker(
     procedure(AConfig: TMVCConfig)
@@ -443,7 +506,8 @@ begin
       ConfigureRFEngine(AEngine);
     end);
   fWebBroker.Listen(RF_WEBBROKER_PORT, 'localhost');
-  fHttpSys := TMVCServerFactory.CreateHttpSys(NewRFEngine);
+  fHttpSysEngine := NewRFEngine;
+  fHttpSys := TMVCServerFactory.CreateHttpSys(fHttpSysEngine);
   fHttpSys.Listen(RF_HTTPSYS_PORT, 'localhost');
 end;
 
@@ -455,6 +519,8 @@ begin
   fWebBroker := nil;
   fHttpSys.Stop;
   fHttpSys := nil;
+  FreeAndNil(fIndyEngine);
+  FreeAndNil(fHttpSysEngine);
 end;
 
 function TRuntimeFixesTests.Raw(const APort: Integer; const ARequestLine: string;
@@ -506,6 +572,37 @@ begin
       // the server closed the connection: what was read is the body
     end;
     Result.Body := IndyTextEncoding_UTF8.GetString(lBody);
+  finally
+    lClient.Free;
+  end;
+end;
+
+// the status line, then what follows the headers within a second: a body, or the next answer on the connection
+function TRuntimeFixesTests.BytesAfterTheHeaders(const APort: Integer; const ARequestLine: string;
+  out AStatusLine: string): Integer;
+var
+  lClient: TIdTCPClient;
+begin
+  lClient := TIdTCPClient.Create(nil);
+  try
+    lClient.Host := '127.0.0.1';
+    lClient.Port := APort;
+    lClient.ConnectTimeout := 3000;
+    lClient.ReadTimeout := 5000;
+    lClient.Connect;
+    lClient.IOHandler.WriteLn(ARequestLine);
+    lClient.IOHandler.WriteLn('Host: localhost');
+    lClient.IOHandler.WriteLn('Connection: close');
+    lClient.IOHandler.WriteLn('');
+    AStatusLine := lClient.IOHandler.ReadLn;
+    while lClient.IOHandler.ReadLn <> '' do
+      ;
+    try
+      lClient.IOHandler.CheckForDataOnSource(1000);
+    except
+      // closed by the server: what was read is what came
+    end;
+    Result := lClient.IOHandler.InputBuffer.Size;
   finally
     lClient.Free;
   end;
@@ -734,6 +831,21 @@ begin
   Assert.AreEqual('/rf/raw/a%41b', lResp.Body);
 end;
 
+procedure TRuntimeFixesTests.AHeadOnAStreamedAnswerGetsTheHeadersOnly(const APort: Integer);
+var
+  lPath, lGetStatus, lHeadStatus: string;
+  lRest: Integer;
+begin
+  // StreamItems (Indy Direct, HTTP.sys; WebBroker answers 501) and the SSE writer (the Indy hosts; HTTP.sys 500)
+  for lPath in ['/rf/streamed', '/rf/ssewriter'] do
+  begin
+    BytesAfterTheHeaders(APort, 'GET ' + lPath + ' HTTP/1.1', lGetStatus);
+    lRest := BytesAfterTheHeaders(APort, 'HEAD ' + lPath + ' HTTP/1.1', lHeadStatus);
+    Assert.AreEqual(lGetStatus, lHeadStatus, lPath + ': the status of the GET');
+    Assert.AreEqual(0, lRest, lPath + ': bytes after the headers of a HEAD (' + lHeadStatus + ')');
+  end;
+end;
+
 procedure TRuntimeFixesTests.StatusLineNeverCarriesTheRequestText(const APort: Integer);
 var
   lResp: TRFRawResponse;
@@ -858,6 +970,7 @@ procedure TRuntimeFixesSingleHostTests.SetupFixture;
 var
   lEngine: TMVCEngine;
   lLogin, lAdmin: TMVCRouteGroup<TObject>;
+  lAuth: IMVCFilterBundle;
 begin
   fViewPath := TPath.Combine(TPath.GetTempPath, 'dmvc_rf_views_' + IntToStr(TThread.CurrentThread.ThreadID));
   TDirectory.CreateDirectory(fViewPath);
@@ -865,6 +978,7 @@ begin
   TFile.WriteAllText(TPath.Combine(fViewPath, 'broken.html'), '{{if x}}never closed');
   gRFViewPath := fViewPath;
   lEngine := TMVCEngine.Create(ConfigureRFViewConfig);
+  fEngine := lEngine;
   lEngine.SetViewEngine(TMVCTemplateProViewEngine);
   lEngine.AddController(TRFViewController);
   lEngine.PublishObject(
@@ -872,25 +986,23 @@ begin
     begin
       Result := TRFRpc.Create;
     end, '/rpc');
-  lLogin := lEngine.Prefix('/secure').Use(JWT(TRFAuthHandler.Create,
+  // one bundle on two groups: the login, before routing, once on the engine. The token carries no
+  // "iat": the check still gives LoggedUser a login time
+  lAuth := JWTAuthenticationBundle(TRFAuthHandler.Create,
     procedure(const AJWT: TJWT)
     begin
       AJWT.Claims.ExpirationTime := Now + 1;
-    end, RF_JWT_SECRET, '/secure/login'));
+    end, RF_JWT_SECRET, '/secure/login');
+  lLogin := lEngine.Prefix('/secure').Use(lAuth);
   lLogin.MapGet<TWebContext>('/whoami',
     function(AContext: TWebContext): IMVCResponse
     begin
       Result := Ok(AContext.LoggedUser.UserName + '|' + string.Join(',', AContext.LoggedUser.Roles.ToArray) +
         '|' + BoolToStr(AContext.LoggedUser.IsValid, True));
     end);
-  lLogin.MapPost('/login',
-    function: IMVCResponse
-    begin
-      Result := Ok('never reached');
-    end);
   lAdmin := lEngine.Prefix('/secure')
-    .Use(JWT(TRFAuthHandler.Create, nil, RF_JWT_SECRET, '/secure/login'))
-    .Use(RequireRole('admin'));
+    .Use(lAuth)
+    .Use(RequireRoleEndpointFilter('admin'));
   lAdmin.MapGet<TWebContext>('/admin',
     function(AContext: TWebContext): IMVCResponse
     begin
@@ -904,6 +1016,7 @@ procedure TRuntimeFixesSingleHostTests.TeardownFixture;
 begin
   fServer.Stop;
   fServer := nil;
+  FreeAndNil(fEngine); // the server does not own the engine
   try
     TDirectory.Delete(fViewPath, True);
   except
@@ -960,6 +1073,7 @@ function RFLogin(const AUser: string): string;
 var
   lClient: THTTPClient;
   lResp: IHTTPResponse;
+  lJSON: TJsonObject;
 begin
   lClient := THTTPClient.Create;
   try
@@ -967,7 +1081,12 @@ begin
     lClient.CustomHeaders['jwtpassword'] := 'pwd';
     lResp := lClient.Post(Format('http://localhost:%d/secure/login', [RF_SINGLE_PORT]), TStream(nil));
     Assert.AreEqual(200, lResp.StatusCode, lResp.ContentAsString);
-    Result := lResp.HeaderValue['Authorization'];
+    lJSON := StrToJSONObject(lResp.ContentAsString);
+    try
+      Result := 'Bearer ' + lJSON.S['token'];
+    finally
+      lJSON.Free;
+    end;
   finally
     lClient.Free;
   end;
@@ -1041,8 +1160,10 @@ end;
 procedure TServerRelistenTests.HttpSysListenTwiceIsANoOpAndStopThenListenMoves;
 var
   lServer: IMVCServer;
+  lEngine: TMVCEngine;
 begin
-  lServer := TMVCServerFactory.CreateHttpSys(NewRFEngine);
+  lEngine := NewRFEngine; // the server does not own it
+  lServer := TMVCServerFactory.CreateHttpSys(lEngine);
   try
     lServer.Listen(RF_RELISTEN_PORT1, 'localhost');
     // a second Listen while listening is ignored, as on Indy Direct and WebBroker
@@ -1053,6 +1174,8 @@ begin
     Assert.IsTrue(CanConnect(RF_RELISTEN_PORT2), 'second port');
   finally
     lServer.Stop;
+    lServer := nil;
+    lEngine.Free;
   end;
 end;
 
@@ -1080,8 +1203,10 @@ end;
 procedure TServerRelistenTests.IndyDirectListensOnTheNewPortAfterStop;
 var
   lServer: IMVCServer;
+  lEngine: TMVCEngine;
 begin
-  lServer := TMVCServerFactory.CreateIndyDirect(NewRFEngine);
+  lEngine := NewRFEngine; // the server does not own it
+  lServer := TMVCServerFactory.CreateIndyDirect(lEngine);
   try
     lServer.Listen(RF_RELISTEN_PORT1, '0.0.0.0');
     Assert.IsTrue(CanConnect(RF_RELISTEN_PORT1), 'first port');
@@ -1091,6 +1216,8 @@ begin
     Assert.IsFalse(CanConnect(RF_RELISTEN_PORT1), 'the old port is still open');
   finally
     lServer.Stop;
+    lServer := nil;
+    lEngine.Free;
   end;
 end;
 

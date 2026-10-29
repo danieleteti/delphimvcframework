@@ -46,6 +46,8 @@
 
 unit MVCFramework.Middleware.Shutdown;
 
+{$WARN SYMBOL_DEPRECATED OFF} // the class is deprecated for its users, not inside its own unit
+
 interface
 
 uses
@@ -71,7 +73,7 @@ type
       const aURLSegment: String = '/api/shutdown');
     destructor Destroy; override;
     class procedure WaitForShutdownOrConsoleReturn;
-  end;
+  end deprecated 'Use the Shutdown HTTP filter (MVCFramework.Filters): AEngine.Use(ShutdownHTTPFilter(...))';
 
 implementation
 

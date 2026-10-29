@@ -21,7 +21,7 @@ unit RoutesU;
 //   POST /people                 class body JSON + auto-validation
 //   GET  /search                 record + [MVCFromQueryString] (per-field defaults)
 //
-// The /people subtree is mounted via Prefix('/people').Use(LogFilter()), so
+// The /people subtree is mounted via Prefix('/people').Use(LogEndpointFilter()), so
 // every /people/* route also demonstrates endpoint-filter composition without
 // dedicating an extra route to it.
 //
@@ -59,7 +59,7 @@ uses
 // Every route registered on that group inherits this filter. Add more filters
 // (auth, rate-limit, role checks) the same way.
 // =============================================================================
-function LogFilter: TMVCEndpointFilter;
+function LogEndpointFilter: TMVCEndpointFilter;
 begin
   Result := function (const Ctx: TWebContext;
                        const Next: TMVCEndpointFilterNext): IMVCResponse
@@ -123,10 +123,10 @@ begin
       Result := lResp;
     end);
 
-  // 2..4 are mounted under /people with a shared LogFilter. The group's
+  // 2..4 are mounted under /people with a shared LogEndpointFilter. The group's
   // .Use(...) prepends the filter to every route registered on lPeople; routes
   // declared elsewhere on ARoot are unaffected.
-  lPeople := ARoot.Prefix('/people').Use(LogFilter());
+  lPeople := ARoot.Prefix('/people').Use(LogEndpointFilter());
 
   // 2. DI INTERFACE arg. Any TMVCMinimalFunc generic parameter whose type
   //    is an interface is resolved from ServiceContainerResolver. IPeopleService

@@ -101,9 +101,9 @@ Browser
   ├─ GET /web/...         → TWebController   → RenderView('path/template')
   │                                            ViewData['key'] := value
   │
-  ├─ GET /web/...         → TWebController   → RenderView(same template)
-  │    (HTMX partial)                          ViewData['ispage'] := not Request.IsHTMX
-  │                                            → layout drops its own chrome
+  ├─ GET /web/...         → TWebController   → same action, fragment template
+  │    (HTMX request,                          IsHTMX and not HXIsBoosted → RenderView('x/table')
+  │     not boosted)                           otherwise                  → RenderView('x/index')
   │
   └─ GET /api/...         → TAPIController   → OkResponse(StrDict(...))
        (JSON sidecar)
@@ -115,10 +115,8 @@ Key invariants:
   content type once in the engine config (`Config[TMVCConfigKey.DefaultContentType] := TMVCMediaType.TEXT_HTML`)
   or in `OnBeforeAction`. Use it only when one action must differ from the app default.
 - Full-page actions call `Result := RenderView('folder/template')`.
-- **Fragment actions also call `RenderView`.** The same action serves the full page and the HTMX fragment;
-  the layout suppresses its own chrome:
-  `ViewData['ispage'] := not Context.Request.IsHTMX;` + `{{if ispage}}<!DOCTYPE html>…{{endif}}` in
-  `baselayout.html`. Do not hand-build HTML strings.
+- **Fragment actions also call `RenderView`**: the same action renders `x/table` or `x/index` (§7). Do not
+  hand-build HTML strings.
 - `procedure` is allowed for redirects (`Redirect('/people')`), which produce no body.
 - The JSON API sidecar (`/api`) uses standard `IMVCResponse` factory methods.
 
@@ -129,10 +127,10 @@ Key invariants:
 ```delphi
 procedure ConfigureEngine(AEngine: TMVCEngine);
 var
-  LJWTClaimsSetup: TJWTClaimsSetup;
-  LWwwPath: string;
+  lJWT: TMVCJWTCookieAuthenticationOptions;
+  lWwwPath: string;
 begin
-  LWwwPath := TPath.Combine(AppPath, 'www');
+  lWwwPath := TPath.Combine(AppPath, 'www');
 
   // Controllers
   AEngine.AddController(TWebController);
@@ -141,41 +139,43 @@ begin
   // Server-Side View Engine
   AEngine.SetViewEngine(TMVCTemplateProViewEngine);
 
-  // JWT claims setup (what goes into every issued token)
-  LJWTClaimsSetup := procedure(const JWT: TJWT)
+  // Filter chain (engine-wide). Order matters: first = outermost
+  AEngine.Use(RedirectHTTPFilter(['/'], '/web'));
+  AEngine.Use(FileServerBundle('/static', lWwwPath));                   // files + Range, before routing
+  AEngine.Use(CompressionHTTPFilter(1024));
+  AEngine.Use(FileSessionHTTPFilter(0, TPath.Combine(AppPath, 'sessions'),
+    SessionCookieFlags(dotEnv.Env('SESSION_COOKIE_SECURE', True))));   // HttpOnly, + Secure
+
+  // JWT in an HTTP-only cookie, one bundle: POST /login issues it and /logout expires it (before
+  // routing), every routed request is checked (after routing)
+  lJWT := TMVCJWTCookieAuthenticationOptions.Default;   // Cookie: HttpOnly, Secure, SameSite=Strict
+  lJWT.Handler := TAuthentication.Create;
+  lJWT.ClaimsSetup := procedure(const JWT: TJWT)         // what goes into every issued token
     begin
       JWT.Claims.Issuer := dotEnv.Env('JWT_ISSUER', 'MyApp');
       JWT.Claims.ExpirationTime := Now + OneHour;
       JWT.Claims.NotBefore := Now - OneMinute * 5;
       JWT.Claims.IssuedAt := Now;
     end;
-
-  // Middleware — order matters
-  AEngine.AddMiddleware(TMVCRedirectMiddleware.Create(['/'], '/web'));
-  AEngine.AddMiddleware(
-    UseJWTCookieAuthentication(
-      TAuthentication.Create,
-      LJWTClaimsSetup,
-      dotEnv.Env('JWT_SECRET', 'change-me'),
-      '/login',   // POST credentials here
-      '/logout',  // GET or POST to log out
-      [TJWTCheckableClaim.ExpirationTime,
-       TJWTCheckableClaim.NotBefore,
-       TJWTCheckableClaim.IssuedAt],
-      300         // Leeway seconds
-    )
-    .SetCookieSecure(dotEnv.Env('JWT_COOKIE_SECURE', False))
-  );
-  AEngine.AddMiddleware(
-    UseFileSessionMiddleware(0, False, TPath.Combine(AppPath, 'sessions')));
-  AEngine.AddMiddleware(TMVCStaticFilesMiddleware.Create('/static', LWwwPath));
-  AEngine.AddMiddleware(TMVCCompressionMiddleware.Create);
+  lJWT.Secret := dotEnv.Env('JWT_SECRET');  // no fallback: a missing key must fail, not sign with a public string
+  lJWT.ClaimsToCheck := [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt];
+  lJWT.Cookie.Secure := dotEnv.Env('JWT_COOKIE_SECURE', True);
+  // only these origins may POST /login (403 otherwise)
+  lJWT.LoginAllowedOrigins := dotEnv.Env('LOGIN_ALLOWED_ORIGINS', '').Split([',']);
+  if Length(lJWT.LoginAllowedOrigins) = 0 then // the bundle would check no origin
+    raise Exception.Create('LOGIN_ALLOWED_ORIGINS is empty: set it in .env, the origins a browser may POST /login from');
+  AEngine.Use(JWTCookieAuthenticationBundle(lJWT));
 
   // Browser-friendly error pages: renders templates/error.html for clients that prefer HTML,
   // leaves the JSON error body untouched for API clients. One call — no handler to hand-write.
   AEngine.UseExceptionHandler('error', 'MyApp');
 end;
 ```
+
+A project from a 3.4 wizard has the same chain as classic middleware (`TMVCRedirectMiddleware`,
+`UseJWTCookieAuthentication`, `UseFileSessionMiddleware`, `TMVCStaticFilesMiddleware`,
+`TMVCCompressionMiddleware`): deprecated in 3.5, they still work, and each warning names its filter. Keep them
+unless the user asks to migrate; in new code write the filters.
 
 `UseExceptionHandler(AErrorViewName = 'error'; AAppName = ''; AOptions = [])` renders
 `<ViewPath>/error.<DefaultViewFileExtension>` and exposes `status`, `statustext`, `app_name`,
@@ -189,12 +189,11 @@ Required units for `EngineConfigU.pas`:
 uses
   TemplatePro,
   MVCFramework.View.Renderers.TemplatePro,
-  MVCFramework.Middleware.JWT,
-  MVCFramework.Middleware.Session,
-  MVCFramework.Middleware.Redirect,
-  MVCFramework.Middleware.StaticFiles,
-  MVCFramework.Middleware.Compression,
+  MVCFramework.Filters,
+  MVCFramework.Filters.Authentication,
   MVCFramework.JWT,
+  MVCFramework.Commons,
+  System.SysUtils,
   System.IOUtils,
   System.DateUtils;
 ```
@@ -304,12 +303,31 @@ A `TDataSet` (e.g. a `TFDMemTable`) can be passed as `ViewData` the same way, an
 ### Accessing session data and current user in a controller
 
 ```delphi
-// After UseJWTCookieAuthentication, the session is validated automatically.
+// After JWTCookieAuthenticationBundle (or UseJWTCookieAuthentication), the session is validated automatically.
 // Access claims from the JWT token:
 var lUsername := Context.LoggedUser.UserName;
 var lRoles    := Context.LoggedUser.Roles;  // TList<string>
 var lCustom   := Context.LoggedUser.CustomData['key'];
 ```
+
+### Form posts — validate and re-render with errors
+
+A posted form is **not** validated automatically (only `[MVCFromBody]` is). The framework sample
+`samples/webapp_htmx_forms` shows the pattern (`ReadPerson` in `PeopleSampleU.pas`):
+
+1. Copy `Context.Request.ContentFields` (keys are **lowercase** field names) into an object whose
+   **properties** carry validator attributes (`MVCFramework.Validators`).
+2. `TMVCValidationEngine.Validate(lModel, lErrors)` (`MVCFramework.ValidationEngine`): `lErrors` is nil when
+   valid, otherwise a `TDictionary<string, string>` you free, keyed by **property name** (`Email`).
+3. Copy the messages into your error map with `LowerCase(Key)` — the forms library (`lib/forms_bootstrap5.tpro`)
+   looks them up by the control's `name`.
+4. Valid → save, then `RedirectResponse(...)` (Post/Redirect/Get). Invalid → `ViewData['formModel'] :=
+   Context.Request.ContentFields` (shows what was typed), `ViewData['formErrors'] := lErrors`, render the same
+   view with status 422 (`TMVCHTMLResponse` with `StatusCode := HTTP_STATUS.UnprocessableEntity`).
+
+`MVCRequired` passes on `Integer`/`TDate` (0 is a value): parse those fields yourself and add a message when
+the text does not convert. Full code (controller and Minimal API): the `dmvcframework` skill,
+`reference/validation.md`, "HTML form post".
 
 ---
 
@@ -472,27 +490,38 @@ only the handful of patterns that carry a *Delphi-side* implication.
 
 ### The one pattern that shapes your controller: page or fragment, one action
 
-The same action serves the full page and the HTMX fragment. The controller flags which one; the layout
-suppresses its own chrome. You do **not** write a separate fragment endpoint, and you do **not** build
-HTML strings.
+The same action serves the full page and the HTMX fragment — the shape of the People table in
+`samples/webapp_htmx_forms` (`Controllers.PeoplePagesU`, `people/index.html` + `people/table.html`).
+Below with customers. Two templates: `customers/index.html` is the page (it `{{extends
+"../baselayout.html"}}` and `{{include "table.html"}}`), `customers/table.html` is the part that changes and
+has no `{{extends}}`. You do **not** write a separate fragment endpoint, and you do **not** build HTML strings.
 
 ```delphi
 function TWebController.Customers: String;
+var
+  lCustomers: TObjectList<TCustomer>;
 begin
-  ViewData['ispage']    := not Context.Request.IsHTMX;   // uses MVCFramework.HTMX
-  ViewData['customers'] := lCustomers;
-  Result := RenderView('customers');
+  lCustomers := FCustomerService.GetAll;
+  try
+    ViewData['customers'] := lCustomers;
+    // HTMX asks for the table only; a normal request gets the whole page
+    if Context.Request.IsHTMX and not Context.Request.HXIsBoosted
+       and not Context.Request.HXIsHistoryRestoreRequest then   // uses MVCFramework.HTMX
+      Result := RenderView('customers/table')
+    else
+      Result := RenderView('customers/index');
+  finally
+    lCustomers.Free;                 // ViewData owns nothing
+  end;
 end;
 ```
 
-```html
-{{# baselayout.html #}}
-{{if ispage}}<!DOCTYPE html><html><head>…</head><body><nav>…</nav>{{endif}}
-{{block "body"}}{{endblock}}
-{{if ispage}}</body></html>{{endif}}
-```
-
-A plain browser navigation gets the whole document; an `hx-get` gets just the block. One template, one action.
+A plain browser navigation gets the whole document; an `hx-get` gets just the table. **Test `HXIsBoosted`
+too:** a link under `hx-boost` is an HTMX request that expects the whole page — checking `IsHTMX` alone
+serves it a fragment without the layout. **And `HXIsHistoryRestoreRequest`:** on a history-cache miss (Back
+after the cache is full) htmx re-requests the URL with `HX-Request: true` and swaps the answer into `body`, so
+it needs the whole page too. Because the same URL answers with a page or a fragment, also send
+`Vary: HX-Request`.
 
 ### Triggering the request
 
@@ -553,7 +582,7 @@ Context.Response.HXSetLocation('/web/products');
 Context.Response.HXSetPushUrl('/web/items/' + ItemID);
 Context.Response.HXSetReplaceUrl('/web/items/' + ItemID);
 
-// client-side events (see the dmvcframework-ui skill for showToast)
+// client-side events (see the dmvcframework-ui skill for showToast — it takes HTML)
 Context.Response.HXTriggerClientEvent('refreshCart');
 Context.Response.HXTriggerClientEvents(['refreshCart', 'updateBadge']);
 
@@ -601,9 +630,11 @@ var
 begin
   lItems := FItemService.GetAll;
   try
-    ViewData['ispage'] := not Context.Request.IsHTMX;
-    ViewData['items']  := lItems;
-    Result := RenderView('items/index');
+    ViewData['items'] := lItems;
+    if Context.Request.IsHTMX and not Context.Request.HXIsBoosted then
+      Result := RenderView('items/table')
+    else
+      Result := RenderView('items/index');
   finally
     lItems.Free;                     // ViewData owns nothing
   end;
@@ -732,15 +763,23 @@ end;
 ### Login form pattern (browser-facing)
 
 ```html
-<form method="POST" action="/login">
-  <input name="username" type="text" required>
-  <input name="password" type="password" required>
+<form hx-post="/login" hx-swap="none"
+      hx-on::after-request="if (event.detail.successful) window.location.href = '/web'">
+  <input name="jwtusername" type="text" required>
+  <input name="jwtpassword" type="password" required>
   <button type="submit">Login</button>
 </form>
 ```
 
-The `/login` route is handled automatically by `UseJWTCookieAuthentication`.
-On success, it sets an HTTP-only cookie and redirects to the referrer or `/web`.
+The `/login` route is handled by the login of `JWTCookieAuthenticationBundle` (by `UseJWTCookieAuthentication` in a 3.4 project),
+which a plain HTML form does not fit:
+
+- **Field names.** Form data is read only as `jwtusername` / `jwtpassword`
+  (`TMVCJWTDefaults.USERNAME_HEADER` / `PASSWORD_HEADER`); `username` / `password` are accepted only in a
+  JSON body. A form posting `username` gets **401**.
+- **No redirect.** On success it sets the HTTP-only cookie and answers `200` with JSON `{"token": "..."}`.
+  The page must navigate by itself — hence `hx-swap="none"` and the `after-request` handler above. A plain
+  `<form method="POST">` would leave the user looking at the JSON. A failed login answers 401.
 
 ### Reading the current user in a controller
 
@@ -759,19 +798,21 @@ end;
 
 ### Registering filters
 
-```delphi
-procedure TemplateProContextConfigure;
-begin
-  TTProConfiguration.OnContextConfiguration :=
-    procedure(const CompiledTemplate: ITProCompiledTemplate)
-    begin
-      CompiledTemplate.AddFilter('currency', CurrencyFilter);
-      CompiledTemplate.AddFilter('timeago', TimeAgoFilter);
-    end;
-end;
-```
+The wizard already generates `TemplateProContextConfigure` in `TemplateProHelpersU.pas` and calls it once in
+`Boot` (`BootConfigU.pas`). **Add your `AddFilter` calls inside its existing handler — never assign
+`TTProConfiguration.OnContextConfiguration` a second time.** The generated handler also sets
+`CompiledTemplate.IncludeRootPath`, which keeps a dynamic `{{include}}` built from request data inside the
+views folder; a replacement handler silently drops that protection.
 
-Call `TemplateProContextConfigure` once in `Boot` (inside `BootConfigU.pas`).
+```delphi
+  TTProConfiguration.OnContextConfiguration := procedure(const CompiledTemplate: ITProCompiledTemplate)
+  begin
+    CompiledTemplate.IncludeRootPath := lViewPath;   // generated - keep it
+    CompiledTemplate.AddFilter('currency', CurrencyFilter);
+    CompiledTemplate.AddFilter('timeago', TimeAgoFilter);
+    // ... rest of the generated handler
+  end;
+```
 
 ### Writing a filter
 
@@ -849,10 +890,16 @@ Registration types:
 function TWebController.Products: String;
 var
   lService: IProductService;
+  lProducts: TObjectList<TProduct>;
 begin
   lService := Context.ServiceContainerResolver.Resolve(TypeInfo(IProductService)) as IProductService;
-  ViewData['products'] := lService.GetAll;
-  Result := RenderView('products/index');
+  lProducts := lService.GetAll;
+  try
+    ViewData['products'] := lProducts;
+    Result := RenderView('products/index');
+  finally
+    lProducts.Free;                  // ViewData owns nothing
+  end;
 end;
 ```
 
@@ -912,11 +959,16 @@ bin/www/
   site.webmanifest       → /static/site.webmanifest
 ```
 
-Middleware declaration:
+Declaration (`MVCFramework.Filters`; a 3.4 project has the deprecated `TMVCStaticFilesMiddleware`):
 ```delphi
-AEngine.AddMiddleware(
-  TMVCStaticFilesMiddleware.Create('/static', TPath.Combine(AppPath, 'www')));
+AEngine.Use(FileServerBundle('/static', TPath.Combine(AppPath, 'www')));
 ```
+
+`FileServerBundle` sends the MIME type, `Last-Modified` (304 on a conditional GET), the default document of a
+folder, refuses path traversal, and answers 206 to a `Range` request (audio, video, resumable downloads).
+`StaticFilesHTTPFilter('/static', ...)` is the same without Range. `FileServerBundle('/', lWwwPath, fsmSPA)` serves a
+single-page app: a GET/HEAD with no route gets `index.html`, the API routes stay. More switches in
+`TMVCFileServerOptions` (`Flags`, `Rules`, `MediaTypesCustomizer`).
 
 In templates: `<link rel="stylesheet" href="/static/css/style.css">`
 
@@ -938,10 +990,16 @@ dmvc.view_path=templates
 dmvc.default.view_file_extension=html
 dmvc.view_cache=false         # true in production (caches compiled templates)
 
-# JWT Cookie Auth
-JWT_SECRET=                   # leave empty; set it in the deployment environment
+# JWT Cookie Auth - the wizard writes a random 384-bit key here; give every environment its own
+# (e.g. openssl rand -hex 48) and keep .env out of version control
+JWT_SECRET=<generated>
 JWT_ISSUER=MyApp
-JWT_COOKIE_SECURE=false       # true in production (HTTPS only cookie)
+# Set to false only for local development over plain HTTP.
+JWT_COOKIE_SECURE=true
+# Origins (comma separated) a browser may POST /login from; any other origin is
+# refused (login CSRF). Add the public address of the site, e.g. https://www.example.com
+LOGIN_ALLOWED_ORIGINS=http://localhost:8080,https://localhost:8080
+SESSION_COOKIE_SECURE=true
 
 # Logging
 logger.config.file=loggerpro.json
@@ -1038,14 +1096,14 @@ AEngine.AddController(TProductsController);
 |---------|-----|
 | Action is `procedure` instead of `function` | All web actions must be `function`: return `String` for HTML, `IMVCResponse` for JSON. |
 | Freeing nothing after `ViewData['x'] := lObj` | `ViewData` owns nothing. Free the object yourself in a `finally` after `RenderView`. |
-| Hand-building HTML for HTMX fragments | Use the same `RenderView` + `ViewData['ispage'] := not Request.IsHTMX` and let the layout drop its chrome. |
+| Hand-building HTML for HTMX fragments | Same action, two templates: `IsHTMX and not HXIsBoosted and not HXIsHistoryRestoreRequest` → `RenderView('x/table')`, otherwise `RenderView('x/index')`. |
 | Writing `HX-*` headers by hand | `uses MVCFramework.HTMX` — `Response.HXSetRedirect/HXSetPushUrl/HXSetReswap/HXSetRetarget/HXTriggerClientEvent`, `Request.IsHTMX/HXGetTarget`. |
 | `ViewData` not set before `RenderView` | `OnBeforeAction` sets shared data; page-specific data must be set in the action function body before `Result := RenderView(...)`. |
 | Template extends wrong relative path | `home/index.html` → `{{extends "../baselayout.html"}}`. `error.html` (same folder as baselayout) → `{{extends "baselayout.html"}}`. |
 | `JWT_COOKIE_SECURE=true` with HTTP | Cookie won't be sent by the browser over plain HTTP. Use `false` during local dev, `true` in production with HTTPS. |
 | View cache enabled during development | `dmvc.view_cache=true` caches compiled templates — template changes won't appear until restart. Use `false` in dev. |
 | `SetExceptionHandler` handles all requests | Check `WebContext.Request.ClientPreferHTML` first and `Exit` if false — otherwise API clients get an HTML error page. |
-| Static file not found | File must be under `bin/www/`. The URL prefix is `/static`, not `/www`. Check middleware order — static files should be declared after redirect and auth. |
+| Static file not found | File must be under `bin/www/`. The URL prefix is `/static`, not `/www`. `FileServerBundle` answers before routing, so the check of the authentication bundle never sees it; declare it after `RedirectHTTPFilter`. |
 | Template variable silently empty | TemplatePro doesn't error on missing keys by default. Add a breakpoint after `ViewData[...]` assignments to verify they are set. |
 | `{{for item in list}}` doesn't iterate | The list must be a `TObjectList<T>` or array registered in ViewData. Ensure the service returns a non-nil, non-empty list. |
 | HTMX response headers ignored | HTMX checks for `HX-*` headers only on responses to HTMX requests (requests with `HX-Request: true` header). Verify the button/div has a `hx-*` trigger attribute. |
@@ -1060,15 +1118,13 @@ AEngine.AddController(TProductsController);
 | `MVCFramework.View.Renderers.TemplatePro` | `TMVCTemplateProViewEngine` |
 | `TemplatePro` | `TTProCompiler.CompileAndRender`, `TTProConfiguration`, `ITProCompiledTemplate` |
 | `TemplatePro.Types` | `TFilterParameter` |
-| `MVCFramework.Middleware.JWT` | `UseJWTCookieAuthentication`, `UseJWTMiddleware` |
-| `MVCFramework.Middleware.Session` | `UseFileSessionMiddleware` |
-| `MVCFramework.Middleware.Redirect` | `TMVCRedirectMiddleware` |
-| `MVCFramework.Middleware.StaticFiles` | `TMVCStaticFilesMiddleware` |
-| `MVCFramework.Middleware.Compression` | `TMVCCompressionMiddleware` |
+| `MVCFramework.Filters` | `RedirectHTTPFilter`, `FileServerBundle`, `StaticFilesHTTPFilter`, `CompressionHTTPFilter`, `FileSessionHTTPFilter`, `SessionCookieFlags`, `TMVCAuthCookieOptions` |
+| `MVCFramework.Filters.Authentication` | `JWTCookieAuthenticationBundle`, `TMVCJWTCookieAuthenticationOptions` |
+| `MVCFramework.Middleware.*` | The classic middleware of 3.4 projects (`UseJWTCookieAuthentication`, `UseFileSessionMiddleware`, `TMVCStaticFilesMiddleware`, …) — deprecated in 3.5 |
 | `MVCFramework.JWT` | `TJWT`, `TJWTClaimsSetup`, `TJWTCheckableClaim` |
-| `MVCFramework.Commons` | `TMVCMediaType`, `AppPath`, `DMVCFRAMEWORK_VERSION` |
+| `MVCFramework.Commons` | `TMVCMediaType`, `AppPath`, `DMVCFRAMEWORK_VERSION`, `dotEnv`, `dotEnvConfigure` |
 | `MVCFramework.Container` | `IMVCServiceContainer`, `TRegistrationType` |
-| `MVCFramework.DotEnv` | `dotEnv`, `dotEnvConfigure`, `NewDotEnv` |
+| `MVCFramework.DotEnv` | `NewDotEnv` (the builder) |
 | `LoggerPro.Config` | `TLoggerProConfig.BuilderFromJSONFile` |
 
 ---
@@ -1079,7 +1135,7 @@ In the DelphiMVCFramework repository (https://github.com/danieleteti/delphimvcfr
 
 | Sample | What it shows |
 |--------|---------------|
-| `samples/htmx_website_with_templatepro/` | TemplatePro + HTMX website: one action serves page and fragment via `ispage`, baselayout with blocks, partials, custom filters |
+| `samples/htmx_website_with_templatepro/` | TemplatePro + HTMX website: baselayout with blocks, partials, custom filters. Its `ispage` flag predates the wizard's page/table pattern and ignores `hx-boost` — follow the wizard |
 | `samples/serversideviews_templatepro/` | The view engine in depth: inheritance, filters, `RenderViews`, CSV/non-HTML views, dataset in `ViewData` |
 | `samples/wizard_showcase/web/` | Minimal-API flavour of a web app: `.AsWeb`, sessions, `RenderView` from lambda handlers |
 

@@ -26,6 +26,8 @@ unit MVCFramework.Middleware.Trace;
 
 {$I dmvcframework.inc}
 
+{$WARN SYMBOL_DEPRECATED OFF} // the class is deprecated for its users, not inside its own unit
+
 interface
 
 uses
@@ -66,7 +68,7 @@ type
     constructor Create(const MaxBodySizeInTrace: UInt64 = 1024;
       const LogTag: string = 'trace';
       const CorrelationHeaderName: string = 'X-Request-ID');
-  end;
+  end deprecated 'Use the Trace HTTP filter (MVCFramework.Filters): AEngine.Use(TraceHTTPFilter(...))';
 
 implementation
 
@@ -76,35 +78,6 @@ uses
   System.Math,
   System.Diagnostics,
   System.SyncObjs;
-
-function RedactedCustomHeaders(const AHeaders: TStrings): string;
-  function IsSensitive(const AName: string): Boolean;
-  begin
-    Result := SameText(AName, 'Authorization') or SameText(AName, 'Proxy-Authorization')
-      or SameText(AName, 'Cookie') or SameText(AName, 'Set-Cookie');
-  end;
-var
-  I: Integer;
-  lName, lValue: string;
-begin
-  Result := '';
-  for I := 0 to AHeaders.Count - 1 do
-  begin
-    lName := AHeaders.Names[I];
-    if lName = '' then
-      lValue := AHeaders[I]
-    else
-    begin
-      lValue := AHeaders.ValueFromIndex[I];
-      if IsSensitive(lName) then
-        lValue := MVCRedactSecret(lValue);
-      lValue := lName + '=' + lValue;
-    end;
-    if Result <> '' then
-      Result := Result + ' | ';
-    Result := Result + lValue;
-  end;
-end;
 
 const
   // keys used to carry per-request state across the middleware hooks
@@ -211,7 +184,7 @@ begin
   Log.Debug('%s [AFTER ACTION][RESPONSE][STATUS] %d: %s',
     [RequestId(AContext), AContext.Response.StatusCode, AContext.Response.ReasonString], fLogTag);
   Log.Debug('%s [AFTER ACTION][RESPONSE][CUSTOM HEADERS] %s',
-    [RequestId(AContext), RedactedCustomHeaders(AContext.Response.CustomHeaders)], fLogTag);
+    [RequestId(AContext), MVCRedactedHeaders(AContext.Response.CustomHeaders)], fLogTag);
   Log.Debug('%s [AFTER ACTION][RESPONSE][CONTENT-TYPE] %s',
     [RequestId(AContext), AContext.Response.ContentType], fLogTag);
 

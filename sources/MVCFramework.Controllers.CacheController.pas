@@ -28,10 +28,9 @@ unit MVCFramework.Controllers.CacheController;
 
 interface
 
-// NOTE: To use this controller you need DelphiRedisClient
-// To use DelphiRedisClient just open a command prompt, go to where you
-// usually put your Delphi libraries and run the following command (requires git)
-// git clone --recursive https://github.com/danieleteti/delphiredisclient
+// REQUIRES DelphiRedisClient, which is not part of DMVCFramework nor of its
+// packages: git clone --recursive https://github.com/danieleteti/delphiredisclient
+// and add its sources to the library path.
 
 uses
   System.SysUtils,

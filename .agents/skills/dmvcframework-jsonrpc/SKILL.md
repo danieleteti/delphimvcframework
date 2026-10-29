@@ -108,9 +108,6 @@ begin
   AEngine.AddController(THomeController);
   // Controllers - END
 
-  // Middleware
-  // Middleware - END
-
   AEngine.PublishObject(
     function: TObject
     begin
@@ -337,8 +334,15 @@ raise EMVCJSONRPCError.CreateFmt(JSONRPC_USER_ERROR + 3, 'Customer %d is locked'
 
 An object passed as `Data` is **freed by the framework** (`TJSONRPCResponseError.Destroy`). Do not free it.
 
-Any other exception that escapes an RPC method is caught and returned as an error with code `0` and the
-exception message (plus the class name in `data`), unless the endpoint has an exception handler (below).
+Any other exception that escapes an RPC method (or an `OnAfterCall` hook) is caught and returned as an error
+with code `0`. In `DEBUG` the `message` is `Exception.Message`. **Outside `DEBUG` it is filtered, as REST
+does:** the message of an `EMVCException` and the unit's own protocol errors (`EMVCJSONRPCException`,
+`EMVCJSONRPCInvalidVersion`) pass; anything else — a FireDAC error with its SQL, an I/O error with its path —
+becomes `Internal server error`. The class name in `data` (added when a handler leaves
+`ExceptionHandled = False`) and a serialization error's `DetailedMessage` are `DEBUG`-only.
+
+An `EMVCException` message still goes out in release: do not put internals in one. To log the detail and
+choose the message yourself, install the exception handler below.
 
 ### Exception classes (`MVCFramework.JSONRPC.pas`)
 
@@ -406,6 +410,23 @@ AEngine.PublishObject(
 
 An object in `ErrorInfo.Data` is freed by the framework in both the handled and unhandled paths.
 
+The handler receives the full exception; the `ErrorInfo.Msg` it starts with is already the filtered one. End
+it with a catch-all to log the detail and send a message you chose:
+
+```delphi
+    else
+    begin
+      LogE(Exc.ClassName + ': ' + Exc.Message);   // the detail stays in the log
+      ErrorInfo.Code := JSONRPC_USER_ERROR;
+      ErrorInfo.Msg  := 'Internal error';
+      ExceptionHandled := True;
+    end;
+```
+
+Not everything reaches the handler: `EMVCJSONRPCError` and the other `EMVCJSONRPCErrorResponse` subclasses
+are sent with the code and message you chose, and `EMVCDeserializationException` /
+`EMVCSerializationException` are sent as `-32600` / `-32603` with their own message.
+
 ---
 
 ## 7. Hooks
@@ -435,9 +456,11 @@ per-request, so stashing `Context` in a field from `OnBeforeCallHook` is safe.
 
 ## 8. Authentication
 
-The JSON-RPC endpoint is a controller, so the standard middleware applies unchanged — add
-`TMVCJWTAuthenticationMiddleware` or `TMVCBasicAuthenticationMiddleware` in `ConfigureEngine` exactly as
-documented in `dmvcframework`, and use the `dmvcframework-security` skill for hardening.
+The JSON-RPC endpoint is a controller, so the standard authentication bundles apply unchanged — add
+`AEngine.Use(JWTAuthenticationBundle(...))` (or `AEngine.Use(BasicAuthenticationBundle(handler))`) in `ConfigureEngine` exactly as documented in
+`dmvcframework`: the check of the bundle, an engine-wide endpoint filter, runs for the published object too. Use
+the `dmvcframework-security` skill for hardening. (A 3.4 project may have `TMVCJWTAuthenticationMiddleware`
+or `TMVCBasicAuthenticationMiddleware`: deprecated in 3.5, still working.)
 
 What is different:
 
@@ -574,7 +597,8 @@ end.
 
 ```delphi
 uses
-  Controllers.HomeU, JSONRPCServiceU, MVCFramework.JSONRPC, MVCFramework.Middleware.CORS;
+  Controllers.HomeU, JSONRPCServiceU, MVCFramework.JSONRPC, MVCFramework.Filters,
+  MVCFramework.Filters.ActiveRecord;
 
 procedure ConfigureEngine(AEngine: TMVCEngine);
 begin
@@ -582,9 +606,10 @@ begin
   AEngine.AddController(THomeController);
   // Controllers - END
 
-  // Middleware
-  AEngine.AddMiddleware(TMVCCORSMiddleware.Create);
-  // Middleware - END
+  // HTTPFilter chain (engine-wide). Order matters: first = outermost
+  AEngine.Use(CORSHTTPFilter('*'));
+  // GetCustomer/SearchCustomers use ActiveRecord: it needs a connection per request
+  AEngine.Use(ActiveRecordHTTPFilter('MyConnDef'));
 
   AEngine.PublishObject(
     function: TObject

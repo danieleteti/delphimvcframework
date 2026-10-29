@@ -26,6 +26,8 @@ unit MVCFramework.Middleware.CORS;
 
 {$I dmvcframework.inc}
 
+{$WARN SYMBOL_DEPRECATED OFF} // the class is deprecated for its users, not inside its own unit
+
 interface
 
 uses
@@ -112,7 +114,7 @@ type
       const AAllowsMethods: string = TMVCCORSDefaults.ALLOWS_METHODS;
       const AAccessControlMaxAge: Integer = TMVCCORSDefaults.ACCESS_CONTROL_MAX_AGE
       ); virtual;
-  end;
+  end deprecated 'Use the CORS HTTP filter (MVCFramework.Filters): AEngine.Use(CORSHTTPFilter(...))';
 
   TCORSMiddleware = TMVCCORSMiddleware;
 
@@ -148,7 +150,7 @@ begin
   lCustomHeaders := AContext.Response.CustomHeaders;
   lCustomHeaders.Values['Access-Control-Allow-Origin'] := AAllowOrigin;
   { The value depends on the request's Origin, so a shared cache must not serve
-    one origin's response to another. CORSFilter already does this. }
+    one origin's response to another. The CORS filter already does this. }
   if (AAllowOrigin <> '*') and
     (Pos('Origin', lCustomHeaders.Values['Vary']) = 0) then
     lCustomHeaders.Values['Vary'] :=

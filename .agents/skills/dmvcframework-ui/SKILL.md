@@ -160,7 +160,9 @@ brand tokens and `--bs-*` variables, not literals.
 ## 5. Toasts
 
 The layout defines `#toastContainer` and a global `showToast(message, type)` — `type` is `success`, `danger`,
-`warning` or `info`. From an HTMX response, trigger it with a client event from Delphi:
+`warning` or `info`. **`message` goes into `innerHTML`: it is HTML, not text.** A fixed string chosen by the
+server is safe; anything a user typed (a name, a title) must be escaped first, or it is a DOM XSS.
+From an HTMX response, trigger it with a client event from Delphi:
 
 ```delphi
 uses MVCFramework.HTMX;
@@ -185,8 +187,10 @@ Need structured data instead of a plain string? Pass an **object** and read its 
 Context.Response.HXTriggerClientEvent('customerSaved', lCustomer);   // a Delphi object
 ```
 ```javascript
+function escapeHtml(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
 document.body.addEventListener('customerSaved', function (evt) {
-  showToast('Saved ' + evt.detail.FirstName, 'success');
+  showToast('Saved ' + escapeHtml(evt.detail.FirstName), 'success');
 });
 ```
 
@@ -215,6 +219,13 @@ Stock Bootstrap, plus HTMX for the submit. Server-side validation errors come ba
 
 `is-invalid` + `.invalid-feedback` is Bootstrap's error pattern — it needs no JS. Every input needs a `<label for>`.
 
+In a wizard project prefer the generated forms library, `bin/templates/lib/forms_bootstrap5.tpro`
+(`{{import "../lib/forms_bootstrap5.tpro" as f}}` from a page in a subfolder — the path is relative to the page —
+then `f.input`, `f.select`, `f.checkbox`, …): it writes this
+markup and reads values from `formModel` and messages from `formErrors`, both keyed by the control's `name`.
+Whatever you use, the error-map keys must be the ones the server fills — the wizard's convention is the
+lowercase field name (server side: the `dmvcframework-webapp` skill, "Form posts").
+
 ---
 
 ## 7. Common mistakes
@@ -238,6 +249,6 @@ Stock Bootstrap, plus HTMX for the submit. Server-side validation errors come ba
 |------|-----------|
 | `bin/templates/baselayout.html` | The layout: head, navbar, main, footer, toasts, theme toggle, Bootstrap JS |
 | `bin/www/css/style.css` | Brand tokens, primary override, 4 helpers, HTMX classes (~100 lines) |
-| `bin/www/` | Static root, served at `/static` by `TMVCStaticFilesMiddleware` |
+| `bin/www/` | Static root, served at `/static` by `FileServerBundle` (`TMVCStaticFilesMiddleware` in a 3.4 project) |
 
 Bootstrap docs: https://getbootstrap.com/docs/5.3/ — read the component page rather than guessing class names.

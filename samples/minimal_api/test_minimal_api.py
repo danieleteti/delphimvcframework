@@ -121,7 +121,7 @@ class MinimalAPITests(unittest.TestCase):
         # not wrapped in {"message": "..."}.
         r = requests.get(f"{BASE}/v1/people")
         self.assertEqual(r.status_code, 200)
-        body = r.json()
+        body = r.json().get("data", r.json())  # a returned object comes as {"data": ...}
         self.assertEqual(body["version"], 1)
         self.assertTrue(body["deprecated"])
         self.assertIn("sunset", body)
@@ -139,7 +139,7 @@ class MinimalAPITests(unittest.TestCase):
     def test_200_v2_people_no_deprecation(self):
         r = requests.get(f"{BASE}/v2/people")
         self.assertEqual(r.status_code, 200)
-        body = r.json()
+        body = r.json().get("data", r.json())
         self.assertEqual(body["version"], 2)
         self.assertNotIn("deprecated", body)
         self.assertGreaterEqual(body["count"], 2)
@@ -208,7 +208,7 @@ class MinimalAPITests(unittest.TestCase):
             headers={"X-Admin-Key": "s3cret"},
         )
         self.assertEqual(r.status_code, 200)
-        body = r.json()
+        body = r.json().get("data", r.json())
         self.assertEqual(body["stats"], "all good")
 
     # ------ Hybrid record binding -----------------------------------------
@@ -219,7 +219,7 @@ class MinimalAPITests(unittest.TestCase):
             headers={"X-Tenant": "acme"},
         )
         self.assertEqual(r.status_code, 200)
-        body = r.json()
+        body = r.json().get("data", r.json())
         self.assertEqual(body["tenant"], "acme")
         self.assertEqual(body["page"], 2)
         self.assertEqual(body["pageSize"], 10)
@@ -228,7 +228,7 @@ class MinimalAPITests(unittest.TestCase):
     def test_410_search_uses_attribute_defaults(self):
         r = requests.get(f"{BASE}/search")
         self.assertEqual(r.status_code, 200)
-        body = r.json()
+        body = r.json().get("data", r.json())
         self.assertEqual(body["tenant"], "default")
         self.assertEqual(body["page"], 1)
         self.assertEqual(body["pageSize"], 20)

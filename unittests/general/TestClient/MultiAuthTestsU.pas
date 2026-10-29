@@ -8,6 +8,8 @@ unit MultiAuthTestsU;
 
 interface
 
+{$WARN SYMBOL_DEPRECATED OFF} // the middleware are tested on purpose
+
 uses
   DUnitX.TestFramework,
   System.SysUtils,
@@ -53,7 +55,11 @@ type
   TMultiAuthTests = class
   private
     fServer: IMVCServer;
+    fEngine: TMVCEngine;
     function Get(const aAuthorization: string): IHTTPResponse;
+  protected
+    function Port: Integer; virtual;
+    procedure AddAuthentication(const AEngine: TMVCEngine); virtual;
   public
     [SetupFixture]
     procedure SetupFixture;
@@ -73,10 +79,20 @@ type
     procedure BearerAfterBasicSessionOnTheSameClientIsAccepted;
   end;
 
+  // the same tests with the filters: MemorySessionHTTPFilter, BasicAuthenticationBundle and JWTAuthenticationBundle
+  [TestFixture]
+  TMultiAuthFilterTests = class(TMultiAuthTests)
+  protected
+    function Port: Integer; override;
+    procedure AddAuthentication(const AEngine: TMVCEngine); override;
+  end;
+
 implementation
 
 uses
   System.NetEncoding,
+  MVCFramework.Filters,
+  MVCFramework.Filters.Authentication,
   MVCFramework.Middleware.Authentication,
   MVCFramework.Middleware.JWT,
   MVCFramework.Middleware.Session,
@@ -90,6 +106,19 @@ const
 function BasicHeader(const aUser, aPassword: string): string;
 begin
   Result := 'Basic ' + TNetEncoding.Base64.Encode(aUser + ':' + aPassword);
+end;
+
+// the token of a login answer {"token": "..."}
+function TokenOf(const AResponse: IHTTPResponse): string;
+var
+  lJSON: TJsonObject;
+begin
+  lJSON := StrToJSONObject(AResponse.ContentAsString);
+  try
+    Result := lJSON.S['token'];
+  finally
+    lJSON.Free;
+  end;
 end;
 
 { TMultiAuthController }
@@ -133,32 +162,63 @@ end;
 
 { TMultiAuthTests }
 
+const
+  MULTIAUTH_SECRET = 'multi_auth_tests_secret_not_used_to_sign_anything_3d9a';
+
+procedure MultiAuthClaims(const AJWT: TJWT);
+begin
+  AJWT.Claims.ExpirationTime := Now + 1;
+end;
+
+function TMultiAuthTests.Port: Integer;
+begin
+  Result := MULTIAUTH_PORT;
+end;
+
+procedure TMultiAuthTests.AddAuthentication(const AEngine: TMVCEngine);
+begin
+  AEngine.AddMiddleware(UseMemorySessionMiddleware);
+  AEngine.AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(TMultiAuthHandler.Create(True)));
+  AEngine.AddMiddleware(TMVCJWTAuthenticationMiddleware.Create(
+    TMultiAuthHandler.Create(False),
+    MultiAuthClaims,
+    MULTIAUTH_SECRET,
+    '/login',
+    [TJWTCheckableClaim.ExpirationTime],
+    300));
+end;
+
 procedure TMultiAuthTests.SetupFixture;
 var
   lEngine: TMVCEngine;
 begin
   lEngine := TMVCEngine.Create;
+  fEngine := lEngine;
   lEngine.AddController(TMultiAuthController);
-  lEngine.AddMiddleware(UseMemorySessionMiddleware);
-  lEngine.AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(TMultiAuthHandler.Create(True)));
-  lEngine.AddMiddleware(TMVCJWTAuthenticationMiddleware.Create(
-    TMultiAuthHandler.Create(False),
-    procedure(const JWT: TJWT)
-    begin
-      JWT.Claims.ExpirationTime := Now + 1;
-    end,
-    'multi_auth_tests_secret_not_used_to_sign_anything_3d9a',
-    '/login',
-    [TJWTCheckableClaim.ExpirationTime],
-    300));
+  AddAuthentication(lEngine);
   fServer := TMVCServerFactory.CreateIndyDirect(lEngine);
-  fServer.Listen(MULTIAUTH_PORT);
+  fServer.Listen(Port);
+end;
+
+{ TMultiAuthFilterTests }
+
+function TMultiAuthFilterTests.Port: Integer;
+begin
+  Result := MULTIAUTH_PORT + 63; // 8962
+end;
+
+procedure TMultiAuthFilterTests.AddAuthentication(const AEngine: TMVCEngine);
+begin
+  AEngine.Use(MemorySessionHTTPFilter(0));
+  AEngine.Use(BasicAuthenticationBundle(TMultiAuthHandler.Create(True)));
+  AEngine.Use(JWTAuthenticationBundle(TMultiAuthHandler.Create(False), MultiAuthClaims, MULTIAUTH_SECRET, '/login'));
 end;
 
 procedure TMultiAuthTests.TeardownFixture;
 begin
   fServer.Stop;
   fServer := nil;
+  FreeAndNil(fEngine); // the server does not own the engine
 end;
 
 function TMultiAuthTests.Get(const aAuthorization: string): IHTTPResponse;
@@ -173,7 +233,7 @@ begin
   // a client of its own: the Basic middleware opens a session, a shared cookie would carry the login over
   lClient := THTTPClient.Create;
   try
-    Result := lClient.Get('http://localhost:' + MULTIAUTH_PORT.ToString + '/api/secure', nil, lHeaders);
+    Result := lClient.Get('http://localhost:' + Port.ToString + '/api/secure', nil, lHeaders);
   finally
     lClient.Free;
   end;
@@ -209,14 +269,14 @@ begin
   lClient := THTTPClient.Create;
   lBody := TStringStream.Create('');
   try
-    lLogin := lClient.Post('http://localhost:' + MULTIAUTH_PORT.ToString + '/login', lBody, nil,
+    lLogin := lClient.Post('http://localhost:' + Port.ToString + '/login', lBody, nil,
       [TNameValuePair.Create('Authorization', BasicHeader(USER, USER))]);
   finally
     lBody.Free;
     lClient.Free;
   end;
   Assert.AreEqual(200, lLogin.StatusCode, lLogin.ContentAsString);
-  lToken := StrToJSONObject(lLogin.ContentAsString).S['token'];
+  lToken := TokenOf(lLogin);
   lRes := Get('Bearer ' + lToken);
   Assert.AreEqual(200, lRes.StatusCode, lRes.ContentAsString);
   Assert.AreEqual('ok', lRes.ContentAsString);
@@ -239,13 +299,13 @@ var
   lUrl: string;
 begin
   // one client keeps the session cookie the Basic middleware opens: the token must still be read
-  lUrl := 'http://localhost:' + MULTIAUTH_PORT.ToString;
+  lUrl := 'http://localhost:' + Port.ToString;
   lClient := THTTPClient.Create;
   lBody := TStringStream.Create('');
   try
     lRes := lClient.Post(lUrl + '/login', lBody, nil, [TNameValuePair.Create('Authorization', BasicHeader(USER, USER))]);
     Assert.AreEqual(200, lRes.StatusCode, lRes.ContentAsString);
-    lToken := StrToJSONObject(lRes.ContentAsString).S['token'];
+    lToken := TokenOf(lRes);
     lRes := lClient.Get(lUrl + '/api/secure', nil, [TNameValuePair.Create('Authorization', BasicHeader(USER, USER))]);
     Assert.AreEqual(200, lRes.StatusCode, 'Basic: ' + lRes.ContentAsString);
     lRes := lClient.Get(lUrl + '/api/secure', nil, [TNameValuePair.Create('Authorization', 'Bearer ' + lToken)]);
@@ -260,5 +320,6 @@ end;
 initialization
 
 TDUnitX.RegisterTestFixture(TMultiAuthTests);
+TDUnitX.RegisterTestFixture(TMultiAuthFilterTests);
 
 end.

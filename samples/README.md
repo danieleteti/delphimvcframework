@@ -47,7 +47,7 @@ Each folder contains a self-contained sample project. Build with Delphi 10.1+ an
 | `middleware_oidc` | OpenID Connect (Keycloak, Entra ID, Auth0, Google...) |
 | `middleware_oidc_docker` | OIDC with Docker Compose, PostgreSQL, user provisioning |
 | `middleware_oidc_jwks` | OIDC with cryptographic ID-token signature verification via JWKS |
-| `jsonwebtoken_refreshtoken` | Access token + refresh token rotation |
+| `jsonwebtoken_refreshtoken` | Access token + refresh token rotation: `JWTAuthenticationBundle` with a refresh token store |
 | `jwt_asymmetric_auth` | Asymmetric JWT (RS256 via TaurusTLS): private key signs, public key verifies. Includes a test suite over all 16 supported algorithms |
 | `custom_auth` | Custom authentication (client + server) |
 | `custom_role_auth` | Custom role-based authorization (client + server) |
@@ -225,7 +225,7 @@ Each folder contains a self-contained sample project. Build with Delphi 10.1+ an
 | `profiling` | Performance profiling |
 | `profiling_showcase` | Detailed profiling metrics |
 | `concurrency_speed_test` | Concurrent request performance benchmarks |
-| `staticfiles_test` | Verification harness for the HTTP filters: StaticFiles, Compression, ETag, IPBlock, RateLimit, CORS, BasicAuth, sessions. Exits non-zero on failure |
+| `staticfiles_test` | Verification harness for the filters: StaticFilesHTTPFilter, FileServerBundle, CompressionHTTPFilter, ETagHTTPFilter, IPBlockHTTPFilter, RateLimitHTTPFilter, CORSHTTPFilter, BasicAuthEndpointFilter, sessions. Exits non-zero on failure |
 | `error_page_test` | Verification harness for `UseExceptionHandler`: HTML error pages for browsers, JSON left untouched for APIs |
 
 ## Data Structures & Utilities

@@ -38,7 +38,7 @@ begin
       Config[TMVCConfigKey.DefaultContentType] := TMVCMediaType.APPLICATION_JSON;
     end);
   try
-    ConfigureEngine(lEngine);   // controllers + middleware — shared with every host
+    ConfigureEngine(lEngine);   // controllers + filters — shared with every host
     lServer := TMVCServerFactory.CreateIndyDirect(lEngine);
     lServer.RunAndWait(APort);  // Listen + wait for the termination signal + Stop
   finally
@@ -89,7 +89,7 @@ deployment requirements, and an older app may simply predate Indy Direct.
 
 **If the project you are working in is WebBroker-hosted, keep it.** Add controllers and configure the engine
 exactly as you would anywhere else — everything above the host (controllers, actions, routing, `IMVCResponse`,
-ActiveRecord, validation, DI, middleware, JWT, serialization) is **identical**. Do not migrate it, and do not
+ActiveRecord, validation, DI, filters, JWT, serialization) is **identical**. Do not migrate it, and do not
 suggest migrating it unless the user asks.
 
 The engine is built **per WebModule**, hence the configuration callback:
@@ -177,6 +177,6 @@ end.
 
 Supported FireDAC DriverIDs: `PG` (PostgreSQL), `MySQL`, `FB` (Firebird), `IB` (Interbase), `MSSQL`, `SQLite`.
 
-Call `SetupDatabaseConnection` once at startup, before the engine registers `TMVCActiveRecordMiddleware`.
+Call `SetupDatabaseConnection` once at startup, before the engine registers `ActiveRecordHTTPFilter` (`TMVCActiveRecordMiddleware` in projects from a 3.4 wizard).
 
 ---

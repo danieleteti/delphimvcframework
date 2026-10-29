@@ -26,6 +26,8 @@ unit MVCFramework.Middleware.Compression;
 
 {$I dmvcframework.inc}
 
+{$WARN SYMBOL_DEPRECATED OFF} // the class is deprecated for its users, not inside its own unit
+
 interface
 
 uses
@@ -48,7 +50,7 @@ type
     procedure OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
   public
     constructor Create(aCompressionThreshold: Integer = 1024); virtual;
-  end;
+  end deprecated 'Use the Compression HTTP filter (MVCFramework.Filters): AEngine.Use(CompressionHTTPFilter(...))';
 
 implementation
 

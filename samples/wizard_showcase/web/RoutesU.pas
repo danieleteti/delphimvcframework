@@ -27,10 +27,10 @@ unit RoutesU;
 //   GET    /forms                  TemplatePro forms library, every macro (FormsDemoU)
 //   POST   /forms                  server-side validation round trip, 422 on errors
 //
-// /people/* is mounted via Prefix('/people').Use(LogFilter()), so every route
+// /people/* is mounted via Prefix('/people').Use(LogEndpointFilter()), so every route
 // under that prefix also demonstrates endpoint-filter composition.
 //
-// Session is set up via the MemorySession() filter on the public group, exactly
+// Session is set up via the MemorySessionEndpointFilter() filter on the public group, exactly
 // as in the default minimal-web scaffold — kept here so /context can demo a
 // cookie round-trip without extra ceremony.
 
@@ -58,7 +58,7 @@ uses
 // =============================================================================
 // Endpoint filter — attached to /people group via .Use.
 // =============================================================================
-function LogFilter: TMVCEndpointFilter;
+function LogEndpointFilter: TMVCEndpointFilter;
 begin
   Result := function (const Ctx: TWebContext;
                        const Next: TMVCEndpointFilterNext): IMVCResponse
@@ -128,7 +128,7 @@ begin
   // .AsWeb stamps every route rkWeb (excluded from OpenAPI by default).
   // MemorySession is a filter inherited by nested groups; /context reads and
   // writes the 'theme' cookie through TWebContext.Cookie() (set below).
-  lWeb := ARoot.AsWeb.Use(MemorySession(30));
+  lWeb := ARoot.AsWeb.Use(MemorySessionEndpointFilter(30));
 
   // Handlers below follow the ASP.NET Core Minimal APIs discipline: typed
   // args for every dependency, no static ambient helpers. The only ambient
@@ -143,8 +143,8 @@ begin
       Result := RenderView('pages/index');
     end);
 
-  // 2..3 mounted under /people with a shared LogFilter.
-  lPeople := lWeb.Prefix('/people').Use(LogFilter());
+  // 2..3 mounted under /people with a shared LogEndpointFilter.
+  lPeople := lWeb.Prefix('/people').Use(LogEndpointFilter());
 
   // 2. DI INTERFACE arg. IPeopleService is registered in ServicesU; minimal API
   //    resolves any interface argument from the service container.

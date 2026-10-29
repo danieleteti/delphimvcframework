@@ -38,8 +38,8 @@
 //       end);
 //
 //   lEngine.Prefix('/api/v1')
-//     .Use(LoggingFilter())
-//     .Use(BearerAuthFilter())
+//     .Use(LoggingEndpointFilter())
+//     .Use(AuthorizeEndpointFilter())
 //     .MapPost<TPerson, IPeopleService>('/people',
 //       function (Person: TPerson; Svc: IPeopleService): IMVCResponse
 //       begin
@@ -93,6 +93,15 @@ type
   // All groups start as rkApi. Call .AsWeb on a group to mark it (and every
   // route + nested sub-group it produces) as rkWeb.
   TMVCRouteKind = (rkApi, rkWeb);
+
+  // WithOpenAPI: whether the route is in the OpenAPI document.
+  TMVCOpenAPIVisibility = (oavVisible, oavHidden);
+
+  // Who frees the data of a typed route group (Prefix<T>).
+  TMVCGroupDataOwnership = (
+    gdoEngine, // the engine, at shutdown
+    gdoCaller  // the caller, which must keep it alive as long as the engine
+  );
 
   EMVCMinimalAPI = class(EMVCException);
 
@@ -195,15 +204,21 @@ type
   //     end);
   // -------------------------------------------------------------------------
 
-  TMVCEndpointFilterNext = reference to function: IMVCResponse;
-  TMVCEndpointFilter = reference to function(const AContext: TWebContext;
-    const ANext: TMVCEndpointFilterNext): IMVCResponse;
+  // Declared in MVCFramework, because the engine runs them for controller actions too
+  // (TMVCEngine.Use); the names stay valid from this unit.
+  TMVCEndpointFilterNext = MVCFramework.TMVCEndpointFilterNext;
+  TMVCEndpointFilter = MVCFramework.TMVCEndpointFilter;
+  // A bundle on a group: the endpoint part on the group, the HTTP part on the engine (TMVCRouteGroup<T>.Use).
+  IMVCFilterBundle = MVCFramework.IMVCFilterBundle;
+  TMVCFilterBundle = MVCFramework.TMVCFilterBundle;
 
   // -------------------------------------------------------------------------
   // HTTP filter — operates at the transport level, BEFORE routing happens.
   //
-  // HTTPFilters wrap the entire minimal-API request handling (TryMatch +
-  // EndpointFilter chain + render). They:
+  // HTTPFilters wrap the whole request: the classic middleware hooks, routing,
+  // the controller action or the minimal-API route (TryMatch + EndpointFilter
+  // chain + render) and the end of the request. The engine runs them, so they
+  // wrap a controller action exactly as they wrap a route. They:
   //   * see Ctx.Request before any route is matched
   //   * mutate Ctx.Response directly (no IMVCResponse abstraction)
   //   * compose via chain-of-responsibility (Next() invokes the inner chain)
@@ -228,12 +243,11 @@ type
   //   * Security headers (post-Next, stamp on every response)
   //   * Request log / Analytics (pre+post around Next, capture timing)
   //
-  // Wired on the engine via lEngine.UseHTTPFilter(...).
+  // Wired on the engine via lEngine.Use(...).
   // -------------------------------------------------------------------------
-  TMVCHTTPFilterNext = reference to procedure;
-  TMVCHTTPFilter = reference to procedure (
-    const AContext: TWebContext;
-    const ANext: TMVCHTTPFilterNext);
+  // Declared in MVCFramework (TMVCEngine.Use is a method of the engine); the names stay valid here.
+  TMVCHTTPFilterNext = MVCFramework.TMVCHTTPFilterNext;
+  TMVCHTTPFilter = MVCFramework.TMVCHTTPFilter;
 
   // -------------------------------------------------------------------------
   // Route registry — TMVCMinimalRoute now carries group data + hook arrays.
@@ -313,14 +327,14 @@ type
     function WithTags(const ATag: string): TMVCRouteHandle; overload;
     function WithTags(const ATags: TArray<string>): TMVCRouteHandle; overload;
     // OpenAPI 3.x: marks the operation as deprecated.
-    function WithDeprecated(const AValue: Boolean = True): TMVCRouteHandle;
+    function WithDeprecated: TMVCRouteHandle;
     // OpenAPI 3.x: declares the schema of the 200 response body.
     function Produces<T>: TMVCRouteHandle;
     // Controls OpenAPI visibility for this route. Default is the route's
-    // group kind: rkApi -> visible; rkWeb -> hidden. Pass True on a web
-    // route to publish it (dual-output endpoints), or False on an API
-    // route to hide it (internal endpoints).
-    function WithOpenAPI(const AVisible: Boolean = True): TMVCRouteHandle;
+    // group kind: rkApi -> visible; rkWeb -> hidden. WithOpenAPI() on a web
+    // route publishes it (dual-output endpoints), WithOpenAPI(oavHidden) on
+    // an API route hides it (internal endpoints).
+    function WithOpenAPI(const AVisibility: TMVCOpenAPIVisibility = oavVisible): TMVCRouteHandle;
     // Route-scoped filter, appended after the group's filter stack.
     function Use(const AFilter: TMVCEndpointFilter): TMVCRouteHandle;
     // Escape hatch: access the underlying (primary) route.
@@ -340,14 +354,9 @@ type
   strict private
     fRoutes: TObjectList<TMVCMinimalRoute>;
     fOwnedData: TObjectList<TObject>;  // group data instances we own
-    fHTTPFilters: TArray<TMVCHTTPFilter>;
   public
     constructor Create;
     destructor Destroy; override;
-    // Append an HTTP filter to the engine-wide chain. First registered is
-    // outermost in the chain (runs first pre-Next, last post-Next).
-    procedure AddHTTPFilter(const AFilter: TMVCHTTPFilter);
-    property HTTPFilters: TArray<TMVCHTTPFilter> read fHTTPFilters;
     function Add(AVerb: TMVCHTTPMethodType; const APath: string;
       AThunk: TMVCMinimalThunk): TMVCMinimalRoute;
     // Route match + content negotiation. When multiple routes match the same
@@ -474,20 +483,30 @@ type
 
     // Same as above, with NEW typed group data. The data instance is
     // bound to the engine's lifetime (freed at engine shutdown) unless
-    // AOwns is False. Filters still inherit — typed data is the only
+    // AOwnership is gdoCaller. Filters still inherit — typed data is the only
     // thing that changes across the boundary.
     function Prefix<U: class>(const APath: string; const AData: U;
-      AOwns: Boolean = True): TMVCRouteGroup<U>; overload;
+      const AOwnership: TMVCGroupDataOwnership = gdoEngine): TMVCRouteGroup<U>; overload;
 
     // Endpoint filter (chain-of-responsibility). Filters are stacked in
     // registration order: the first one Use'd is the outermost.
-    function Use(const AFilter: TMVCEndpointFilter): TMVCRouteGroup<T>;
+    function Use(const AFilter: TMVCEndpointFilter): TMVCRouteGroup<T>; overload;
+    // A filter bundle: its endpoint filters go on the group, its HTTP filters
+    // (pre-routing, so engine-wide) on the engine, once whatever the number of
+    // groups. There is no Use for an HTTP filter on a group: it would not run
+    // for the group only. See IMVCFilterBundle. Raises EMVCConfigException for
+    // a bundle with no endpoint part (FileServerBundle: AEngine.Use) and for a
+    // bundle this group, or a group it is nested in, already uses.
+    // The HTTP part is on the engine as soon as this returns: discarding the
+    // result (AGroup.Use(B); instead of lGroup := AGroup.Use(B)) keeps the
+    // login of B and loses its check.
+    function Use(const ABundle: IMVCFilterBundle): TMVCRouteGroup<T>; overload;
 
     // Marks this group (and every route + nested sub-group it produces) as
     // rkWeb: HTML endpoints excluded from OpenAPI by default. Returns the
     // same group so it chains naturally with .Use(...) and .MapXxx(...).
     //
-    //   lEngine.Root.AsWeb.Use(MemorySession(10)).MapGet('/', HomeHandler);
+    //   lEngine.Root.AsWeb.Use(MemorySessionEndpointFilter(10)).MapGet('/', HomeHandler);
     function AsWeb: TMVCRouteGroup<T>;
 
     // Marks this group as rkApi (JSON, included in OpenAPI). Same as the
@@ -643,18 +662,13 @@ type
 
     // Open a route group with typed group data. The data instance is bound
     // to the engine's lifetime: it will be freed at engine shutdown unless
-    // AOwns is False (in which case the caller manages the lifetime).
+    // AOwnership is gdoCaller (in which case the caller manages the lifetime).
     function Prefix<T: class>(const APrefix: string; const AData: T;
-      AOwns: Boolean = True): TMVCRouteGroup<T>; overload;
+      const AOwnership: TMVCGroupDataOwnership = gdoEngine): TMVCRouteGroup<T>; overload;
 
     // Internal: wires a route into the registry from a TMVCRouteGroup<T>.
     function RegisterFromGroup(AVerb: TMVCHTTPMethodType; const APath: string;
       AThunk: TMVCMinimalThunk): TMVCMinimalRoute;
-
-    // Append an HTTP filter to the engine-wide chain. See TMVCHTTPFilter
-    // for semantics. Returns Self via the helper so calls can chain:
-    //   lEngine.UseHTTPFilter(IPBlock(banned)).UseHTTPFilter(Compression);
-    function UseHTTPFilter(const AFilter: TMVCHTTPFilter): TMVCEngine;
   end;
 
 // Returns the ViewData dictionary for the request currently being dispatched
@@ -701,8 +715,8 @@ function RenderViews(const AViewNames: TArray<string>;
 function Html(const AHtml: string): IMVCResponse;
 
 // -------------------------------------------------------------------------
-// Filter helpers (MemorySession, CORS, JWT, ActiveRecord, StaticFiles,
-// Compression, ETag, IPBlock, RateLimit, RequestLog, CORSFilter, ...) have
+// Filter helpers (MemorySessionEndpointFilter, CORSHTTPFilter, BasicAuthEndpointFilter,
+// ActiveRecordEndpointFilter, StaticFilesHTTPFilter, CompressionHTTPFilter, ...) have
 // moved to a dedicated unit: MVCFramework.Filters. Add it to your `uses` to
 // keep using them.
 // -------------------------------------------------------------------------
@@ -1176,9 +1190,9 @@ begin
   Result := Self;
 end;
 
-function TMVCRouteHandle.WithDeprecated(const AValue: Boolean): TMVCRouteHandle;
+function TMVCRouteHandle.WithDeprecated: TMVCRouteHandle;
 begin
-  SetMeta('deprecated', TValue.From<Boolean>(AValue));
+  SetMeta('deprecated', TValue.From<Boolean>(True));
   Result := Self;
 end;
 
@@ -1188,9 +1202,9 @@ begin
   Result := Self;
 end;
 
-function TMVCRouteHandle.WithOpenAPI(const AVisible: Boolean): TMVCRouteHandle;
+function TMVCRouteHandle.WithOpenAPI(const AVisibility: TMVCOpenAPIVisibility): TMVCRouteHandle;
 begin
-  SetMeta('openapi.visible', TValue.From<Boolean>(AVisible));
+  SetMeta('openapi.visible', TValue.From<Boolean>(AVisibility = oavVisible));
   Result := Self;
 end;
 
@@ -1273,18 +1287,6 @@ begin
   SetLength(Result, fRoutes.Count);
   for I := 0 to fRoutes.Count - 1 do
     Result[I] := fRoutes[I];
-end;
-
-procedure TMVCMinimalRegistry.AddHTTPFilter(const AFilter: TMVCHTTPFilter);
-var
-  lLen: Integer;
-begin
-  // Cannot use `arr + [AFilter]` here: the compiler interprets the
-  // open-array constructor over a procedure reference as an INVOCATION.
-  // Explicit SetLength append works.
-  lLen := Length(fHTTPFilters);
-  SetLength(fHTTPFilters, lLen + 1);
-  fHTTPFilters[lLen] := AFilter;
 end;
 
 function MatchPath(const APattern, APath: string;
@@ -1526,6 +1528,9 @@ begin
 
     for lField in lType.GetFields do
     begin
+      // an anonymous type (array [0..3] of Byte) has no RTTI: nothing to bind it with
+      if lField.FieldType = nil then
+        Continue;
       // ---- file binding: TMVCFormFile / TArray<TMVCFormFile> fields ----
       if (lField.FieldType.Handle = TypeInfo(TMVCFormFile))
          or SameText(lField.FieldType.QualifiedName,
@@ -1782,8 +1787,8 @@ begin
     Exit(lValue.AsType<T>);
   end;
 
-  // 3. Record -> hybrid binding
-  if lTypeInfo.Kind = tkRecord then
+  // 3. Record -> hybrid binding (TGUID is a primitive, step 5)
+  if (lTypeInfo.Kind = tkRecord) and (lTypeInfo <> TypeInfo(TGUID)) then
   begin
     lValue := TMVCMinimalArgResolver.BindRecordHybrid(AContext, lTypeInfo, ABoundObjects);
     Exit(lValue.AsType<T>);
@@ -2090,37 +2095,10 @@ end;
 // Build the chain of TMVCEndpointFilterNext closures so the FIRST filter
 // is the OUTERMOST and the handler is the innermost. Returns the closure
 // that, when called, drives the entire chain.
-function BuildHTTPFilterChain(
-  const AFilters: TArray<TMVCHTTPFilter>;
-  const ACtx: TWebContext;
-  const ATerminator: TMVCHTTPFilterNext): TMVCHTTPFilterNext;
-var
-  i: Integer;
-  lInner: TMVCHTTPFilterNext;
-  lFilter: TMVCHTTPFilter;
-begin
-  // innermost = the terminator (typically: do the actual minimal-API dispatch)
-  lInner := ATerminator;
-  // wrap each filter from LAST to FIRST so registration order = outer-to-inner
-  // at runtime (first registered fires first pre-Next, last post-Next).
-  for i := High(AFilters) downto 0 do
-  begin
-    lFilter := AFilters[i];
-    lInner := (function (const F: TMVCHTTPFilter;
-                         const NextRef: TMVCHTTPFilterNext): TMVCHTTPFilterNext
-      begin
-        Result := procedure
-          begin
-            F(ACtx, NextRef);
-          end;
-      end)(lFilter, lInner);
-  end;
-  Result := lInner;
-end;
-
 function BuildFilterChain(const ARoute: TMVCMinimalRoute;
   const ACtx: TWebContext;
-  const ARenderer: TMVCRenderer): TMVCEndpointFilterNext;
+  const ARenderer: TMVCRenderer;
+  const AEngineFilters: TArray<TMVCEndpointFilter>): TMVCEndpointFilterNext;
 var
   i: Integer;
   lInner: TMVCEndpointFilterNext;
@@ -2149,45 +2127,31 @@ begin
       end)(lFilter, lInner);
   end;
 
+  // the engine-wide endpoint filters (TMVCEngine.Use) go around the ones of the route
+  for i := High(AEngineFilters) downto 0 do
+  begin
+    lFilter := AEngineFilters[i];
+    lInner := (function (const F: TMVCEndpointFilter;
+                          const NextRef: TMVCEndpointFilterNext): TMVCEndpointFilterNext
+      begin
+        Result := function: IMVCResponse
+          begin
+            Result := F(ACtx, NextRef);
+          end;
+      end)(lFilter, lInner);
+  end;
+
   Result := lInner;
 end;
 
 procedure TMVCMinimalAPIMiddleware.OnBeforeRouting(AContext: TWebContext;
   var AHandled: Boolean);
-var
-  lFilters: TArray<TMVCHTTPFilter>;
-  lNextCalled, lInnerHandled: Boolean;
-  lTerminator: TMVCHTTPFilterNext;
 begin
   if AHandled then
     Exit;
-
-  lFilters := fRegistry.HTTPFilters;
-  if Length(lFilters) = 0 then
-  begin
-    // No HTTPFilters registered: pass straight to the inner dispatch.
-    DoMinimalDispatch(AContext, AHandled);
-    Exit;
-  end;
-
-  // HTTPFilters wrap the entire inner dispatch. Innermost terminator captures
-  // whether Next() was called so we can decide AHandled:
-  //   * Next called      -> defer to the inner dispatcher's verdict
-  //   * Next NOT called  -> the filter short-circuited (e.g. IP block 403,
-  //                          static file served, rate limit 429) - mark as
-  //                          handled so the engine stops processing
-  lNextCalled := False;
-  lInnerHandled := False;
-  lTerminator := procedure
-    begin
-      lNextCalled := True;
-      DoMinimalDispatch(AContext, lInnerHandled);
-    end;
-  BuildHTTPFilterChain(lFilters, AContext, lTerminator)();
-  if not lNextCalled then
-    AHandled := True
-  else
-    AHandled := lInnerHandled;
+  // The HTTP filters are not run here: the engine runs them around the whole request
+  // (TMVCEngine.Use), so they wrap the controllers as well as these routes.
+  DoMinimalDispatch(AContext, AHandled);
 end;
 
 procedure TMVCMinimalAPIMiddleware.DoMinimalDispatch(AContext: TWebContext;
@@ -2235,6 +2199,8 @@ begin
 
     // Wire ParamsTable into the context so the resolver can read segments.
     AContext.ParamsTable := lParamsTable;
+    // a route has no controller class: the endpoint filters get the verb and the pattern as the action
+    AContext.SetMatchedAction('', AContext.Request.Method + ' ' + lRoute.PathPattern);
 
     // Match TMVCEngine.HandleRequest semantics: measure the wall-clock time
     // spent dispatching the matched route, then fire the engine's OnRouterLog
@@ -2262,7 +2228,7 @@ begin
       GCurrentMinimalRenderer := lRenderer;
       try
         try
-          lResp := BuildFilterChain(lRoute, AContext, lRenderer)();
+          lResp := BuildFilterChain(lRoute, AContext, lRenderer, fEngine.EndpointFilters)();
           if lResp <> nil then
             TMVCRenderer.InternalRenderMVCResponse(lRenderer,
               TMVCResponse(lResp as TObject));
@@ -2358,13 +2324,6 @@ begin
   Result := GetOrCreateMiddleware.Registry.Add(AVerb, APath, AThunk);
 end;
 
-function TMVCEngineMinimalAPIHelper.UseHTTPFilter(
-  const AFilter: TMVCHTTPFilter): TMVCEngine;
-begin
-  GetOrCreateMiddleware.Registry.AddHTTPFilter(AFilter);
-  Result := Self;
-end;
-
 function TMVCEngineMinimalAPIHelper.Root: TMVCRouteGroup<TObject>;
 begin
   // Always starts as rkApi. Call .AsWeb on the returned group for HTML routes.
@@ -2382,12 +2341,12 @@ begin
 end;
 
 function TMVCEngineMinimalAPIHelper.Prefix<T>(const APrefix: string;
-  const AData: T; AOwns: Boolean): TMVCRouteGroup<T>;
+  const AData: T; const AOwnership: TMVCGroupDataOwnership): TMVCRouteGroup<T>;
 var
   lMW: TMVCMinimalAPIMiddleware;
 begin
   lMW := GetOrCreateMiddleware;
-  if AOwns and (AData <> nil) then
+  if (AOwnership = gdoEngine) and (AData <> nil) then
     lMW.Registry.TrackOwned(AData);
   Result := TMVCRouteGroup<T>.Create(Self, APrefix, AData);
 end;
@@ -2431,7 +2390,7 @@ begin
 end;
 
 function TMVCRouteGroup<T>.Prefix<U>(const APath: string; const AData: U;
-  AOwns: Boolean): TMVCRouteGroup<U>;
+  const AOwnership: TMVCGroupDataOwnership): TMVCRouteGroup<U>;
 var
   lFilter: TMVCEndpointFilter;
 begin
@@ -2442,7 +2401,7 @@ begin
   // by every nested route, regardless of whether the typed data changed.
   // The parent's RouteKind also propagates: a child of an .AsWeb group stays
   // rkWeb, even when the typed data slot changes.
-  Result := fEngine.Prefix<U>(fPrefix + APath, AData, AOwns);
+  Result := fEngine.Prefix<U>(fPrefix + APath, AData, AOwnership);
   if fRouteKind = rkWeb then
     Result := Result.AsWeb;
   for lFilter in fFilters do
@@ -2474,6 +2433,22 @@ begin
   lLen := Length(Result.fFilters);
   SetLength(Result.fFilters, lLen + 1);
   Result.fFilters[lLen] := AFilter;
+end;
+
+function TMVCRouteGroup<T>.Use(const ABundle: IMVCFilterBundle): TMVCRouteGroup<T>;
+var
+  lFilter, lOwn: TMVCEndpointFilter;
+begin
+  Result := Self;
+  for lFilter in fEngine.UseBundleOnGroup(ABundle) do
+  begin
+    // Prefix copies the filters of the parent: the endpoint part would run twice on the nested group
+    for lOwn in fFilters do
+      if PPointer(@lOwn)^ = PPointer(@lFilter)^ then
+        raise EMVCConfigException.Create('Use: this filter bundle is already used on this route group ' +
+          'or on a group it is nested in');
+    Result := Result.Use(lFilter);
+  end;
 end;
 
 function TMVCRouteGroup<T>.RegisterMany(

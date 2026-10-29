@@ -26,6 +26,8 @@ unit MVCFramework.Middleware.Redirect;
 
 {$I dmvcframework.inc}
 
+{$WARN SYMBOL_DEPRECATED OFF} // the class is deprecated for its users, not inside its own unit
+
 interface
 
 uses
@@ -48,7 +50,7 @@ type
     constructor Create(
       const RequestedPathInfos: TArray<String>;
       const RedirectToURL: String);
-  end;
+  end deprecated 'Use the Redirect HTTP filter (MVCFramework.Filters): AEngine.Use(RedirectHTTPFilter(...))';
 
 implementation
 

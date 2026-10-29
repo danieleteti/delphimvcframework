@@ -242,6 +242,12 @@
         <DCCReference Include="..\..\sources\MVCFramework.Serializer.Streaming.Items.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.MinimalAPI.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Filters.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Filters.Internal.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Filters.Authentication.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Filters.Authentication.Internal.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Filters.Swagger.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Filters.Swagger.Internal.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Filters.OpenAPI.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Middleware.StaticFiles.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.OpenAPI3.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Middleware.OpenAPI3.pas"/>

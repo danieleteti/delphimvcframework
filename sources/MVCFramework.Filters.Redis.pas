@@ -22,10 +22,12 @@
 //
 // ***************************************************************************
 //
-// Redis-backed filter helpers for the minimal-API surface. Kept in a
-// separate unit so MVCFramework.Filters does not pull DelphiRedisClient as
-// a hard dependency — only callers that actually use a Redis-backed filter
-// take the dep.
+// Redis-backed filters, in a unit of their own so that MVCFramework.Filters
+// does not depend on DelphiRedisClient.
+//
+// REQUIRES DelphiRedisClient, which is not part of DMVCFramework nor of its
+// packages: git clone --recursive https://github.com/danieleteti/delphiredisclient
+// and add its sources to the library path.
 //
 // ***************************************************************************
 
@@ -36,12 +38,10 @@ unit MVCFramework.Filters.Redis;
 interface
 
 uses
-  MVCFramework,
-  MVCFramework.Commons,
-  MVCFramework.MinimalAPI;
+  MVCFramework;
 
 // HTTPFilter that enforces a fixed-window rate limit per client IP, with
-// counters stored in Redis. Distributed equivalent of RateLimit() —
+// counters stored in Redis. Distributed equivalent of RateLimitHTTPFilter() —
 // suitable for multi-instance deployments behind a load balancer where the
 // in-memory per-process map would let each replica grant its own quota.
 // Exceeded buckets short-circuit with HTTP 429 + Retry-After.
@@ -52,10 +52,10 @@ uses
 //
 //   uses MVCFramework.Filters.Redis;
 //   ...
-//   lEngine.UseHTTPFilter(RateLimitRedis(100, 60));   // 100 req / minute / IP
-//   lEngine.UseHTTPFilter(RateLimitRedis(100, 60,
+//   lEngine.Use(RateLimitRedisHTTPFilter(100, 60));   // 100 req / minute / IP
+//   lEngine.Use(RateLimitRedisHTTPFilter(100, 60,
 //     '10.0.0.7', 6379, 'secret', 'myapp:rl:'));
-function RateLimitRedis(
+function RateLimitRedisHTTPFilter(
   const AMaxRequests: Integer = 60;
   const AWindowSeconds: Integer = 60;
   const ARedisHost: string = '127.0.0.1';
@@ -67,7 +67,6 @@ implementation
 
 uses
   System.SysUtils,
-  System.DateUtils,
   Redis.Client,
   Redis.Values,
   Redis.Commons,
@@ -121,7 +120,7 @@ begin
   Result := fKeyPrefix;
 end;
 
-function RateLimitRedis(const AMaxRequests: Integer;
+function RateLimitRedisHTTPFilter(const AMaxRequests: Integer;
   const AWindowSeconds: Integer;
   const ARedisHost: string;
   const ARedisPort: Integer;

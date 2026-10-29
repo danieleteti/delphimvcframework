@@ -3,7 +3,7 @@ unit Routes.RootU;
 
 // Minimal-API web app: the same pages as the controller-based one as
 // lambda routes, plus a login-protected Admin area.
-// Session and login are endpoint filters (.Use); PageDefaults fills the
+// Session and login are endpoint filters (.Use); PageDefaultsEndpointFilter fills the
 // ViewData every page of baselayout.html reads.
 
 interface
@@ -32,7 +32,7 @@ type
   end;
 
 // Values every page reads from baselayout.html
-function PageDefaults: TMVCEndpointFilter;
+function PageDefaultsEndpointFilter: TMVCEndpointFilter;
 begin
   Result :=
     function(const Ctx: TWebContext; const Next: TMVCEndpointFilterNext): IMVCResponse
@@ -45,7 +45,7 @@ begin
 end;
 
 // Redirect to ARedirectTo unless the session carries a 'user'.
-function RequireLogin(const ARedirectTo: string): TMVCEndpointFilter;
+function RequireLoginEndpointFilter(const ARedirectTo: string): TMVCEndpointFilter;
 begin
   Result :=
     function(const Ctx: TWebContext; const Next: TMVCEndpointFilterNext): IMVCResponse
@@ -82,10 +82,10 @@ begin
       Result := Ok(lInfo);
     end);
 
-  // Pages; MemorySession and PageDefaults are inherited by nested groups.
+  // Pages; MemorySession and PageDefaultsEndpointFilter are inherited by nested groups.
   lWeb := ARoot.AsWeb.Prefix('/web')
-    .Use(MemorySession(30, True, dotEnv.Env('SESSION_COOKIE_SECURE', True)))
-    .Use(PageDefaults());
+    .Use(MemorySessionEndpointFilter(30, SessionCookieFlags(dotEnv.Env('SESSION_COOKIE_SECURE', True))))
+    .Use(PageDefaultsEndpointFilter());
 
   lWeb.MapGet('',
     function: IMVCResponse
@@ -138,8 +138,13 @@ begin
 
   lWeb.MapPost<TWebContext, TLoginForm>('/login',
     function(Ctx: TWebContext; F: TLoginForm): IMVCResponse
+    var
+      lUser, lPassword: string;
     begin
-      if (F.Username = 'admin') and (F.Password = 'admin') then
+      // fail-closed until you replace this with a real user store
+      lUser := dotEnv.Env('ADMIN_USER');
+      lPassword := dotEnv.Env('ADMIN_PASSWORD');
+      if (not lUser.IsEmpty) and (not lPassword.IsEmpty) and (F.Username = lUser) and (F.Password = lPassword) then
       begin
         Ctx.SessionRegenerateId; // a new session id at login, against session fixation
         Ctx.Session['user'] := F.Username;
@@ -155,8 +160,8 @@ begin
       end;
     end);
 
-  // Login-protected admin subtree (inherits MemorySession and PageDefaults via Prefix).
-  lAdmin := lWeb.Prefix('/admin').Use(RequireLogin('/web/login'));
+  // Login-protected admin subtree (inherits MemorySessionEndpointFilter and PageDefaultsEndpointFilter via Prefix).
+  lAdmin := lWeb.Prefix('/admin').Use(RequireLoginEndpointFilter('/web/login'));
 
   lAdmin.MapGet<TWebContext>('/',
     function(Ctx: TWebContext): IMVCResponse

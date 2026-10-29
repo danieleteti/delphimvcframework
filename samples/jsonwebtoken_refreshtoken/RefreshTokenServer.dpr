@@ -9,7 +9,7 @@ uses
   IdHTTPWebBrokerBridge,
   MVCFramework.Commons,
   WebModuleU in 'WebModuleU.pas' {WebModule1: TWebModule},
-  AuthControllerU in 'AuthControllerU.pas',
+  ProtectedControllerU in 'ProtectedControllerU.pas',
   AuthenticationU in 'AuthenticationU.pas',
   SharedU in 'SharedU.pas';
 

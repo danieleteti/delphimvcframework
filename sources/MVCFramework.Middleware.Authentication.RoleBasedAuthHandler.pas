@@ -26,6 +26,8 @@
 
 unit MVCFramework.Middleware.Authentication.RoleBasedAuthHandler;
 
+{$WARN SYMBOL_DEPRECATED OFF} // the classes are deprecated for their users, not inside their own unit
+
 interface
 
 uses
@@ -99,7 +101,7 @@ type
   public
     constructor Create(const AAuthenticationHandler: IMVCAuthenticationHandler;
       const ALoginUrl: string = '/system/users/logged'); override;
-  end;
+  end deprecated 'Use the custom authentication filter bundle (MVCFramework.Filters.Authentication) with a TRoleBasedAuthHandler: AEngine.Use(CustomAuthenticationBundle(...)), after a session HTTP filter';
 
 implementation
 
@@ -232,6 +234,13 @@ begin
 
   // Check all Role requirements on the controller level
   vRttiType := FRttiContext.FindType(ControllerQualifiedClassName);
+  // no controller (a Minimal API route): no attribute can restrict it. A controller RTTI cannot find by
+  // name (e.g. declared in an implementation section) could carry MVCRequiresRole: refused
+  if vRttiType = nil then
+  begin
+    IsAuthorized := ControllerQualifiedClassName = '';
+    Exit;
+  end;
   if TryGetAttributes<MVCRequiresRoleAttribute>(vRttiType.GetAttributes, vAttributes) then
     if not CheckUserRoles(AContext, UserRoles, vAttributes) then
     begin
@@ -243,7 +252,8 @@ begin
   // we have successfully cleared these.
   // Verify all roles on the Action.
   vRttiMethod := vRttiType.GetMethod(ActionName);
-  if TryGetAttributes<MVCRequiresRoleAttribute>(vRttiMethod.GetAttributes, vAttributes) then
+  if Assigned(vRttiMethod) and
+    TryGetAttributes<MVCRequiresRoleAttribute>(vRttiMethod.GetAttributes, vAttributes) then
     if not CheckUserRoles(AContext, UserRoles, vAttributes) then
     begin
       IsAuthorized := False;
@@ -259,14 +269,21 @@ var
   vRttiMethod: TRttiMethod;
 begin
   vRttiType := FRttiContext.FindType(ControllerQualifiedClassName);
+  // no controller (a Minimal API route) or not a type RTTI knows: nothing says it is public
+  if vRttiType = nil then
+  begin
+    AuthenticationRequired := True;
+    Exit;
+  end;
 
   // Check class and Actions if they have role definitions.
   AuthenticationRequired := TryGetAttributes<MVCRequiresAuthenticationAttribute>(vRttiType.GetAttributes, vAttributes);
   if not AuthenticationRequired then
   begin
     vRttiMethod := vRttiType.GetMethod(ActionName);
-    AuthenticationRequired := TryGetAttributes<MVCRequiresAuthenticationAttribute>(vRttiMethod.GetAttributes,
-      vAttributes);
+    // an action RTTI does not know: nothing says it is public
+    AuthenticationRequired := (vRttiMethod = nil) or
+      TryGetAttributes<MVCRequiresAuthenticationAttribute>(vRttiMethod.GetAttributes, vAttributes);
   end;
 end;
 

@@ -24,8 +24,8 @@ uses
 {{if webmodule_middleware_jwt}}
   System.DateUtils,
   MVCFramework.DotEnv,
-  MVCFramework.Filters,
   MVCFramework.JWT,
+  MVCFramework.Filters.Authentication,
   {{:authentication_unit_name}},
 {{else}}
   MVCFramework.Filters,
@@ -33,41 +33,34 @@ uses
   System.SysUtils,
   MVCFramework.Commons;
 
+// Auth filter applied locally: every route on lAdmin requires Bearer. Use() returns a modified copy.
+procedure RegisterAdminRoutes(const AGroup: TMVCRouteGroup<TObject>);
+var
+  lAdmin: TMVCRouteGroup<TObject>;
 {{if webmodule_middleware_jwt}}
-// Bearer-JWT gate for the admin subtree. It also serves the login endpoint that
-// lives inside the group: POST /api/v1/admin/login with jwtusername and jwtpassword
-// headers returns a token. Verification happens here, in the route pipeline: the
-// classic JWT middleware verifies in OnBeforeControllerAction, which a minimal-API
-// route never reaches.
-function BearerAuthFilter: TMVCEndpointFilter;
+  lJWTOptions: TMVCJWTAuthenticationOptions;
+{{endif}}
 begin
-  Result := JWT(
-    {{:authentication_classname}}.Create,
-    procedure(const JWT: TJWT)
+{{if webmodule_middleware_jwt}}
+  // POST /api/v1/admin/login with the jwtusername / jwtpassword headers answers {"token": "..."}.
+  // The login goes on the engine (before routing), the token check covers this group only.
+  lJWTOptions := TMVCJWTAuthenticationOptions.Default;
+  lJWTOptions.Handler := {{:authentication_classname}}.Create;
+  lJWTOptions.ClaimsSetup := procedure(const JWT: TJWT)
     begin
       JWT.Claims.Issuer := dotEnv.Env('JWT_ISSUER', '{{:program_name}}');
       JWT.Claims.ExpirationTime := Now + OneHour;
       JWT.Claims.NotBefore := Now - OneMinute * 5;
       JWT.Claims.IssuedAt := Now;
-    end,
-    dotEnv.Env('JWT_SECRET'),  // no fallback: a missing key must fail, not sign with a public string
-    '/api/v1/admin/login',
-    [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt],
-    300);
-end;
-{{endif}}
-
-// Auth filter applied locally: every route on lAdmin requires Bearer. Use() returns a modified copy.
-procedure RegisterAdminRoutes(const AGroup: TMVCRouteGroup<TObject>);
-var
-  lAdmin: TMVCRouteGroup<TObject>;
-begin
-{{if webmodule_middleware_jwt}}
-  lAdmin := AGroup.Use(BearerAuthFilter());
+    end;
+  lJWTOptions.Secret := dotEnv.Env('JWT_SECRET'); // no fallback: a missing key must fail, not sign with a public string
+  lJWTOptions.LoginURL := '/api/v1/admin/login';
+  lJWTOptions.ClaimsToCheck := [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt];
+  lAdmin := AGroup.Use(JWTAuthenticationBundle(lJWTOptions));
 {{else}}
-  // The token is checked by BearerAuthFilter in EngineConfigU; Authorize refuses with 401
+  // The token is checked by BearerAuthHTTPFilter in EngineConfigU; AuthorizeEndpointFilter refuses with 401
   // anything that reaches these routes without a logged user, so a lost filter fails closed.
-  lAdmin := AGroup.Use(Authorize());
+  lAdmin := AGroup.Use(AuthorizeEndpointFilter());
 {{endif}}
 
   lAdmin.MapGet('/health',
@@ -93,7 +86,7 @@ begin
       Result := Redirect('/api/v1/hello');
 {{if program_openapi_native}}
     end)
-    .WithOpenAPI(False); // a redirect, not part of the API
+    .WithOpenAPI(oavHidden); // a redirect, not part of the API
 {{else}}
     end);
 {{endif}}

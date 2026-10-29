@@ -29,6 +29,8 @@ unit MVCFramework.Middleware.ETag;
 
 {$I dmvcframework.inc}
 
+{$WARN SYMBOL_DEPRECATED OFF} // the class is deprecated for its users, not inside its own unit
+
 interface
 
 uses
@@ -50,7 +52,7 @@ type
     procedure OnAfterControllerAction(AContext: TWebContext; const AControllerQualifiedClassName: string;
       const AActionName: string; const AHandled: Boolean);
     procedure OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
-  end;
+  end deprecated 'Use the ETag HTTP filter (MVCFramework.Filters): AEngine.Use(ETagHTTPFilter())';
 
 implementation
 

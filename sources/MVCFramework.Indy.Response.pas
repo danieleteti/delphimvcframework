@@ -295,14 +295,17 @@ end;
 procedure TMVCIndyDirectResponse.SetContentStream(const AStream: TStream;
   const AContentType: string);
 begin
-  FResponseInfo.ContentStream := AStream;
-  FResponseInfo.FreeContentStream := True;
+  InternalSetContentStream(AStream, True);
   ContentType := AContentType;
 end;
 
 procedure TMVCIndyDirectResponse.InternalSetContentStream(const AStream: TStream;
   const AOwns: Boolean);
 begin
+  // Indy's ContentStream is a plain field: the stream it owned is freed here, as HTTP.sys and WebBroker do
+  if FResponseInfo.FreeContentStream and Assigned(FResponseInfo.ContentStream) and
+    (FResponseInfo.ContentStream <> AStream) then
+    FResponseInfo.ContentStream.Free;
   FResponseInfo.ContentStream := AStream;
   FResponseInfo.FreeContentStream := AOwns;
 end;
@@ -313,6 +316,8 @@ begin
 end;
 
 type
+  TIdHTTPResponseInfoAccess = class(TIdHTTPResponseInfo); // reaches the protected FRequestInfo (the verb)
+
   TMVCIndyChunkedWriter = class(TInterfacedObject, IMVCChunkedResponseWriter)
   private
     FResponseInfo: TIdHTTPResponseInfo;
@@ -372,6 +377,9 @@ begin
   except
     FConnected := False;
   end;
+  // a HEAD: the headers are the whole answer, and with Connected False the source stops
+  if TIdHTTPResponseInfoAccess(FResponseInfo).FRequestInfo.CommandType = hcHEAD then
+    FConnected := False;
 end;
 
 procedure TMVCIndyChunkedWriter.WriteChunk(const ABytes: TBytes);

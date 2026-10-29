@@ -536,6 +536,13 @@ begin
       Exit;
     end;
 
+    // TGUID is a record the serializer writes as a string: string/uuid, not an object of D1..D4
+    if ATypeInfo = TypeInfo(TGUID) then
+    begin
+      FillPrimitiveSchema(Result, ATypeInfo);
+      Exit;
+    end;
+
     case ATypeInfo^.Kind of
       tkClass:
         begin
@@ -637,7 +644,8 @@ end;
 function TMVCMinimalAPIOpenAPISource.LooksLikeRecord(
   ATypeInfo: PTypeInfo): Boolean;
 begin
-  Result := (ATypeInfo <> nil) and (ATypeInfo^.Kind = tkRecord);
+  // TGUID is bound as a primitive (a route or query value), not field by field
+  Result := (ATypeInfo <> nil) and (ATypeInfo^.Kind = tkRecord) and (ATypeInfo <> TypeInfo(TGUID));
 end;
 
 function TMVCMinimalAPIOpenAPISource.ConvertPathPattern(const APattern: string;
@@ -862,6 +870,9 @@ begin
           lRttiType := lRttiCtx.GetType(lTypeInfo);
           for lField in lRttiType.GetFields do
           begin
+            // no RTTI type (array [0..3] of Byte): the binder skips it too
+            if lField.FieldType = nil then
+              Continue;
             // Form-file fields are multipart body inputs, not query/header/cookie
             // parameters — skip them here (they would produce an invalid schema).
             if (lField.FieldType.Handle = TypeInfo(TMVCFormFile))
@@ -1111,6 +1122,37 @@ begin
     end;
 end;
 
+// The media type of the action's [MVCProduces], '' when it has none.
+function ActionProducesMediaType(AMethod: TRttiMethod): string;
+var
+  lAttr: TCustomAttribute;
+begin
+  for lAttr in AMethod.GetAttributes do
+    if lAttr is MVCProducesAttribute then
+      Exit(MVCProducesAttribute(lAttr).Value);
+  Result := '';
+end;
+
+// application/json and the structured syntax suffix +json (RFC 6839)
+function IsJSONMediaType(const AMediaType: string): Boolean;
+begin
+  Result := SameText(AMediaType, TMVCMediaType.APPLICATION_JSON) or AMediaType.EndsWith('+json', True);
+end;
+
+// A stream is sent as it is: its body is not the JSON of the class.
+function IsStreamType(AType: TRttiType): Boolean;
+begin
+  Result := (AType is TRttiInstanceType) and
+    TRttiInstanceType(AType).MetaclassType.InheritsFrom(TStream);
+end;
+
+function NewBinarySchema: TJsonObject;
+begin
+  Result := TJsonObject.Create;
+  Result.S['type'] := 'string';
+  Result.S['format'] := 'binary';
+end;
+
 procedure TMVCControllerOpenAPISource.EmitControllerOperation(
   const APathsObject: TJsonObject;
   const ASchemaBuilder: TMVCOpenAPISchemaBuilder;
@@ -1142,6 +1184,8 @@ var
   lDocAttr: TCustomAttribute;
   lOperationIsPath: Boolean;
   lTrimmedFullPattern: string;
+  lProduces: string;
+  lInner: TJsonObject;
 begin
   // Compose the full pattern: controller path + method path.
   lFullPattern := AControllerPath;
@@ -1387,16 +1431,32 @@ begin
   // way to declare per-status-code schemas.
   lResponses := lOperation.O['responses'];
   lReturnType := AMethod.ReturnType;
+  lProduces := ActionProducesMediaType(AMethod);
 
-  // Default 200 from return type
+  // Default 200 from return type, in the media type of [MVCProduces]. A
+  // stream is binary (application/octet-stream without [MVCProduces]).
   if (lReturnType <> nil) and (lReturnType.Name <> 'IMVCResponse')
      and (lReturnType.TypeKind in [tkClass, tkRecord, tkDynArray]) then
   begin
     lResponse := lResponses.O['200'];
     lResponse.S['description'] := 'OK';
     lContent := lResponse.O['content'];
-    lMediaType := lContent.O['application/json'];
-    lMediaType.O['schema'] := ASchemaBuilder.NewSchemaFor(lReturnType.Handle);
+    if IsStreamType(lReturnType) then
+    begin
+      if lProduces = '' then
+        lMediaType := lContent.O[TMVCMediaType.APPLICATION_OCTET_STREAM]
+      else
+        lMediaType := lContent.O[lProduces];
+      lMediaType.O['schema'] := NewBinarySchema;
+    end
+    else
+    begin
+      if lProduces = '' then
+        lMediaType := lContent.O[TMVCMediaType.APPLICATION_JSON]
+      else
+        lMediaType := lContent.O[lProduces];
+      lMediaType.O['schema'] := ASchemaBuilder.NewSchemaFor(lReturnType.Handle);
+    end;
   end;
 
   // Per-status-code from MVCSwagResponses attributes
@@ -1411,22 +1471,34 @@ begin
           lResponse.S['description'] := Description
         else
           lResponse.S['description'] := IntToStr(StatusCode);
-        if JsonSchemaClass <> nil then
+        if (JsonSchemaClass <> nil) or (RecordType <> nil) then
         begin
-          lContent := lResponse.O['content'];
-          lMediaType := lContent.O['application/json'];
+          if JsonSchemaClass <> nil then
+            lSchema := ASchemaBuilder.NewSchemaFor(JsonSchemaClass.ClassInfo)
+          else
+            lSchema := ASchemaBuilder.NewSchemaForRttiType(RecordType);
           if IsArray then
           begin
+            lInner := lSchema;
             lSchema := TJsonObject.Create;
             lSchema.S['type'] := 'array';
-            lSchema.O['items'] := ASchemaBuilder.NewSchemaFor(
-              JsonSchemaClass.ClassInfo);
-            lMediaType.O['schema'] := lSchema;
-          end
-          else
-            lMediaType.O['schema'] := ASchemaBuilder.NewSchemaFor(
-              JsonSchemaClass.ClassInfo);
-        end;
+            lSchema.O['items'] := lInner;
+          end;
+          if DataEnvelope then // {"data": <model>} or {"data": [<model>]}
+          begin
+            lInner := lSchema;
+            lSchema := TJsonObject.Create;
+            lSchema.S['type'] := 'object';
+            lSchema.O['properties'].O['data'] := lInner;
+          end;
+          lContent := lResponse.O['content'];
+          lMediaType := lContent.O['application/json'];
+          lMediaType.O['schema'] := lSchema;
+        end
+        else if (StatusCode div 100 = 2) and (lProduces <> '') and
+          (not IsJSONMediaType(lProduces)) and (not lResponse.Contains('content')) then
+          // a success without a model, of an action that produces e.g. image/png
+          lResponse.O['content'].O[lProduces].O['schema'] := NewBinarySchema;
       end;
     end;
   end;

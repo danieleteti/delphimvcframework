@@ -190,7 +190,7 @@ procedure TMVCHttpSysServer.SendBareStatus(ARequest: PHTTP_REQUEST;
 var
   LResponse: TMVCHttpSysResponse;
 begin
-  LResponse := TMVCHttpSysResponse.Create(FReqQueueHandle, ARequest.RequestId);
+  LResponse := TMVCHttpSysResponse.Create(FReqQueueHandle, ARequest.RequestId, ARequest.Verb);
   try
     LResponse.StatusCode := AStatusCode;
     if AContent <> '' then
@@ -467,7 +467,7 @@ begin
     end;
   end;
   try
-    LResponse := TMVCHttpSysResponse.Create(FReqQueueHandle, ARequest.RequestId);
+    LResponse := TMVCHttpSysResponse.Create(FReqQueueHandle, ARequest.RequestId, ARequest.Verb);
     try
       FEngine.HandleRequest(LRequest, LResponse);
       LResponse.Flush;

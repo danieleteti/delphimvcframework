@@ -348,6 +348,9 @@ begin
   finally
     lIOHandler.WriteBufferClose;
   end;
+  // a HEAD: the headers are the whole answer; Connected is False, so an action that loops on it stops
+  if AContext.Request.HTTPMethod = httpHEAD then
+    FConnected := False;
 end;
 
 procedure TMVCStreamWriter.WriteRaw(const AText: string);

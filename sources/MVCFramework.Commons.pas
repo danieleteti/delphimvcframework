@@ -720,6 +720,11 @@ function MVCResolveClientIP(const AForwardedFor, ARealIP, APeerIP: string;
 /// credential with ***. Returns '' for an empty value.</summary>
 function MVCRedactSecret(const AValue: string): string;
 
+/// <summary>The headers of a TStrings (Name=Value) as one line for logging,
+/// separated by ' | ', with the value of Authorization, Proxy-Authorization,
+/// Cookie and Set-Cookie masked by MVCRedactSecret.</summary>
+function MVCRedactedHeaders(const AHeaders: TStrings): string;
+
 var
   /// <summary>When True, MVCResolveClientIP honours X-Forwarded-For / X-Real-IP.
   /// Default False (secure): only enable it when a trusted reverse proxy that
@@ -1062,6 +1067,37 @@ begin
     Result := AValue.Substring(0, lSpacePos) + ' ***' // keep the scheme
   else
     Result := '***';
+end;
+
+function MVCRedactedHeaders(const AHeaders: TStrings): string;
+
+  function IsSensitive(const AName: string): Boolean;
+  begin
+    Result := SameText(AName, 'Authorization') or SameText(AName, 'Proxy-Authorization')
+      or SameText(AName, 'Cookie') or SameText(AName, 'Set-Cookie');
+  end;
+
+var
+  I: Integer;
+  lName, lValue: string;
+begin
+  Result := '';
+  for I := 0 to AHeaders.Count - 1 do
+  begin
+    lName := AHeaders.Names[I];
+    if lName = '' then
+      lValue := AHeaders[I]
+    else
+    begin
+      lValue := AHeaders.ValueFromIndex[I];
+      if IsSensitive(lName) then
+        lValue := MVCRedactSecret(lValue);
+      lValue := lName + '=' + lValue;
+    end;
+    if Result <> '' then
+      Result := Result + ' | ';
+    Result := Result + lValue;
+  end;
 end;
 
 function IP2Long(const AIP: string): Cardinal;

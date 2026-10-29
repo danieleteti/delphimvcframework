@@ -53,7 +53,7 @@ type
   TMVCSwagAuthenticationType = (atBasic, atJsonWebToken);
   TMVCSwagFieldSerializationType = (fsNotDefined, fsReadOnly, fsFillSingle, fsEditable);
   /// <summary>
-  /// Specification written by TMVCSwaggerMiddleware and by the Swagger() HTTP filter.
+  /// Specification written by TMVCSwaggerMiddleware and by the SwaggerHTTPFilter() HTTP filter.
   /// ssvSwagger2 (the default) writes a Swagger 2.0 document; ssvOpenAPI3 writes an
   /// OpenAPI 3 document (the latest 3.x release supported by SwagDoc) from the same attributes.
   /// </summary>

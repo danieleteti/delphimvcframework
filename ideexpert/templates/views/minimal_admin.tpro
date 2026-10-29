@@ -5,8 +5,8 @@
 {{block "body"}}
 <header class="page-header">
   <h1>Admin area</h1>
-  <p class="lead">Signed in as <strong>{{:user}}</strong>. This page is behind the
-    <code>RequireLogin</code> endpoint filter: without a session it sends you to the login page.</p>
+  <p class="lead">Signed in as <strong>{{:user}}</strong>. This page is behind
+    <code>RequireLoginEndpointFilter</code>: without a session it sends you to the login page.</p>
 </header>
 <a class="btn btn-outline-secondary" href="/web/admin/logout">Log out</a>
 {{endblock}}

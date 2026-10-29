@@ -28,7 +28,7 @@ begin
   // PUBLIC: logging + business-error mapping. No auth.
   //
   // Filter ordering matters: filters wrap each other. Registration order
-  // = OUTER-to-INNER. We want LoggingFilter OUTERMOST so it ALWAYS runs
+  // = OUTER-to-INNER. We want LoggingEndpointFilter OUTERMOST so it ALWAYS runs
   // (even when an inner filter short-circuits or maps an exception to a
   // response). What it logs:
   //   - on success/short-circuit/mapped error: REQ, RES <final-status>, DONE
@@ -43,8 +43,8 @@ begin
   // BEFORE the first MapXxx call; we capture the configured group into a
   // local so we can register many routes against it.
   lPublic := ARoot
-    .Use(LoggingFilter())
-    .Use(BusinessErrorsFilter());
+    .Use(LoggingEndpointFilter())
+    .Use(BusinessErrorsEndpointFilter());
 
   lPublic.MapGet('/health',
     function: IMVCResponse
@@ -67,14 +67,14 @@ begin
   // ---------------------------------------------------------------------
   // /api: Bearer auth required.
   //   Filter stack is applied in registration order:
-  //     LoggingFilter (outermost) -> BearerAuthFilter -> BusinessErrors
+  //     LoggingEndpointFilter (outermost) -> BearerAuthEndpointFilter -> BusinessErrors
   //                                                  -> handler
   // ---------------------------------------------------------------------
   lApi := ARoot
     .Prefix('/api')
-    .Use(LoggingFilter())         // outermost: always observes
-    .Use(BusinessErrorsFilter())  // maps ETokenError -> 401
-    .Use(BearerAuthFilter());     // innermost gate: short-circuits 401 if no token
+    .Use(LoggingEndpointFilter())         // outermost: always observes
+    .Use(BusinessErrorsEndpointFilter())  // maps ETokenError -> 401
+    .Use(BearerAuthEndpointFilter());     // innermost gate: short-circuits 401 if no token
 
   // POST /api/widgets — demonstrates auto-validation. The TWidgetDto
   // (validatable, requires Name length >= 3 and Qty > 0) is bound from
@@ -136,11 +136,11 @@ begin
 
   // ---------------------------------------------------------------------
   // /api/admin: nested group. Plain Prefix preserves the inherited
-  // filter stack and ADDS RequireRoleFilter('admin') on top.
+  // filter stack and ADDS RequirePrincipalRoleEndpointFilter('admin') on top.
   // ---------------------------------------------------------------------
   lAdmin := lApi
     .Prefix('/admin')
-    .Use(RequireRoleFilter('admin'));
+    .Use(RequirePrincipalRoleEndpointFilter('admin'));
 
   lAdmin.MapGet('/audit',
     function: IMVCResponse

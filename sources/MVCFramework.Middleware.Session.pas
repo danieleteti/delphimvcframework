@@ -35,8 +35,11 @@ uses
   ;
 
   function UseMemorySessionMiddleware(const aTimeoutInMinutes: Integer = 0; const aHttpOnly: Boolean = True; const aSecure: Boolean = False): TMVCSessionMiddleware;
+    deprecated 'Use the MemorySessionHTTPFilter HTTP filter (MVCFramework.Filters): AEngine.Use(MemorySessionHTTPFilter(...))';
   function UseFileSessionMiddleware(const aTimeoutInMinutes: Integer = 0; const aHttpOnly: Boolean = True; const aSessionFolder: String = 'dmvc_sessions'; const aSecure: Boolean = False): TMVCSessionMiddleware;
+    deprecated 'Use the FileSessionHTTPFilter HTTP filter (MVCFramework.Filters): AEngine.Use(FileSessionHTTPFilter(...))';
   function UseDatabaseSessionMiddleware(const aTimeoutInMinutes: Integer = 0; const aHttpOnly: Boolean = True; const aSecure: Boolean = False): TMVCSessionMiddleware;
+    deprecated 'Use the DatabaseSessionHTTPFilter HTTP filter (MVCFramework.Filters.ActiveRecord): AEngine.Use(DatabaseSessionHTTPFilter(...))';
 
 implementation
 

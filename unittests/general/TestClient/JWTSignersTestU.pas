@@ -159,12 +159,12 @@ type
     procedure EmptySecretIsRejected;
     [Test]
     procedure OwnSecretIsAccepted;
-    // The middleware and the endpoint filter must refuse the secret while they
+    // The middleware and the filter bundle must refuse the secret while they
     // are being built (server startup), not on the first request they serve.
     [Test]
     procedure MiddlewareConstructorRejectsShippedDefaultSecret;
     [Test]
-    procedure EndpointFilterFactoryRejectsShippedDefaultSecret;
+    procedure FilterBundleRejectsShippedDefaultSecret;
   end;
 
 implementation
@@ -179,7 +179,8 @@ uses
   MVCFramework.JWT.RSA,
   MVCFramework.MinimalAPI,
   MVCFramework.Middleware.JWT,
-  MVCFramework.Filters;
+  MVCFramework.Filters.Authentication,
+  AuthFilterSupportU;                // TAFHandler, ClaimsSetup
 
 // ============================================================
 // Helper
@@ -853,23 +854,24 @@ begin
     end);
 end;
 
-procedure TTestJWTInsecureSecret.EndpointFilterFactoryRejectsShippedDefaultSecret;
+procedure TTestJWTInsecureSecret.FilterBundleRejectsShippedDefaultSecret;
+var
+  LHandler: IMVCAuthenticationHandler;
 begin
+  LHandler := TAFHandler.Create('/x');
   Assert.WillRaise(
     procedure
     var
-      LFilter: TMVCEndpointFilter;
+      LBundle: IMVCFilterBundle;
     begin
-      LFilter := MVCFramework.Filters.JWT(
-        nil, nil, MVC_JWT_INSECURE_DEFAULT_SECRET);
+      LBundle := JWTAuthenticationBundle(LHandler, ClaimsSetup, MVC_JWT_INSECURE_DEFAULT_SECRET);
     end, EMVCJWTException);
   Assert.WillNotRaiseAny(
     procedure
     var
-      LFilter: TMVCEndpointFilter;
+      LBundle: IMVCFilterBundle;
     begin
-      LFilter := MVCFramework.Filters.JWT(
-        nil, nil, 'a_secret_of_my_own_2f47');
+      LBundle := JWTAuthenticationBundle(LHandler, ClaimsSetup, 'a_secret_of_my_own_2f47');
     end);
 end;
 

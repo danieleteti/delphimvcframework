@@ -94,6 +94,12 @@ type
     [MVCFromQueryString('id')]  Ids: TArray<Integer>;
   end;
 
+  // an anonymous static array field has no RTTI type: the binder skips it
+  TRawFieldQuery = record
+    [MVCFromQueryString('name')] Name: string;
+    Raw: array [0..3] of Byte;
+  end;
+
 // #6 test-only authentication filter: promotes the X-Role header to LoggedUser.
 function FakeAuthFromHeader: TMVCEndpointFilter;
 begin
@@ -212,7 +218,7 @@ begin
     end);
 
   // -- BasicAuth filter with a handler: the same session login as TMVCBasicAuthenticationMiddleware
-  AEngine.Root.Prefix('/minimal-web/private').Use(BasicAuth(TMinimalBasicAuthHandler.Create as IMVCAuthenticationHandler))
+  AEngine.Root.Prefix('/minimal-web/private').Use(BasicAuthEndpointFilter(TMinimalBasicAuthHandler.Create as IMVCAuthenticationHandler))
     .MapGet<TWebContext>('/role1',
       function (Ctx: TWebContext): IMVCResponse
       begin
@@ -250,7 +256,7 @@ begin
     function: IMVCResponse
     begin
       Result := RenderView('minimal_web_side');
-    end).WithOpenAPI(True);
+    end).WithOpenAPI();
 
   // -- threadvar isolation: parameterised endpoint that echoes a marker
   AEngine.Root.AsWeb.MapGet<string>('/minimal-web/iso/($marker)',
@@ -354,10 +360,23 @@ begin
       Result := Ok('path=' + Path);
     end);
 
+  // TGUID binds as a primitive (a route segment), as in a controller action
+  AEngine.Root.MapGet<TGUID>('/minimal-feat/guid/($id)',
+    function (Id: TGUID): IMVCResponse
+    begin
+      Result := Ok('id=' + GUIDToString(Id));
+    end);
+
+  AEngine.Root.MapGet<TRawFieldQuery>('/minimal-feat/rawfield',
+    function (Q: TRawFieldQuery): IMVCResponse
+    begin
+      Result := Ok('name=' + Q.Name);
+    end);
+
   // #6 declarative authorization: FakeAuth populates LoggedUser, RequireRole gates
   AEngine.Root
     .Use(FakeAuthFromHeader())
-    .Use(RequireRole('admin'))
+    .Use(RequireRoleEndpointFilter('admin'))
     .MapGet('/minimal-feat/admin',
       function: IMVCResponse
       begin

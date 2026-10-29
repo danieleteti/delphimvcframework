@@ -26,6 +26,8 @@ unit MVCFramework.Middleware.ActiveRecord;
 
 {$I dmvcframework.inc}
 
+{$WARN SYMBOL_DEPRECATED OFF} // the class is deprecated for its users, not inside its own unit
+
 interface
 
 uses
@@ -80,7 +82,7 @@ type
       const AdditionalARConnectionNames: TArray<String>;
       const AdditionalConnectionDefNames: TArray<String>;
       const ConnectionDefFileName: string{ = 'FDConnectionDefs.ini'}); overload; virtual;
-  end;
+  end deprecated 'Use the ActiveRecordHTTPFilter HTTP filter (MVCFramework.Filters.ActiveRecord): AEngine.Use(ActiveRecordHTTPFilter(...))';
 
 implementation
 

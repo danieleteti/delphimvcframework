@@ -134,8 +134,8 @@ class HookChainTests(unittest.TestCase):
                         f"missing DONE in {log}")
 
     def test_030_domain_exception_is_replaced_by_handler(self):
-        # ETokenError -> BusinessErrorsFilter returns 401 instead of 500.
-        # LoggingFilter sits OUTSIDE BusinessErrors, so it sees the swapped
+        # ETokenError -> BusinessErrorsEndpointFilter returns 401 instead of 500.
+        # LoggingEndpointFilter sits OUTSIDE BusinessErrors, so it sees the swapped
         # response (401), NOT the original exception. ERR is therefore NOT
         # logged for this request — the inner mapper handled it.
         r = requests.get(f"{BASE}/throw-token")
@@ -143,7 +143,7 @@ class HookChainTests(unittest.TestCase):
         self.assertIn("token expired", envelope_text(r.json()))
 
         log = fetch_audit()
-        # Outer LoggingFilter sees the mapped 401 as the final response.
+        # Outer LoggingEndpointFilter sees the mapped 401 as the final response.
         self.assertTrue(any(L == "RES 401 /throw-token" for L in log),
                         f"missing RES 401 in {log}")
         # Inner mapper swallowed the exception, so no ERR.
@@ -199,7 +199,7 @@ class HookChainTests(unittest.TestCase):
 
     def test_140_authenticated_domain_exception_still_handled(self):
         # Auth chain succeeds, then the handler raises ETokenError.
-        # BusinessErrorsFilter (inner, after Logging) replaces it with 401.
+        # BusinessErrorsEndpointFilter (inner, after Logging) replaces it with 401.
         r = requests.get(f"{BASE}/api/throw-token", headers=ALICE)
         self.assertEqual(r.status_code, 401)
         self.assertIn("token expired", envelope_text(r.json()))
@@ -318,22 +318,24 @@ class HookChainTests(unittest.TestCase):
         self.assertIn("Hammer", envelope_text(r.json()))
 
     def test_710_validation_fails_short_name(self):
-        # Name min length 3 -> EMVCValidationException -> 400 ProblemDetails.
+        # Name min length 3 -> EMVCValidationException -> 422 ProblemDetails.
         r = requests.post(f"{BASE}/api/widgets",
                           headers={**ALICE, "Content-Type": "application/json"},
                           json={"name": "A", "qty": 5})
-        self.assertEqual(r.status_code, 400, r.text)
+        self.assertEqual(r.status_code, 422, r.text)
         body = r.json().get("data", r.json())
-        self.assertEqual(body["status"], 400)
-        self.assertEqual(body["title"], "Validation failed")
+        self.assertEqual(body["status"], 422)
+        self.assertEqual(body["title"], "Unprocessable Content")
+        self.assertIn("Name", body["errors"])
 
     def test_720_validation_fails_negative_qty(self):
         r = requests.post(f"{BASE}/api/widgets",
                           headers={**ALICE, "Content-Type": "application/json"},
                           json={"name": "Widget", "qty": -1})
-        self.assertEqual(r.status_code, 400, r.text)
+        self.assertEqual(r.status_code, 422, r.text)
         body = r.json().get("data", r.json())
-        self.assertEqual(body["status"], 400)
+        self.assertEqual(body["status"], 422)
+        self.assertIn("Qty", body["errors"])
 
     # --- Route constraints ------------------------------------------------
 

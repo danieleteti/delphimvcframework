@@ -43,6 +43,8 @@ unit MVCFramework.Middleware.CSRF;
 
 {$I dmvcframework.inc}
 
+{$WARN SYMBOL_DEPRECATED OFF} // the classes are deprecated for their users, not inside their own unit
+
 interface
 
 uses
@@ -52,15 +54,7 @@ uses
 type
   TMVCCSRFMiddleware = class(TInterfacedObject, IMVCMiddleware)
   private
-    FSecret: string;
-    FTokenSource: TFunc<TWebContext, string>;
-    FHeaderName: string;
-    FFormFieldName: string;
-    FExemptPaths: TArray<string>;
-    FAllowedHosts: TArray<string>;
-    function IsExempt(const APath: string): Boolean;
-    function OriginIsAcceptable(AContext: TWebContext): Boolean;
-    procedure Reject(AContext: TWebContext; const AReason: string);
+    fCheck: TFunc<TWebContext, Boolean>; // CSRFCheck of MVCFramework.Filters.Internal
   public
     constructor Create(const ASecret: string; ATokenSource: TFunc<TWebContext, string>;
       const AHeaderName: string = 'X-CSRF-Token'; const AFormFieldName: string = 'csrf_token';
@@ -78,167 +72,38 @@ type
       const AControllerQualifiedClassName: string; const AActionName: string;
       const AHandled: Boolean);
     procedure OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
-  end;
+  end deprecated 'Use the CSRF filters (MVCFramework.Filters): AEngine.Use(CSRFHTTPFilter(...)) checks before routing, as the middleware, AEngine.Use(CSRFEndpointFilter(...)) after; CSRFToken gives the token';
 
 implementation
 
 uses
-  System.Classes,
-  System.StrUtils,
-  MVCFramework.Commons,
-  MVCFramework.HMAC;
-
-// Compares every position of the longer string: the time does not depend on
-// where the first difference is.
-function ConstantTimeEquals(const A, B: string): Boolean;
-var
-  I, lLen: Integer;
-  lDiff: Integer;
-begin
-  lDiff := Length(A) xor Length(B);
-  lLen := Length(A);
-  if Length(B) > lLen then
-    lLen := Length(B);
-  for I := 1 to lLen do
-  begin
-    if (I <= Length(A)) and (I <= Length(B)) then
-      lDiff := lDiff or (Ord(A[I]) xor Ord(B[I]))
-    else
-      lDiff := lDiff or 1;
-  end;
-  Result := lDiff = 0;
-end;
+  MVCFramework.Filters,          // CSRFToken
+  MVCFramework.Filters.Internal; // CSRFCheck, MVCIsValidHost
 
 { TMVCCSRFMiddleware }
 
 constructor TMVCCSRFMiddleware.Create(const ASecret: string;
   ATokenSource: TFunc<TWebContext, string>; const AHeaderName, AFormFieldName: string;
   const AExemptPaths: TArray<string>; const AAllowedHosts: TArray<string>);
-var
-  lExempt, lHost: string;
 begin
   inherited Create;
-  if Length(ASecret) < 16 then
-    raise EMVCException.Create('CSRF middleware: secret must be at least 16 characters');
-  if not Assigned(ATokenSource) then
-    raise EMVCException.Create('CSRF middleware: token source is required');
-  for lExempt in AExemptPaths do
-    if (lExempt.Trim = '') or not lExempt.StartsWith('/') or (lExempt = '/') then
-      raise EMVCException.CreateFmt(
-        'CSRF middleware: invalid exempt path [%s] (must start with ''/'' and cannot be ''/'' alone)', [lExempt]);
-  for lHost in AAllowedHosts do
-    if not IsValidHost(lHost) then
-      raise EMVCException.CreateFmt(
-        'CSRF middleware: invalid allowed host [%s] (expected host or host:port)', [lHost]);
-  FAllowedHosts := AAllowedHosts;
-  FSecret := ASecret;
-  FTokenSource := ATokenSource;
-  FHeaderName := AHeaderName;
-  FFormFieldName := AFormFieldName;
-  FExemptPaths := AExemptPaths;
+  fCheck := CSRFCheck(ASecret, ATokenSource, AHeaderName, AFormFieldName, AExemptPaths, AAllowedHosts);
 end;
 
 class function TMVCCSRFMiddleware.IsValidHost(const AHost: string): Boolean;
-var
-  lName, lPort: string;
-  lColon, lPortNum: Integer;
-  C: Char;
 begin
-  lName := AHost;
-  lPort := '';
-  lColon := lName.IndexOf(':');
-  if lColon >= 0 then
-  begin
-    lPort := lName.Substring(lColon + 1);
-    lName := lName.Substring(0, lColon);
-    if (lPort = '') or (Length(lPort) > 5) or not TryStrToInt(lPort, lPortNum) or
-      (lPortNum < 1) or (lPortNum > 65535) then
-      Exit(False);
-    for C in lPort do
-      if not CharInSet(C, ['0'..'9']) then
-        Exit(False);
-  end;
-  Result := lName <> '';
-  for C in lName do
-    if not (CharInSet(C, ['a'..'z', 'A'..'Z', '0'..'9', '-', '.', '_'])) then
-      Exit(False);
+  Result := MVCIsValidHost(AHost);
 end;
 
 class function TMVCCSRFMiddleware.TokenFor(const ASecret, ASessionId: string): string;
 begin
-  Result := BytesToHex(HMAC(HMAC_SHA256, ASessionId, ASecret));
-end;
-
-function TMVCCSRFMiddleware.IsExempt(const APath: string): Boolean;
-var
-  lExempt: string;
-begin
-  // case-sensitive (router paths are), and on a path boundary:
-  // '/a/login' exempts '/a/login' and '/a/login/x', not '/a/login-evil'
-  for lExempt in FExemptPaths do
-    if (APath = lExempt) or
-      APath.StartsWith(IfThen(lExempt.EndsWith('/'), lExempt, lExempt + '/'), False) then
-      Exit(True);
-  Result := False;
-end;
-
-function TMVCCSRFMiddleware.OriginIsAcceptable(AContext: TWebContext): Boolean;
-var
-  lOrigin, lHost: string;
-  lPos: Integer;
-begin
-  lOrigin := AContext.Request.Headers['Origin'];
-  if lOrigin.IsEmpty then
-    Exit(True);
-  lPos := lOrigin.IndexOf('://');
-  if lPos >= 0 then
-    lOrigin := lOrigin.Substring(lPos + 3);
-  Result := SameText(lOrigin, AContext.Request.Headers['Host']);
-  if not Result then
-    for lHost in FAllowedHosts do
-      if SameText(lOrigin, lHost) then
-        Exit(True);
-end;
-
-procedure TMVCCSRFMiddleware.Reject(AContext: TWebContext; const AReason: string);
-begin
-  AContext.Response.StatusCode := HTTP_STATUS.Forbidden;
-  AContext.Response.ReasonString := 'Forbidden';
-  AContext.Response.ContentType := TMVCMediaType.TEXT_PLAIN;
-  AContext.Response.Content := 'CSRF check failed: ' + AReason;
+  Result := CSRFToken(ASecret, ASessionId);
 end;
 
 procedure TMVCCSRFMiddleware.OnBeforeRouting(AContext: TWebContext; var AHandled: Boolean);
-var
-  lSessionId, lReceived: string;
 begin
-  if not (AContext.Request.HTTPMethod in [httpPOST, httpPUT, httpPATCH, httpDELETE, httpQUERY]) then
-    Exit;
-  if IsExempt(AContext.Request.PathInfo) then
-    Exit;
-
-  AHandled := True; // from here on, anything but a valid token ends the request
-  if not OriginIsAcceptable(AContext) then
-  begin
-    Reject(AContext, 'origin');
-    Exit;
-  end;
-  // no session, no token: HMAC of '' would be a value anybody can compute
-  lSessionId := FTokenSource(AContext);
-  if lSessionId.IsEmpty then
-  begin
-    Reject(AContext, 'no session');
-    Exit;
-  end;
-  lReceived := AContext.Request.Headers[FHeaderName];
-  if lReceived.IsEmpty then
-    lReceived := AContext.Request.ContentParam(FFormFieldName);
-  if lReceived.IsEmpty or not ConstantTimeEquals(lReceived, TokenFor(FSecret, lSessionId)) then
-  begin
-    Reject(AContext, 'token');
-    Exit;
-  end;
-  AHandled := False;
+  AHandled := True; // as before: a token source (or a form) that raises leaves the request handled
+  AHandled := not fCheck(AContext); // a failed check has written the 403
 end;
 
 procedure TMVCCSRFMiddleware.OnBeforeControllerAction(AContext: TWebContext;

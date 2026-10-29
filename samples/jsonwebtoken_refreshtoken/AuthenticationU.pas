@@ -25,18 +25,20 @@ procedure TAuthenticationSample.OnRequest(const AContext: TWebContext;
   const ControllerQualifiedClassName: string; const ActionName: string;
   var AuthenticationRequired: Boolean);
 begin
-  // Only the protected controller requires a valid access token. Login and the
-  // refresh endpoint (handled by the refresh middleware) stay public.
-  AuthenticationRequired := ControllerQualifiedClassName = 'AuthControllerU.TProtectedController';
+  // Only the protected controller requires a valid access token. Login and refresh
+  // are HTTP filters of the bundle: they run before routing and never ask this.
+  AuthenticationRequired := ControllerQualifiedClassName = 'ProtectedControllerU.TProtectedController';
 end;
 
 procedure TAuthenticationSample.OnAuthentication(const AContext: TWebContext;
   const UserName: string; const Password: string; UserRoles: TList<string>;
   var IsValid: Boolean; const SessionData: TSessionData);
 begin
-  // Reached only by the JWT middleware auto-login segment, which this sample
-  // does not use (login is done by TAuthController). Kept for completeness.
-  IsValid := UserName.Equals(Password);
+  // The login of the bundle (POST /auth/login). Demo check: username must equal password.
+  // The roles go into both tokens and come back with every refresh.
+  IsValid := (not UserName.IsEmpty) and UserName.Equals(Password);
+  if IsValid then
+    UserRoles.AddRange(['role1', 'role2']);
 end;
 
 procedure TAuthenticationSample.OnAuthorization(const AContext: TWebContext;

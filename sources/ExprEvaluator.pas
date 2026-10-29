@@ -35,7 +35,8 @@ type
   TExternalVariableResolver = reference to function(const VarName: string; out Value: Variant): Boolean;
 
   /// <summary>
-  /// Interface for expression evaluation without manual memory management
+  /// Interface for expression evaluation without manual memory management.
+  /// An instance is NOT thread-safe: use one instance per thread.
   /// </summary>
   IExprEvaluator = interface
     ['{A5B9C8D7-E6F4-4A2B-9C1D-8E7F6A5B4C3D}']
@@ -69,6 +70,11 @@ type
     /// The resolver is called when a variable is not found in the internal dictionary.
     /// </summary>
     procedure SetOnResolveExternalVariable(const Resolver: TExternalVariableResolver);
+
+    /// <summary>
+    /// Names of the variables currently defined (upper case)
+    /// </summary>
+    function VariableNames: TArray<string>;
   end;
 
   TExprEvaluator = class(TInterfacedObject, IExprEvaluator)
@@ -107,8 +113,13 @@ type
     function IsKeywordAtPosition(const Keyword: string): Boolean;
     function ConsumeKeyword(const Keyword: string): Boolean;
     // Helper methods for argument validation
-    procedure ValidateArgCount(const FuncName: string; Expected, Actual: Integer);
+    procedure ValidateArgCount(const FuncName: string; Expected, Actual: NativeInt;
+      const Usage: string = '');
     procedure ValidateNumeric(const FuncName: string; const Arg: Variant);
+    function EnsureFinite(const FuncName: string; const Value: Double): Double;
+    procedure RegisterMathFunctions;
+    procedure RegisterStringFunctions;
+    procedure RegisterDateFunctions;
     // Helper methods for QuickSort
     procedure QuickSortNumeric(var Arr: TArray<Double>; Low, High: Integer);
     procedure QuickSortString(var Arr: TArray<string>; Low, High: Integer);
@@ -121,6 +132,7 @@ type
     function GetVar(const Name: string): Variant;
     function VariantToString(const Value: Variant): string;
     procedure SetOnResolveExternalVariable(const Resolver: TExternalVariableResolver);
+    function VariableNames: TArray<string>;
   end;
 
 /// <summary>
@@ -142,49 +154,45 @@ begin
   inherited;
   FFunctions := TDictionary<string, TFuncHandler>.Create;
   FVariables := TDictionary<string, Variant>.Create;
-  FSkipEvaluation := False;
-  FOnResolveExternalVariable := nil;
 
-  // Create local FormatSettings with dot as decimal separator
+  // Local FormatSettings: dot as decimal separator, whatever the machine locale
   FFormatSettings := TFormatSettings.Create('en-US');
-  FFormatSettings.DecimalSeparator := '.';
 
-  // Register standard functions
+  RegisterMathFunctions;
+  RegisterStringFunctions;
+  RegisterDateFunctions;
+end;
+
+procedure TExprEvaluator.RegisterMathFunctions;
+begin
   RegisterFunction('sqrt', function(const Args: array of Variant): Variant
     begin
-      if Length(Args) <> 1 then
-        raise Exception.Create('sqrt requires 1 argument');
-      if not VarIsNumeric(Args[0]) then
-        raise Exception.Create('sqrt requires a numeric argument');
-      Result := Sqrt(Args[0]);
+      ValidateArgCount('sqrt', 1, Length(Args));
+      ValidateNumeric('sqrt', Args[0]);
+      Result := EnsureFinite('sqrt', Sqrt(Args[0]));
     end);
 
   RegisterFunction('logn', function(const Args: array of Variant): Variant
     begin
-      if Length(Args) <> 1 then
-        raise Exception.Create('logn requires 1 argument');
-      if not VarIsNumeric(Args[0]) then
-        raise Exception.Create('logn requires a numeric argument');
-      Result := Ln(Args[0]);
+      ValidateArgCount('logn', 1, Length(Args));
+      ValidateNumeric('logn', Args[0]);
+      Result := EnsureFinite('logn', Ln(Args[0]));
     end);
 
   RegisterFunction('log', function(const Args: array of Variant): Variant
     begin
-      if Length(Args) <> 1 then
-        raise Exception.Create('log requires 1 argument');
-      if not VarIsNumeric(Args[0]) then
-        raise Exception.Create('log requires a numeric argument');
-      Result := System.Math.Log10(Args[0]);
+      ValidateArgCount('log', 1, Length(Args));
+      ValidateNumeric('log', Args[0]);
+      Result := EnsureFinite('log', System.Math.Log10(Args[0]));
     end);
 
   RegisterFunction('round', function(const Args: array of Variant): Variant
     begin
-      if Length(Args) <> 2 then
-        raise Exception.Create('Round requires 2 arguments');
-      if not VarIsNumeric(Args[0]) then
-        raise Exception.Create('Round requires first argument to be numeric');
-      if not VarIsNumeric(Args[1]) then
-        raise Exception.Create('Round requires second argument to be numeric');
+      ValidateArgCount('Round', 2, Length(Args));
+      ValidateNumeric('Round', Args[0]);
+      ValidateNumeric('Round', Args[1]);
+      // same convention as Delphi's RoundTo: the second argument is a power of ten,
+      // so round(x, -2) keeps 2 decimals and round(x, 2) rounds to hundreds
       Result := System.Math.RoundTo(Args[0], Args[1]);
     end);
 
@@ -214,43 +222,7 @@ begin
       ValidateArgCount('power', 2, Length(Args));
       ValidateNumeric('power', Args[0]);
       ValidateNumeric('power', Args[1]);
-      Result := Power(Args[0], Args[1]);
-    end);
-
-  RegisterFunction('contains', function(const Args: array of Variant): Variant
-    begin
-      if Length(Args) <> 2 then
-        raise Exception.Create('Contains requires 2 arguments');
-      if VarIsNull(Args[0]) or VarIsNull(Args[1]) then
-        raise Exception.Create('Contains requires non-null arguments');
-      {$IF CompilerVersion >= 37} // 13 Florence
-      Result := String(Args[1]).Contains(String(Args[0]), True);
-      {$ELSE}
-      Result := String(Args[1]).ToLower.Contains(String(Args[0]).ToLower);
-      {$ENDIF}
-    end);
-
-  RegisterFunction('ToString', function(const Args: array of Variant): Variant
-    begin
-      if Length(Args) <> 1 then
-        raise Exception.Create('ToString requires 1 argument');
-      Result := VarToStr(Args[0]);
-    end);
-
-  // Add ToInteger function
-  RegisterFunction('ToInteger', function(const Args: array of Variant): Variant
-    begin
-      if Length(Args) <> 1 then
-        raise Exception.Create('ToInteger requires 1 argument');
-      Result := StrToInt(VarToStr(Args[0]));
-    end);
-
-  // Add ToFloat function
-  RegisterFunction('ToFloat', function(const Args: array of Variant): Variant
-    begin
-      if Length(Args) <> 1 then
-        raise Exception.Create('ToFloat requires 1 argument');
-      Result := StrToFloat(VarToStr(Args[0]), FFormatSettings);
+      Result := EnsureFinite('power', Power(Args[0], Args[1]));
     end);
 
   // Add Min function (2 or more numeric arguments)
@@ -367,33 +339,64 @@ begin
 
       Result := ResultStr;
     end);
+end;
+
+procedure TExprEvaluator.RegisterStringFunctions;
+begin
+  RegisterFunction('contains', function(const Args: array of Variant): Variant
+    begin
+      ValidateArgCount('Contains', 2, Length(Args));
+      if VarIsNull(Args[0]) or VarIsNull(Args[1]) then
+        raise Exception.Create('Contains requires non-null arguments');
+      {$IF CompilerVersion >= 37} // 13 Florence
+      Result := String(Args[1]).Contains(String(Args[0]), True);
+      {$ELSE}
+      Result := String(Args[1]).ToLower.Contains(String(Args[0]).ToLower);
+      {$ENDIF}
+    end);
+
+  RegisterFunction('ToString', function(const Args: array of Variant): Variant
+    begin
+      ValidateArgCount('ToString', 1, Length(Args));
+      Result := VariantToString(Args[0]);
+    end);
+
+  // Add ToInteger function
+  RegisterFunction('ToInteger', function(const Args: array of Variant): Variant
+    begin
+      ValidateArgCount('ToInteger', 1, Length(Args));
+      Result := StrToInt(VarToStr(Args[0]));
+    end);
+
+  // Add ToFloat function
+  RegisterFunction('ToFloat', function(const Args: array of Variant): Variant
+    begin
+      ValidateArgCount('ToFloat', 1, Length(Args));
+      Result := StrToFloat(VarToStr(Args[0]), FFormatSettings);
+    end);
 
   // String manipulation functions
   RegisterFunction('Length', function(const Args: array of Variant): Variant
     begin
-      if Length(Args) <> 1 then
-        raise Exception.Create('Length requires 1 argument');
+      ValidateArgCount('Length', 1, Length(Args));
       Result := Length(VarToStr(Args[0]));
     end);
 
   RegisterFunction('Upper', function(const Args: array of Variant): Variant
     begin
-      if Length(Args) <> 1 then
-        raise Exception.Create('Upper requires 1 argument');
+      ValidateArgCount('Upper', 1, Length(Args));
       Result := UpperCase(VarToStr(Args[0]));
     end);
 
   RegisterFunction('Lower', function(const Args: array of Variant): Variant
     begin
-      if Length(Args) <> 1 then
-        raise Exception.Create('Lower requires 1 argument');
+      ValidateArgCount('Lower', 1, Length(Args));
       Result := LowerCase(VarToStr(Args[0]));
     end);
 
   RegisterFunction('Trim', function(const Args: array of Variant): Variant
     begin
-      if Length(Args) <> 1 then
-        raise Exception.Create('Trim requires 1 argument');
+      ValidateArgCount('Trim', 1, Length(Args));
       Result := Trim(VarToStr(Args[0]));
     end);
 
@@ -402,8 +405,7 @@ begin
       Str: string;
       Count: Integer;
     begin
-      if Length(Args) <> 2 then
-        raise Exception.Create('Left requires 2 arguments (string, count)');
+      ValidateArgCount('Left', 2, Length(Args), 'string, count');
       Str := VarToStr(Args[0]);
       Count := Args[1];
       if Count < 0 then
@@ -418,8 +420,7 @@ begin
       Str: string;
       Count: Integer;
     begin
-      if Length(Args) <> 2 then
-        raise Exception.Create('Right requires 2 arguments (string, count)');
+      ValidateArgCount('Right', 2, Length(Args), 'string, count');
       Str := VarToStr(Args[0]);
       Count := Args[1];
       if Count < 0 then
@@ -455,8 +456,7 @@ begin
     var
       Str, SubStr: string;
     begin
-      if Length(Args) <> 2 then
-        raise Exception.Create('IndexOf requires 2 arguments (string, substring)');
+      ValidateArgCount('IndexOf', 2, Length(Args), 'string, substring');
       Str := VarToStr(Args[0]);
       SubStr := VarToStr(Args[1]);
       Result := Pos(SubStr, Str);
@@ -466,26 +466,26 @@ begin
     var
       Str, OldStr, NewStr: string;
     begin
-      if Length(Args) <> 3 then
-        raise Exception.Create('Replace requires 3 arguments (string, old, new)');
+      ValidateArgCount('Replace', 3, Length(Args), 'string, old, new');
       Str := VarToStr(Args[0]);
       OldStr := VarToStr(Args[1]);
       NewStr := VarToStr(Args[2]);
       Result := StringReplace(Str, OldStr, NewStr, [rfReplaceAll]);
     end);
+end;
 
+procedure TExprEvaluator.RegisterDateFunctions;
+begin
   // Date/Time functions
   RegisterFunction('Now', function(const Args: array of Variant): Variant
     begin
-      if Length(Args) <> 0 then
-        raise Exception.Create('Now requires no arguments');
+      ValidateArgCount('Now', 0, Length(Args));
       Result := Now;
     end);
 
   RegisterFunction('Today', function(const Args: array of Variant): Variant
     begin
-      if Length(Args) <> 0 then
-        raise Exception.Create('Today requires no arguments');
+      ValidateArgCount('Today', 0, Length(Args));
       Result := Date;
     end);
 
@@ -494,14 +494,14 @@ begin
       DateValue: TDateTime;
       Y, M, D: Word;
     begin
-      if Length(Args) <> 1 then
-        raise Exception.Create('Year requires 1 argument (date)');
+      ValidateArgCount('Year', 1, Length(Args), 'date');
       try
         DateValue := VarToDateTime(Args[0]);
         DecodeDate(DateValue, Y, M, D);
         Result := Y;
       except
-        raise Exception.Create('Year requires a valid date argument');
+        on EVariantError do
+          raise Exception.Create('Year requires a valid date argument');
       end;
     end);
 
@@ -510,14 +510,14 @@ begin
       DateValue: TDateTime;
       Y, M, D: Word;
     begin
-      if Length(Args) <> 1 then
-        raise Exception.Create('Month requires 1 argument (date)');
+      ValidateArgCount('Month', 1, Length(Args), 'date');
       try
         DateValue := VarToDateTime(Args[0]);
         DecodeDate(DateValue, Y, M, D);
         Result := M;
       except
-        raise Exception.Create('Month requires a valid date argument');
+        on EVariantError do
+          raise Exception.Create('Month requires a valid date argument');
       end;
     end);
 
@@ -526,14 +526,14 @@ begin
       DateValue: TDateTime;
       Y, M, D: Word;
     begin
-      if Length(Args) <> 1 then
-        raise Exception.Create('Day requires 1 argument (date)');
+      ValidateArgCount('Day', 1, Length(Args), 'date');
       try
         DateValue := VarToDateTime(Args[0]);
         DecodeDate(DateValue, Y, M, D);
         Result := D;
       except
-        raise Exception.Create('Day requires a valid date argument');
+        on EVariantError do
+          raise Exception.Create('Day requires a valid date argument');
       end;
     end);
 
@@ -542,56 +542,37 @@ begin
       DateValue: TDateTime;
       Format: string;
     begin
-      if Length(Args) <> 2 then
-        raise Exception.Create('FormatDate requires 2 arguments (date, format)');
+      ValidateArgCount('FormatDate', 2, Length(Args), 'date, format');
       try
         DateValue := VarToDateTime(Args[0]);
         Format := VarToStr(Args[1]);
         Result := FormatDateTime(Format, DateValue);
       except
-        raise Exception.Create('FormatDate requires a valid date and format string');
+        on EVariantError do
+          raise Exception.Create('FormatDate requires a valid date and format string');
       end;
     end);
 
   RegisterFunction('ParseDate', function(const Args: array of Variant): Variant
     var
       DateStr: string;
-      Year, Month, Day: Word;
-      YearStr, MonthStr, DayStr: string;
+      Year, Month, Day: Integer;
+      DateValue: TDateTime;
     begin
-      if Length(Args) <> 1 then
-        raise Exception.Create('ParseDate requires 1 argument (date string in YYYY-MM-DD format)');
-
+      ValidateArgCount('ParseDate', 1, Length(Args), 'date string in YYYY-MM-DD format');
       DateStr := VarToStr(Args[0]);
 
       // Validate format: must be exactly YYYY-MM-DD (10 characters)
-      if Length(DateStr) <> 10 then
+      if (Length(DateStr) <> 10) or (DateStr[5] <> '-') or (DateStr[8] <> '-') or
+        not TryStrToInt(Copy(DateStr, 1, 4), Year) or
+        not TryStrToInt(Copy(DateStr, 6, 2), Month) or
+        not TryStrToInt(Copy(DateStr, 9, 2), Day) then
         raise Exception.Create('ParseDate requires date string in YYYY-MM-DD format');
 
-      if (DateStr[5] <> '-') or (DateStr[8] <> '-') then
-        raise Exception.Create('ParseDate requires date string in YYYY-MM-DD format');
-
-      try
-        YearStr := Copy(DateStr, 1, 4);
-        MonthStr := Copy(DateStr, 6, 2);
-        DayStr := Copy(DateStr, 9, 2);
-
-        Year := StrToInt(YearStr);
-        Month := StrToInt(MonthStr);
-        Day := StrToInt(DayStr);
-
-        // Validate ranges
-        if (Year < 1) or (Month < 1) or (Month > 12) or (Day < 1) or (Day > 31) then
-          raise Exception.Create('ParseDate: Invalid date values');
-
-        Result := EncodeDate(Year, Month, Day);
-      except
-        on E: Exception do
-          if Pos('ParseDate', E.Message) > 0 then
-            raise
-          else
-            raise Exception.Create('ParseDate requires date string in YYYY-MM-DD format');
-      end;
+      if (Year < 1) or (Month < 1) or (Day < 1) or
+        not TryEncodeDate(Word(Year), Word(Month), Word(Day), DateValue) then
+        raise Exception.CreateFmt('ParseDate: "%s" is not a valid date', [DateStr]);
+      Result := DateValue;
     end);
 
   RegisterFunction('DateAdd', function(const Args: array of Variant): Variant
@@ -599,14 +580,14 @@ begin
       DateValue: TDateTime;
       Days: Integer;
     begin
-      if Length(Args) <> 2 then
-        raise Exception.Create('DateAdd requires 2 arguments (date, days)');
+      ValidateArgCount('DateAdd', 2, Length(Args), 'date, days');
       try
         DateValue := VarToDateTime(Args[0]);
         Days := Args[1];
         Result := DateValue + Days;
       except
-        raise Exception.Create('DateAdd requires a valid date and number of days');
+        on EVariantError do
+          raise Exception.Create('DateAdd requires a valid date and number of days');
       end;
     end);
 
@@ -614,14 +595,14 @@ begin
     var
       Date1, Date2: TDateTime;
     begin
-      if Length(Args) <> 2 then
-        raise Exception.Create('DateDiff requires 2 arguments (date1, date2)');
+      ValidateArgCount('DateDiff', 2, Length(Args), 'date1, date2');
       try
         Date1 := VarToDateTime(Args[0]);
         Date2 := VarToDateTime(Args[1]);
         Result := Trunc(Date2 - Date1);
       except
-        raise Exception.Create('DateDiff requires two valid dates');
+        on EVariantError do
+          raise Exception.Create('DateDiff requires two valid dates');
       end;
     end);
 end;
@@ -638,10 +619,31 @@ begin
   FOnResolveExternalVariable := Resolver;
 end;
 
-procedure TExprEvaluator.ValidateArgCount(const FuncName: string; Expected, Actual: Integer);
+procedure TExprEvaluator.ValidateArgCount(const FuncName: string; Expected, Actual: NativeInt;
+  const Usage: string);
+var
+  Hint: string;
 begin
   if Expected <> Actual then
-    raise Exception.CreateFmt('%s requires %d argument(s), got %d', [FuncName, Expected, Actual]);
+  begin
+    if Usage <> '' then
+      Hint := ' (' + Usage + ')';
+    raise Exception.CreateFmt('%s requires %d argument(s)%s, got %d', [FuncName, Expected, Hint, Actual]);
+  end;
+end;
+
+// NaN and Infinity would flow silently into comparisons (NaN = NaN is False):
+// raise instead, like '/' does for a zero divisor
+function TExprEvaluator.EnsureFinite(const FuncName: string; const Value: Double): Double;
+begin
+  if IsNaN(Value) or IsInfinite(Value) then
+    raise Exception.CreateFmt('%s: result is not a finite number', [FuncName]);
+  Result := Value;
+end;
+
+function TExprEvaluator.VariableNames: TArray<string>;
+begin
+  Result := FVariables.Keys.ToArray;
 end;
 
 procedure TExprEvaluator.ValidateNumeric(const FuncName: string; const Arg: Variant);
@@ -711,33 +713,36 @@ end;
 
 function TExprEvaluator.Evaluate(const Expr: string): Variant;
 var
-  Exprs: TArray<string>;
-  I: Integer;
   OldInput: string;
   OldPos: Integer;
 begin
+  if Expr = '' then
+    Exit(Unassigned); // nothing to evaluate
+
   // Save current state
   OldInput := FInput;
   OldPos := FPos;
 
   try
-    // Split by semicolon to support multiple expressions
-    Exprs := Expr.Split([';']);
-    Result := Unassigned;
-    for I := 0 to High(Exprs) do
-    begin
-      FInput := Trim(Exprs[I]);
-      FPos := 1;
+    // Statements are separated by ';' (a trailing one is allowed). The parser
+    // itself consumes the ';', so one inside a string or a comment is harmless.
+    FInput := Expr;
+    FPos := 1;
+    repeat
       Result := ParseAssignment;
-      // Strict parse: reject unconsumed trailing tokens so typos like
-      // `var|filter,"x"` or `1 + 2 foo` surface as errors instead of silently
-      // returning the partial left-hand value.
       SkipWhitespace;
-      if FPos <= Length(FInput) then
-        raise Exception.CreateFmt(
-          'Unexpected characters at position %d: "%s"',
-          [FPos, Copy(FInput, FPos, MaxInt)]);
-    end;
+      if CurrentChar <> ';' then
+        Break;
+      NextChar;
+      SkipWhitespace;
+    until FPos > Length(FInput);
+    // Strict parse: reject unconsumed trailing tokens so typos like
+    // `var|filter,"x"` or `1 + 2 foo` surface as errors instead of silently
+    // returning the partial left-hand value.
+    if FPos <= Length(FInput) then
+      raise Exception.CreateFmt(
+        'Unexpected characters at position %d: "%s"',
+        [FPos, Copy(FInput, FPos, MaxInt)]);
   finally
     // Restore original state
     FInput := OldInput;
@@ -827,7 +832,7 @@ begin
 
   SavePos := FPos;
   IfWord := ParseIdentifier;
-  if IfWord <> 'IF' then
+  if not SameText(IfWord, 'IF') then
   begin
     FPos := SavePos; // backtrack to saved position
     Result := ParseLogical;
@@ -949,7 +954,7 @@ begin
   // Include dots to support member access (e.g., f.Index, obj.property.subprop)
   while (FPos <= Length(FInput)) and (IsAlpha(CurrentChar) or IsDigit(CurrentChar) or (CurrentChar = '.')) do
     NextChar;
-  Result := UpperCase(Copy(FInput, Start, FPos - Start));
+  Result := Copy(FInput, Start, FPos - Start); // as typed: the resolver may be case sensitive
 end;
 
 function TExprEvaluator.ParseString: string;
@@ -1063,7 +1068,10 @@ begin
     end
     else
     begin
-      Result := GetVariable(Id);
+      if FSkipEvaluation then
+        Result := Null // short-circuited branch: do not ask anyone for the value
+      else
+        Result := GetVariable(Id);
     end;
   end
   else
@@ -1089,7 +1097,7 @@ begin
       raise Exception.Create('Expected expression after ^');
 
     if not FSkipEvaluation then
-      Left := System.Math.Power(Left, Right);
+      Left := EnsureFinite('^', System.Math.Power(Left, Right));
     SkipWhitespace;
   end;
   Result := Left;
@@ -1184,7 +1192,7 @@ begin
         '+':
           begin
             if VarIsStr(Left) or VarIsStr(Right) then
-              Left := VarToStr(Left) + VarToStr(Right)
+              Left := VariantToString(Left) + VariantToString(Right)
             else
               Left := Left + Right;
           end;
@@ -1380,7 +1388,7 @@ begin
     Exit;
   end;
 
-  if not FFunctions.TryGetValue(FuncName, Handler) then
+  if not FFunctions.TryGetValue(UpperCase(FuncName), Handler) then
     raise Exception.Create('Unknown function: ' + FuncName);
   Result := Handler(Args);
 end;
@@ -1464,10 +1472,10 @@ begin
     Exit;
   end;
 
-  // Check word boundary - next character should be a delimiter or end of input
+  // Check word boundary - the keyword must not run into a longer identifier
   NextCharPos := FPos + KeywordLen;
   Result := (NextCharPos > Length(FInput)) or
-            CharInSet(FInput[NextCharPos], [' ', #9, #10, #13, ')', ';', ',']);
+            not (IsAlpha(FInput[NextCharPos]) or IsDigit(FInput[NextCharPos]) or (FInput[NextCharPos] = '.'));
 end;
 
 function TExprEvaluator.ConsumeKeyword(const Keyword: string): Boolean;

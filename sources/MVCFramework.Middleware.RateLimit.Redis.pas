@@ -26,6 +26,10 @@ unit MVCFramework.Middleware.RateLimit.Redis;
 
 {$I dmvcframework.inc}
 
+// REQUIRES DelphiRedisClient, which is not part of DMVCFramework nor of its
+// packages: git clone --recursive https://github.com/danieleteti/delphiredisclient
+// and add its sources to the library path.
+
 interface
 
 uses
@@ -35,7 +39,7 @@ uses
   Redis.Values,
   Redis.Commons,
   Redis.NetLib.INDY,
-  MVCFramework.Middleware.RateLimit;
+  MVCFramework.Filters; // IMVCRateLimitStorage
 
 type
   /// <summary>

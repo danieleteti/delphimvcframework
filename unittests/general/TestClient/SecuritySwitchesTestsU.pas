@@ -92,6 +92,7 @@ type
     FIPBlockPeer: IMVCServer;
     FIPBlockProxy: IMVCServer;
     FJWTMiddleware: TMVCJWTAuthenticationMiddleware;
+    fEngines: TObjectList<TMVCEngine>; // the servers do not own their engines
     FClient: THTTPClient;
     function GetWithOrigin(const AURL, AOrigin: string): IHTTPResponse;
     function Login: string;
@@ -225,8 +226,10 @@ var
   lEngine: TMVCEngine;
   lJWTMiddleware: TMVCJWTAuthenticationMiddleware;
 begin
+  fEngines := TObjectList<TMVCEngine>.Create;
   // 1. CORS with the constructor defaults: origin '*', credentials True.
   lEngine := TMVCEngine.Create;
+  fEngines.Add(lEngine);
   lEngine.AddController(TSecuritySwitchesController);
   lEngine.AddMiddleware(TMVCCORSMiddleware.Create);
   FCORSWildcard := TMVCServerFactory.CreateIndyDirect(lEngine);
@@ -234,6 +237,7 @@ begin
 
   // 2. Same, with one explicit origin.
   lEngine := TMVCEngine.Create;
+  fEngines.Add(lEngine);
   lEngine.AddController(TSecuritySwitchesController);
   lEngine.AddMiddleware(TMVCCORSMiddleware.Create(ALLOWED_ORIGIN, True));
   FCORSOrigin := TMVCServerFactory.CreateIndyDirect(lEngine);
@@ -256,6 +260,7 @@ begin
     300);
   FJWTMiddleware := lJWTMiddleware;
   lEngine := TMVCEngine.Create;
+  fEngines.Add(lEngine);
   lEngine.AddController(TSecuritySwitchesController);
   lEngine.AddMiddleware(lJWTMiddleware);
   FJWTServer := TMVCServerFactory.CreateIndyDirect(lEngine);
@@ -263,15 +268,17 @@ begin
 
   // 4. IPBlock on the address the tests connect from.
   lEngine := TMVCEngine.Create;
+  fEngines.Add(lEngine);
   lEngine.AddController(TSecuritySwitchesController);
-  lEngine.UseHTTPFilter(IPBlock(['127.0.0.1']));
+  lEngine.Use(IPBlockHTTPFilter(['127.0.0.1']));
   FIPBlockPeer := TMVCServerFactory.CreateIndyDirect(lEngine);
   FIPBlockPeer.Listen(IPBLOCK_PEER_PORT);
 
   // 5. IPBlock on an address only a forwarded header can carry.
   lEngine := TMVCEngine.Create;
+  fEngines.Add(lEngine);
   lEngine.AddController(TSecuritySwitchesController);
-  lEngine.UseHTTPFilter(IPBlock([FORWARDED_IP]));
+  lEngine.Use(IPBlockHTTPFilter([FORWARDED_IP]));
   FIPBlockProxy := TMVCServerFactory.CreateIndyDirect(lEngine);
   FIPBlockProxy.Listen(IPBLOCK_PROXY_PORT);
 end;
@@ -279,12 +286,14 @@ end;
 procedure TSecuritySwitchesTests.ListenOnAHostBindsThatAddressOnly;
 var
   lServer: IMVCServer;
+  lEngine: TMVCEngine;
   lLan: string;
 begin
   TIdStack.IncUsage;
   try
     lLan := LanAddress;
-    lServer := TMVCServerFactory.CreateIndyDirect(TMVCEngine.Create);
+    lEngine := TMVCEngine.Create;
+    lServer := TMVCServerFactory.CreateIndyDirect(lEngine);
     try
       lServer.Listen(LISTEN_PORT_A, 'localhost');
       Assert.IsTrue(CanConnect('127.0.0.1', LISTEN_PORT_A), 'localhost must answer on 127.0.0.1');
@@ -306,6 +315,7 @@ begin
     finally
       lServer.Stop;
       lServer := nil;
+      lEngine.Free;
     end;
   finally
     TIdStack.DecUsage;
@@ -315,12 +325,14 @@ end;
 procedure TSecuritySwitchesTests.ListenAfterStopFollowsTheNewPortAndHost;
 var
   lServer: IMVCServer;
+  lEngine: TMVCEngine;
   lLan: string;
 begin
   TIdStack.IncUsage;
   try
     lLan := LanAddress;
-    lServer := TMVCServerFactory.CreateIndyDirect(TMVCEngine.Create);
+    lEngine := TMVCEngine.Create;
+    lServer := TMVCServerFactory.CreateIndyDirect(lEngine);
     try
       lServer.Listen(LISTEN_PORT_A, '127.0.0.1');
       lServer.Stop;
@@ -333,6 +345,7 @@ begin
     finally
       lServer.Stop;
       lServer := nil;
+      lEngine.Free;
     end;
   finally
     TIdStack.DecUsage;
@@ -352,6 +365,7 @@ begin
   FIPBlockPeer := nil;
   FIPBlockProxy.Stop;
   FIPBlockProxy := nil;
+  fEngines.Free;
 end;
 
 procedure TSecuritySwitchesTests.Setup;

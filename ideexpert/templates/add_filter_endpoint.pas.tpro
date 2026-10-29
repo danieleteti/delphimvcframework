@@ -1,0 +1,34 @@
+{{include "_license_header.tpro"}}
+unit {{:unit_name}};
+
+interface
+
+uses
+  MVCFramework;
+
+// Post-routing: around every controller action and Minimal API route (AEngine.Use),
+// or only around the routes of a group (AGroup.Use)
+function {{:function_name}}: TMVCEndpointFilter;
+
+implementation
+
+uses
+  MVCFramework.Commons,
+  MVCFramework.Logger;
+
+function {{:function_name}}: TMVCEndpointFilter;
+begin
+  Result :=
+    function(const AContext: TWebContext; const ANext: TMVCEndpointFilterNext): IMVCResponse
+    begin
+      // the target: ControllerQualifiedClassName + ActionName, or '' + 'VERB /pattern' for a Minimal API route
+      LogI('{{:function_name}}: ' + AContext.ActionQualifiedName);
+      // to answer instead of the action, return a response without calling ANext(), e.g.
+      // if not AContext.LoggedUser.IsValid then
+      //   Exit(Status(HTTP_STATUS.Unauthorized, 'Authentication required'));
+      // Minimal API route: the response of the handler; controller action: nil, it has written its answer
+      Result := ANext();
+    end;
+end;
+
+end.

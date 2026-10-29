@@ -24,7 +24,7 @@
 
 unit RequestGuardFiltersTestsU;
 
-// BearerAuthFilter, AllowedOriginFilter, AllowedHostFilter on the wire: two
+// BearerAuthHTTPFilter, AllowedOriginHTTPFilter, AllowedHostHTTPFilter on the wire: two
 // embedded Indy servers, raw requests (TIdHTTP) so Host, Origin and the path
 // are exactly what the test writes.
 
@@ -65,6 +65,7 @@ type
     fHostServer: IMVCServer;
     fNamelessServer: IMVCServer;
     fMethodsServer: IMVCServer;
+    fEngines: TArray<TMVCEngine>; // the servers do not own their engines
     function RawStatus(const APort: Integer; const ALines: array of string): Integer;
     function Get(const APort: Integer; const APath: string; const AAuthorization: string = '';
       const AOrigin: string = ''; const AHost: string = ''): Integer;
@@ -165,25 +166,28 @@ var
 begin
   // token + origin, on /guarded only
   lEngine := TMVCEngine.Create;
+  fEngines := fEngines + [lEngine];
   lEngine.AddController(TGuardedController);
-  lEngine.UseHTTPFilter(BearerAuthFilter(
+  lEngine.Use(BearerAuthHTTPFilter(
     StaticBearerTokens([TPair<string, string>.Create(TOKEN_USER, TOKEN),
       TPair<string, string>.Create('ci', TOKEN2)]), '/guarded'));
-  lEngine.UseHTTPFilter(AllowedOriginFilter([ORIGIN_OK], '/guarded'));
+  lEngine.Use(AllowedOriginHTTPFilter([ORIGIN_OK], '/guarded'));
   fAuthServer := TMVCServerFactory.CreateIndyDirect(lEngine);
   fAuthServer.Listen(GUARD_AUTH_PORT);
 
   // host, on /guarded only
   lEngine := TMVCEngine.Create;
+  fEngines := fEngines + [lEngine];
   lEngine.AddController(TGuardedController);
-  lEngine.UseHTTPFilter(AllowedHostFilter(['my.example'], '/guarded'));
+  lEngine.Use(AllowedHostHTTPFilter(['my.example'], '/guarded'));
   fHostServer := TMVCServerFactory.CreateIndyDirect(lEngine);
   fHostServer.Listen(GUARD_HOST_PORT);
 
   // a validator that accepts the token but names nobody
   lEngine := TMVCEngine.Create;
+  fEngines := fEngines + [lEngine];
   lEngine.AddController(TGuardedController);
-  lEngine.UseHTTPFilter(BearerAuthFilter(
+  lEngine.Use(BearerAuthHTTPFilter(
     function(const AToken: string; out AUserName: string; var ARoles: TArray<string>): Boolean
     begin
       AUserName := '';
@@ -194,8 +198,9 @@ begin
 
   // verbs, on /guarded only
   lEngine := TMVCEngine.Create;
+  fEngines := fEngines + [lEngine];
   lEngine.AddController(TGuardedController);
-  lEngine.UseHTTPFilter(AllowedMethodsFilter([httpPOST], '/guarded'));
+  lEngine.Use(AllowedMethodsHTTPFilter([httpPOST], '/guarded'));
   fMethodsServer := TMVCServerFactory.CreateIndyDirect(lEngine);
   fMethodsServer.Listen(GUARD_METHODS_PORT);
 end;
@@ -208,10 +213,12 @@ begin
   Assert.AreEqual(200, RawStatus(GUARD_METHODS_PORT, ['GET /open HTTP/1.1', 'Host: localhost']), 'other paths go on');
   Assert.AreEqual(405, RawStatus(GUARD_METHODS_PORT, ['GET /%67uarded HTTP/1.1', 'Host: localhost']), 'encoded form');
   Assert.WillRaise(
-    procedure begin AllowedMethodsFilter([httpPOST], '/'); end, EMVCException);
+    procedure begin AllowedMethodsHTTPFilter([httpPOST], '/'); end, EMVCException);
 end;
 
 procedure TRequestGuardFiltersTests.TeardownFixture;
+var
+  lEngine: TMVCEngine;
 begin
   fMethodsServer.Stop;
   fMethodsServer := nil;
@@ -221,6 +228,9 @@ begin
   fHostServer := nil;
   fNamelessServer.Stop;
   fNamelessServer := nil;
+  for lEngine in fEngines do
+    lEngine.Free;
+  fEngines := nil;
 end;
 
 function TRequestGuardFiltersTests.RawStatus(const APort: Integer; const ALines: array of string): Integer;

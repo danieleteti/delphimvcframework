@@ -75,7 +75,7 @@
             <Form>WebModule1</Form>
             <DesignClass>TWebModule</DesignClass>
         </DCCReference>
-        <DCCReference Include="AuthControllerU.pas"/>
+        <DCCReference Include="ProtectedControllerU.pas"/>
         <DCCReference Include="AuthenticationU.pas"/>
         <DCCReference Include="SharedU.pas"/>
         <BuildConfiguration Include="Base">

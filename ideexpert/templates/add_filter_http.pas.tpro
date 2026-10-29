@@ -1,0 +1,34 @@
+{{include "_license_header.tpro"}}
+unit {{:unit_name}};
+
+interface
+
+uses
+  MVCFramework;
+
+// Pre-routing, engine-wide (AEngine.Use): wraps every request, routing and action included
+function {{:function_name}}: TMVCHTTPFilter;
+
+implementation
+
+uses
+  System.SysUtils,
+  System.Diagnostics;
+
+function {{:function_name}}: TMVCHTTPFilter;
+begin
+  Result :=
+    procedure(const AContext: TWebContext; const ANext: TMVCHTTPFilterNext)
+    var
+      lWatch: TStopwatch;
+    begin
+      // before ANext() nothing has run, not even the routing; not calling ANext() answers here
+      lWatch := TStopwatch.StartNew;
+      ANext();
+      // after ANext() the response is complete and can still be changed
+      AContext.Response.SetCustomHeader('Server-Timing',
+        Format('{{:metric_name}};dur=%.1f', [lWatch.Elapsed.TotalMilliseconds], TFormatSettings.Invariant));
+    end;
+end;
+
+end.

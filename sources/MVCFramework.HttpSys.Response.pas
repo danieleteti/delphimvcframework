@@ -60,6 +60,7 @@ type
     FCookies: TCookieCollection;
     FHeadersSent: Boolean;
     FDate: TDateTime;
+    fVerb: HTTP_VERB;
     procedure MarkStreamingHandled;
   protected
     function GetCustomHeaders: TStrings; override;
@@ -81,7 +82,8 @@ type
     procedure SetDate(const AValue: TDateTime); override;
     function GetRawWebResponse: TWebResponse; override;
   public
-    constructor Create(AReqQueueHandle: THandle; ARequestId: HTTP_REQUEST_ID);
+    // AVerb: the verb of the request; a HEAD gets the headers and no body
+    constructor Create(AReqQueueHandle: THandle; ARequestId: HTTP_REQUEST_ID; const AVerb: HTTP_VERB);
     destructor Destroy; override;
     procedure Flush; override;
     procedure SetCustomHeader(const AName, AValue: string); override;
@@ -108,11 +110,13 @@ const
 
 { TMVCHttpSysResponse }
 
-constructor TMVCHttpSysResponse.Create(AReqQueueHandle: THandle; ARequestId: HTTP_REQUEST_ID);
+constructor TMVCHttpSysResponse.Create(AReqQueueHandle: THandle; ARequestId: HTTP_REQUEST_ID;
+  const AVerb: HTTP_VERB);
 begin
   inherited Create;
   FReqQueueHandle := AReqQueueHandle;
   FRequestId := ARequestId;
+  fVerb := AVerb;
   FStatusCode := 200;
   FReasonString := 'OK';
   FContentType := '';
@@ -379,8 +383,8 @@ begin
     lResponse.Headers.pUnknownHeaders := @lUnknownHeaders[0];
   end;
 
-  { Entity body }
-  if Assigned(FContentStream) and (FContentStream.Size > 0) then
+  { Entity body: none for a HEAD, the kernel sends whatever it is given }
+  if (fVerb <> HttpVerbHEAD) and Assigned(FContentStream) and (FContentStream.Size > 0) then
   begin
     { Stream body }
     lBodyStream := TMemoryStream.Create;
@@ -404,7 +408,7 @@ begin
       lBodyStream.Free;
     end;
   end
-  else if FContent <> '' then
+  else if (fVerb <> HttpVerbHEAD) and (FContent <> '') then
   begin
     { String body }
     lBodyBytes := TEncoding.UTF8.GetBytes(FContent);
@@ -538,6 +542,14 @@ begin
   // HTTP/1.1 clients and keeps the connection alive.
   lResponse.EntityChunkCount := 0;
   lResponse.pEntityChunks := nil;
+  if FOwner.fVerb = HttpVerbHEAD then
+  begin
+    // the headers are the whole answer: no MORE_DATA, and Connected is False from here, so the source
+    // is not pulled for a body nobody gets (the kernel would send it)
+    HttpSendHttpResponse(FReqQueueHandle, FRequestId, 0, @lResponse, nil, lBytesSent, nil, 0, nil, nil);
+    FConnected := False;
+    Exit;
+  end;
   lResult := HttpSendHttpResponse(FReqQueueHandle, FRequestId,
     HTTP_SEND_RESPONSE_FLAG_MORE_DATA, @lResponse, nil, lBytesSent, nil, 0, nil, nil);
   if lResult <> NO_ERROR then

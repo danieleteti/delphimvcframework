@@ -40,6 +40,8 @@ unit MVCFramework.Middleware.RangeMedia;
 
 {$I dmvcframework.inc}
 
+{$WARN SYMBOL_DEPRECATED OFF} // the class is deprecated for its users, not inside its own unit
+
 interface
 
 uses
@@ -111,7 +113,7 @@ type
       const AControllerQualifiedClassName: string;
       const AActionName: string; const AHandled: Boolean);
     procedure OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
-  end;
+  end deprecated 'Use the RangeMedia HTTP filter (MVCFramework.Filters): AEngine.Use(RangeMediaHTTPFilter(...))';
 
 /// <summary>
 /// Factory function to create a Range-aware media file middleware.

@@ -5,7 +5,9 @@ setlocal EnableDelayedExpansion
 :: DMVCFramework — Run Server Script
 ::
 :: Starts the compiled DMVCFramework server executable.
-:: The executable is expected at the standard MSBuild output path:
+:: The executable is looked for in the wizard's output folder first (it sets the
+:: output to .\bin, where bin\.env lives too), then at the MSBuild default:
+::   <project-dir>\bin\<ProjectName>.exe
 ::   <project-dir>\<Platform>\<Config>\<ProjectName>.exe
 ::
 :: Usage:
@@ -34,10 +36,11 @@ set "PROJ_DIR=%~dp1"
 if "!PROJ_DIR:~-1!"=="\" set "PROJ_DIR=!PROJ_DIR:~0,-1!"
 set "PROJ_NAME=%~n1"
 
-set "EXE=!PROJ_DIR!\!PLT!\!CFG!\!PROJ_NAME!.exe"
+set "EXE=!PROJ_DIR!\bin\!PROJ_NAME!.exe"
+if not exist "!EXE!" set "EXE=!PROJ_DIR!\!PLT!\!CFG!\!PROJ_NAME!.exe"
 
 if not exist "!EXE!" (
-    echo ERROR: Executable not found: !EXE!
+    echo ERROR: Executable not found in !PROJ_DIR!\bin nor at !EXE!
     echo Run build.bat first:
     echo   build.bat "!PROJ!" !CFG! !PLT!
     exit /b 1
@@ -46,4 +49,6 @@ if not exist "!EXE!" (
 echo Starting: !EXE!
 echo Press Ctrl+C to stop.
 echo.
+for %%E in ("!EXE!") do pushd "%%~dpE"
 "!EXE!"
+popd

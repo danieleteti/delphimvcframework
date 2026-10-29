@@ -1,10 +1,9 @@
 # JWT Access + Refresh Token
 
-DelphiMVCFramework ships JWT **access token** validation (`TMVCJWTAuthenticationMiddleware`)
-and a sliding-expiration mechanism (`LiveValidityWindowInSeconds`). It does **not** ship a
-refresh token out of the box. This feature adds an OAuth2-style **refresh token** as an
-additive, opt-in layer: short-lived access tokens plus a long-lived, **revocable** refresh
-token with rotation and reuse-detection.
+DelphiMVCFramework ships JWT **access token** login and validation (`JWTAuthenticationBundle`)
+and a sliding-expiration mechanism (`LiveValidityWindowInSeconds`). The OAuth2-style
+**refresh token** is an additive, opt-in layer on the same bundle: short-lived access tokens
+plus a long-lived, **revocable** refresh token with rotation and reuse-detection.
 
 ## When to use which
 
@@ -19,7 +18,7 @@ refresh token when you need short access tokens with central revocation.
 ## Design
 
 - The **access token** is a normal JWT (HS512 by default) carrying `username` and `roles`,
-  verified by the existing `TMVCJWTAuthenticationMiddleware`.
+  verified by the check of `JWTAuthenticationBundle` (or the deprecated `TMVCJWTAuthenticationMiddleware`).
 - The **refresh token** is an *opaque* random string (not a JWT) — so it can be revoked.
   The store keeps only its **SHA-256 hash**, never the token itself.
 - **Rotation**: every refresh consumes the presented token and issues a new one in the same
@@ -31,13 +30,15 @@ refresh token when you need short access tokens with central revocation.
 
 | Unit | Contents | Extra dependency |
 |---|---|---|
-| `MVCFramework.JWT.RefreshToken` | core, in-memory store, classic middleware, helpers | none |
-| `MVCFramework.JWT.RefreshToken.Filters` | engine-wide `RefreshTokenHTTPFilter` | `MVCFramework.MinimalAPI` |
+| `MVCFramework.Filters.Authentication` | `JWTAuthenticationBundle`: login, refresh URL and check in one `Use` | none |
+| `MVCFramework.JWT.RefreshToken` | core, config, in-memory store, classic middleware (deprecated), helpers | none |
+| `MVCFramework.JWT.RefreshToken.Filters` | engine-wide `RefreshTokenHTTPFilter` (the refresh URL alone) | none |
 | `MVCFramework.JWT.RefreshToken.ActiveRecord` | durable store + entity | FireDAC / ActiveRecord |
 
-The transport-agnostic logic lives once in `TMVCRefreshTokenCore`; the classic middleware and
-the HTTPFilter are thin adapters over it. The refresh endpoint is a standalone, engine-wide
-concern, so it maps to a classic middleware or an HTTPFilter — not to a per-group EndpointFilter.
+The transport-agnostic logic lives once in `TMVCRefreshTokenCore`; the HTTPFilter, the login
+of the bundle and the classic middleware (`TMVCJWTRefreshTokenMiddleware`, deprecated in 3.5)
+are thin adapters over it. The login and the refresh endpoint need no route, so they are HTTP
+filters, in the HTTP part of the bundle; the check of the access token is its endpoint part.
 
 ## Store contract
 
@@ -71,57 +72,75 @@ CREATE TABLE refresh_tokens (
 );
 ```
 
-## Wiring — with controllers
+## Wiring
+
+The refresh token is an option of `JWTAuthenticationBundle`: assign `RefreshTokenStore` in
+`TMVCJWTAuthenticationOptions` and the bundle has the login, the refresh URL and the check.
 
 ```pascal
-MVC
-  .AddController(TAuthController)        // owns POST /auth/login (returns both tokens)
-  .AddController(TProtectedController)
-  .AddMiddleware(TMVCJWTAuthenticationMiddleware.Create(   // validates access token
-    TAuthenticationSample.Create,
-    procedure(const JWT: TJWT) begin JWT.Claims.Issuer := gRefreshCfg.Issuer; end,
-    JWT_SECRET, '/__jwt_autologin_unused',
-    [TJWTCheckableClaim.ExpirationTime], 0, HMAC_HS512))
-  .AddMiddleware(TMVCJWTRefreshTokenMiddleware.Create(gRefreshCfg, gRefreshStore)); // /auth/refresh
-```
+uses
+  MVCFramework.Filters.Authentication,
+  MVCFramework.JWT.RefreshToken;
 
-The middleware auto-login renders only the access token, so login is done by a controller
-action that returns both tokens:
-
-```pascal
-function TAuthController.Login: TJSONObject;
 var
-  lAccess, lRefresh: string;
+  // one store for the whole process: under WebBroker, ISAPI and Apache every web module
+  // has an engine (and a bundle) of its own, and a token issued by one must be refreshed by the others
+  gRefreshStore: IMVCRefreshTokenStore;
+
+procedure TMyWebModule.WebModuleCreate(Sender: TObject);
+var
+  lOptions: TMVCJWTAuthenticationOptions;
 begin
-  // ... validate credentials ...
-  gRefreshCore.NewTokenPair(lUser, 'role1,role2', lAccess, lRefresh);
-  Result := TJSONObject.Create;
-  Result.S['access_token'] := lAccess;
-  Result.S['refresh_token'] := lRefresh;
-  Result.S['token_type'] := 'bearer';
-  Result.I['expires_in'] := gRefreshCfg.AccessTokenTTLSeconds;
+  lOptions := TMVCJWTAuthenticationOptions.Default;
+  lOptions.Handler := TAuthenticationSample.Create;      // checks the credentials
+  lOptions.Secret := JWT_SECRET;                         // or lOptions.Signer (RS256 & co.)
+  lOptions.LoginURL := '/auth/login';
+  lOptions.RefreshToken.Issuer := 'my-app';
+  lOptions.RefreshToken.AccessTokenTTLSeconds := 15 * 60;
+  lOptions.RefreshToken.RefreshTokenTTLSeconds := 7 * 24 * 60 * 60;
+  lOptions.RefreshTokenStore := gRefreshStore;           // assigned: refresh token on
+
+  MVC
+    .AddController(TProtectedController)
+    .Use(JWTAuthenticationBundle(lOptions));  // /auth/login, /auth/refresh, the check
 end;
+
+initialization
+  gRefreshStore := TMVCInMemoryRefreshTokenStore.Create;
+finalization
+  gRefreshStore := nil;
 ```
 
-## Wiring — with filters (minimal API)
+- **Login** (`LoginURL`): the credentials go to `Handler.OnAuthentication`, as with the
+  bundle without refresh token; when they are accepted the answer is the pair
+  `{"access_token", "refresh_token", "token_type": "bearer", "expires_in"}`, the same body as
+  the refresh URL. Wrong credentials: 401.
+- **Refresh** (`RefreshToken.RefreshURLSegment`, `/auth/refresh` by default): `POST` with
+  `{"refresh_token": ...}` rotates the token and answers a new pair.
+- **Check**: the access token is verified on every action (engine-wide `Use`: controllers
+  and Minimal API routes). The handler's `OnRequest` can make a controller action public.
+- The bundle gives `RefreshToken` its own `Secret` (or `Signer`) and `HMACAlgorithm`: the
+  access tokens of the login and of the refresh are signed the way the check verifies them.
+- Both access tokens carry `username` and `roles` (what the store keeps), `RefreshToken.Issuer`,
+  `iat`, `nbf`, a `jti` of their own and the lifetime `AccessTokenTTLSeconds`. `ClaimsSetup` must stay nil (the bundle
+  raises otherwise), and the session data of the handler is not in the tokens.
+- **Logout**: with the blacklist too (`OnAcceptToken` + `OnNewJWTToBlackList`), a request to
+  `BlackListURL` (`/logout`) with the access token blacklists it and, when its JSON body is
+  `{"refresh_token": ...}`, revokes that refresh token and its family (`IMVCRefreshTokenStore.Revoke`):
+  the next refresh with it gets `401`. Without that body only the access token is logged out.
+- **A login of your own** (an action that checks the credentials itself): `LoginURL := ''`
+  leaves the login out of the bundle, which keeps the refresh URL and the check; the action
+  answers the pair with `TMVCRefreshTokenCore.Create(lRefreshConfig, lStore).IssueTokenPair(...)`,
+  on the same store and on a `TMVCRefreshTokenConfig` with the bundle's `Secret` (or `Signer`).
+  The login must be outside the check: with the bundle on the engine a Minimal API route is
+  always checked, so the login is a controller action that the handler's `OnRequest` makes
+  public; or the bundle goes on the route group it protects and the login stays outside it.
+
+With the Minimal API, the same bundle goes on the route group it protects; its login and its
+refresh URL are HTTP filters, so they go on the engine:
 
 ```pascal
-lEngine.UseHTTPFilter(RefreshTokenHTTPFilter(gRefreshCfg, gRefreshStore)); // /auth/refresh
-
-lEngine.Root.MapPost<TLoginInput>('/auth/login',
-  function (Input: TLoginInput): IMVCResponse
-  var
-    lPair: TTokenPair;
-  begin
-    // ... validate credentials ...
-    gRefreshCore.NewTokenPair(Input.Username, 'role1,role2',
-      lPair.access_token, lPair.refresh_token);
-    lPair.token_type := 'bearer';
-    lPair.expires_in := gRefreshCfg.AccessTokenTTLSeconds;
-    Result := Ok(lPair);
-  end);
-
-lEngine.Root.Prefix('/api').Use(JWT(TAuthHandler.Create, nil, JWT_SECRET, ''))
+lEngine.Root.Prefix('/api').Use(JWTAuthenticationBundle(lOptions))
   .MapGet('/profile', function: IMVCResponse begin Result := Ok(...); end);
 ```
 
