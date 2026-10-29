@@ -116,7 +116,7 @@ function IsOrInheritsFromTIdHTTPAppRequest(AClass: TClass): Boolean;
 begin
   while AClass <> nil do
   begin
-    if AClass.ClassName = 'TIdHTTPAppRequest' then
+    if AClass.ClassNameIs('TIdHTTPAppRequest') then // no string allocation: called on every request
       Exit(True);
     AClass := AClass.ClassParent;
   end;
