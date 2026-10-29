@@ -217,6 +217,12 @@ type
     [TestCase('IndyDirect', '8935')]
     [TestCase('HttpSys', '8937')]
     procedure AFilterThatRaisesAnswersAsAnActionThatRaises(const APort: Integer);
+    // an exception that is not an EMVCException: a 500, and in DEBUG its message without a "[ClassName]" prefix
+    [Test]
+    [TestCase('TestServer', '8888')]
+    [TestCase('IndyDirect', '8935')]
+    [TestCase('HttpSys', '8937')]
+    procedure AFilterThatRaisesAnErrorAnswersAsAnActionThatRaisesIt(const APort: Integer);
     // the custom exception handler answers for a filter too, without a controller
     [Test]
     procedure TheExceptionHandlerAnswersWhatAFilterRaises;
@@ -837,6 +843,28 @@ begin
     Assert.AreEqual('Too many attempts', lFilterBody.S['message'], lFilter.Content);
     Assert.AreEqual(lActionBody.S['message'], lFilterBody.S['message'], 'message');
     // the class name only in DEBUG builds, for the filter as for the action
+    Assert.AreEqual(lActionBody.S['classname'], lFilterBody.S['classname'], 'classname');
+  finally
+    lActionBody.Free;
+    lFilterBody.Free;
+  end;
+end;
+
+procedure THTTPFilterTests.AFilterThatRaisesAnErrorAnswersAsAnActionThatRaisesIt(const APort: Integer);
+var
+  lAction, lFilter: IMVCRESTResponse;
+  lActionBody, lFilterBody: TJsonObject;
+begin
+  lAction := Client(APort).Get('/fexc/boom');
+  lFilter := Client(APort).Get('/fexc/filter-boom');
+  Assert.AreEqual(500, lAction.StatusCode, 'the action');
+  Assert.AreEqual(500, lFilter.StatusCode, 'the filter');
+  lActionBody := StrToJSONObject(lAction.Content);
+  lFilterBody := StrToJSONObject(lFilter.Content);
+  try
+    Assert.IsNotNull(lActionBody, lAction.Content);
+    Assert.IsNotNull(lFilterBody, lFilter.Content);
+    Assert.AreEqual(lActionBody.S['message'], lFilterBody.S['message'], 'message');
     Assert.AreEqual(lActionBody.S['classname'], lFilterBody.S['classname'], 'classname');
   finally
     lActionBody.Free;

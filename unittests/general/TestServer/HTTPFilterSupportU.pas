@@ -246,6 +246,12 @@ begin
     begin
       raise EMVCException.Create(http_status.TooManyRequests, 'Too many attempts');
     end));
+  // the same exception that the action on /fexc/boom raises
+  AEngine.Use(OnlyFor('/fexc/filter-boom',
+    procedure(const AContext: TWebContext; const ANext: TMVCHTTPFilterNext)
+    begin
+      raise Exception.Create('boom');
+    end));
 
   AEngine.Use(RedirectHTTPFilter(['/fold'], '/fnew', rdkPermanent));
   AEngine.Use(RedirectHTTPFilter(['/fold2'], '/fnew'));

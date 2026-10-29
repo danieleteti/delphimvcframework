@@ -1625,6 +1625,10 @@ the same socket.
   was set, as HTTP.sys, ISAPI and Apache do, a text body without a charset is written as UTF-8 as HTTP.sys writes it,
   and `Response.ContentType` returns the charset too, so a filter sees it (the Trace filter decodes a body with it).
   WebBroker over the Indy bridge keeps Indy's handling of the charset, as in 3.4.
+- **An exception that is not an `EMVCException`, raised in an HTTP filter or in a classic middleware before routing,
+  is answered as in an action.** In DEBUG builds its message was `"[Exception] boom"`; it is now `"boom"`, with the
+  class name in its own field, as when an action raises it.
+
 - **Wizard: the MCP options say they need mcp-server-delphi, and whether it is there.** As soon as one of the MCP
   options is on, a notice under them says that the generated code uses mcp-server-delphi
   and, checked against the IDE library path, whether it was found (grey) or the project will not compile until it

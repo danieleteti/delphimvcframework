@@ -3216,11 +3216,11 @@ begin
       end
       else
       begin
-        { Same reasoning as TMVCRenderer.Render(AException): outside DEBUG
-          neither the class name nor the raw message reaches the client. }
+        { As TMVCRenderer.Render(AException) answers an action: outside DEBUG
+          neither the class name nor the raw message reaches the client, in
+          DEBUG the class name has a field of its own. }
         {$IFDEF DEBUG}
-        SendHTTPStatus(AContext, lRespStatus,
-          Format('[%s] %s', [AException.Classname, AException.Message]), AException.Classname);
+        SendHTTPStatus(AContext, lRespStatus, MVCClientSafeExceptionMessage(AException), AException.Classname);
         {$ELSE}
         SendHTTPStatus(AContext, lRespStatus, MVCClientSafeExceptionMessage(AException));
         {$ENDIF}
