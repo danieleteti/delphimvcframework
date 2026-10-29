@@ -129,7 +129,7 @@ function IsOrInheritsFromTISAPIRequest(AClass: TClass): Boolean;
 begin
   while AClass <> nil do
   begin
-    if AClass.ClassName = 'TISAPIRequest' then
+    if AClass.ClassNameIs('TISAPIRequest') then // no string allocation: GetPathInfo is per read
       Exit(True);
     AClass := AClass.ClassParent;
   end;
@@ -582,9 +582,10 @@ begin
   // TWebRequest.URL maps to Apache's unparsed_uri (and to the full URL
   // under the Indy bridge), so stripping the query string yields the
   // same original path in every WebBroker host.
-  // ISAPI: IIS's URL server variable includes the extension's own path
-  // (e.g. /app.dll/api/x), so it cannot be routed. IIS splits SCRIPT_NAME
-  // and PATH_INFO reliably, and PathInfo is what pre-3.5 versions routed on.
+  // ISAPI: IIS's URL server variable is only the part of the path that
+  // selected the extension (/app.dll for /app.dll/api/x, /api for a handler
+  // mapped on /api), so it cannot be routed. PathInfo (PATH_INFO, decoded and
+  // dot-segment normalized by IIS) is the routable path in every mapping.
   if IsOrInheritsFromTISAPIRequest(FWebRequest.ClassType) then
     Exit(FWebRequest.PathInfo);
   Result := FWebRequest.URL;
@@ -686,7 +687,7 @@ var
 begin
   // The Indy bridge has the path as it came on the wire (TIdHTTPRequestInfo.URI),
   // the one Indy Direct and HTTP.sys give. Elsewhere see the comment on
-  // GetPathInfo: TWebRequest.URL is the only field intact under every host.
+  // GetPathInfo: PathInfo under ISAPI, TWebRequest.URL under the other hosts.
   if (FWebRequest <> nil) and IsOrInheritsFromTIdHTTPAppRequest(FWebRequest.ClassType) then
   begin
     Result := FWebRequest.RawPathInfo;

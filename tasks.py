@@ -707,13 +707,16 @@ def _ensure_iis_express():
 
 def _generate_iis_applicationhost_conf(isapi_dll_path: str,
                                         conf_path: str, port: int = 8888,
-                                        site_root: str = None) -> None:
+                                        site_root: str = None,
+                                        wildcard: bool = True) -> None:
     """Start from IIS Express's shipped applicationhost.config (so every
     required configSection is already declared) and patch only the site
     binding + wildcard ISAPI handler.
 
     A single site listens on localhost:PORT and maps every request
     (path="*", verb="*") to TestServerISAPI.dll via IsapiModule.
+    wildcard=False leaves only the shipped *.dll handler: the DLL is then
+    addressed in the URL (/TestServerISAPI.dll/...).
     """
     import re
     shipped = os.path.join(os.path.dirname(IIS_EXPRESS_64),
@@ -752,9 +755,11 @@ def _generate_iis_applicationhost_conf(isapi_dll_path: str,
         f'resourceType="Unspecified" requireAccess="None" '
         f'preCondition="bitness64" />'
     )
+    # Execute: the shipped *.dll handler requires it.
     content = content.replace(
         '<handlers accessPolicy="Read, Script">',
-        '<handlers accessPolicy="Read, Execute, Script">\n                ' + handler
+        '<handlers accessPolicy="Read, Execute, Script">'
+        + ('\n                ' + handler if wildcard else '')
     )
 
     # Allow double-escaped URLs and every file extension so test paths
@@ -768,6 +773,45 @@ def _generate_iis_applicationhost_conf(isapi_dll_path: str,
     os.makedirs(os.path.dirname(conf_path), exist_ok=True)
     with open(conf_path, "w", encoding="utf-8") as f:
         f.write(content)
+
+
+def _check_isapi_dll_in_url(isapi_dll_path: str, site_root: str,
+                            port: int = 8888) -> None:
+    """The classic ISAPI deployment the suite does not cover (it runs on the
+    wildcard mapping): the DLL addressed in the URL, where IIS passes only the
+    path below the DLL in PATH_INFO and the URL variable is /TestServerISAPI.dll
+    (PR #925: every route answered 404)."""
+    import urllib.request
+    import urllib.error
+    conf_path = os.path.join(IIS_TEST_DIR, "config", "applicationhost_dllurl.config")
+    _generate_iis_applicationhost_conf(isapi_dll_path, conf_path, port=port,
+                                       site_root=site_root, wildcard=False)
+    print("\nChecking the DLL addressed in the URL (IIS Express *.dll handler)...")
+    iis_proc = subprocess.Popen(
+        [IIS_EXPRESS_64, f"/config:{conf_path}", "/site:DMVCTest", "/systray:false"],
+        cwd=os.path.dirname(IIS_EXPRESS_64),
+    )
+    failed = []
+    try:
+        time.sleep(2)
+        if iis_proc.poll() is not None:
+            raise Exit(f"IIS Express failed to start (exit code {iis_proc.returncode})")
+        prefix = "/" + os.path.basename(isapi_dll_path)
+        # a controller route, a static file, a middleware response
+        for path in ("/req/with/params/1/2/3", "/static/index.html", "/handledbymiddleware"):
+            try:
+                status = urllib.request.urlopen(
+                    f"http://localhost:{port}{prefix}{path}", timeout=10).status
+            except urllib.error.HTTPError as e:
+                status = e.code
+            print(f"  GET {prefix}{path} -> {status}")
+            if status != 200:
+                failed.append(path)
+    finally:
+        iis_proc.kill()
+        iis_proc.wait(timeout=10)
+    if failed:
+        raise Exit(f"ISAPI with the DLL in the URL: {', '.join(failed)} did not answer 200")
 
 
 def _run_isapi_tests(ctx, platform: str):
@@ -862,6 +906,8 @@ def _run_isapi_tests(ctx, platform: str):
     if r.returncode > 0:
         print(r)
         raise Exit(f"Unit Tests Failed ({platform}, ISAPI)")
+
+    _check_isapi_dll_in_url(deployed_dll, site_root)
 
 
 @task()

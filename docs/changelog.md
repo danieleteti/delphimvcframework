@@ -1606,6 +1606,14 @@ the same socket.
   request body are decoded, not the whole body. On Indy Direct the charset of a response is kept apart from its
   `ContentType`, so a response is read as UTF-8 or ANSI there.
 
+- **ISAPI: routing with the DLL addressed in the URL or a handler mapped on a path (PR #925).** Since 3.5 the
+  WebBroker adapter routed on `TWebRequest.URL`, which under IIS is only the part of the path that selected the
+  extension: `/app.dll` for `http://host/app.dll/api/x`, `/api` for a handler mapped on `/api` (issue #826). Every
+  route, the static files and the middleware answered 404. Under ISAPI the path is now `PathInfo` (IIS's
+  `PATH_INFO`), the routable path in every mapping; with the wildcard mapping (`*`) it is the same path as before,
+  and Apache and the Indy bridge are unchanged. The ISAPI test run now also checks the DLL addressed in the URL. Fix
+  by Frederic Schenckel (PR #925): thank you, Frederic.
+
 - **Wizard: the MCP options say they need mcp-server-delphi, and whether it is there.** As soon as one of the MCP
   options is on, a notice under them says that the generated code uses mcp-server-delphi
   and, checked against the IDE library path, whether it was found (grey) or the project will not compile until it
