@@ -1561,6 +1561,21 @@ the same socket.
   one. It works with or without `[MVCSwagJSONSchemaField]` on the same property. Additive: a field without the
   attribute is emitted exactly as before. Text that is not valid JSON raises an error when the document is built.
 
+- **Swagger/OpenAPI: `[MVCSwagExampleFromFields]` gives a DTO an example made of its field examples (issue #929).**
+  In a PATCH, where an absent field means "leave unchanged", the sample body must hold only the fields being
+  changed. An example per field cannot say "absent", and Swagger UI samples every property, so "Try it out" also
+  overwrote the fields the user did not mean to touch. On a class or record used as a body or response model, the
+  new attribute writes on its definition an example object made only of the fields that have a `[MVCSwagExample]`:
+  `"examples": [{...}]` in the OpenAPI 3
+  document, `"example": {...}` in the Swagger 2.0 one. Swagger UI shows that object as the sample body and puts it
+  in "Try it out". The names and the field filters are those of the schema (a `fsReadOnly` id is not in a request
+  body), a nested object or array is in the example only through the example on its own property, and every field
+  is still documented in `properties`. In a request body a required field without an example raises an error when
+  the document is built; a response model is not checked. Not applied to a class nested inline in another one.
+  Additive: a class without the attribute is emitted as before. Like `[MVCSwagExample]`, it is read by the
+  Swagger document (`SwaggerHTTPFilter`, `TMVCSwaggerMiddleware`), not by the native OpenAPI 3.1 emitter
+  (`OpenAPIHTTPFilter`).
+
 - **An exception raised in an HTTP filter is answered as the dispatcher answers it (issue #933).** In DEBUG builds
   the message of an exception raised in an HTTP filter was prefixed with its class name:
   `raise EMVCException.Create(429, 'Too many attempts')` answered `"message":"[EMVCException] Too many attempts"`,

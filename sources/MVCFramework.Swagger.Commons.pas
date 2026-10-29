@@ -197,6 +197,15 @@ type
   end;
 
   /// <summary>
+  /// On a class or record used as a body or response model: its definition gets an example object made of the
+  /// fields that have a MVCSwagExample, and only of those. Swagger UI uses it as the sample body, so the sample of a
+  /// PATCH changes only those fields and the others stay absent. In a request body a required field without an
+  /// example raises an error when the document is built. Not applied to a class nested inline in another one.
+  /// </summary>
+  MVCSwagExampleFromFieldsAttribute = class(TCustomAttribute)
+  end;
+
+  /// <summary>
   /// Specifies the field definition in the json schema.
   /// Use this attribute on a class property that will be mapped to a json schema
   /// </summary>
@@ -631,6 +640,44 @@ begin
       Exit(MVCSwagExampleAttribute(lAttr).JsonValue);
 end;
 
+// MVCSwagExampleFromFields: the example of the schema is an object made of the fields that have an example.
+// The fields are the ones already in the schema (filters and names applied); a nested object or array is in it
+// only through the example on its own property. A request body is a sample to send: there a required field
+// needs an example; a response is not, and is left as it is.
+procedure SetExampleFromFields(const aJsonRoot: TJsonFieldObject; const aRttiType: TRttiType;
+  const aIsResponseSchema: Boolean);
+var
+  lExample: TJSONObject;
+  lValue: TJSONValue;
+  lField: TJsonField;
+  I: Integer;
+begin
+  if not TMVCSerializerHelper.AttributeExists<MVCSwagExampleFromFieldsAttribute>(aRttiType.GetAttributes) then
+    Exit;
+  lExample := TJSONObject.Create;
+  try
+    for I := 0 to aJsonRoot.FieldsCount - 1 do
+    begin
+      lField := aJsonRoot.Fields[I];
+      if lField.Example.IsEmpty then
+      begin
+        if lField.Required and not aIsResponseSchema then
+          raise EMVCSWAGError.Create(HTTP_STATUS.InternalServerError, Format(
+            'SWAGGER Definition Error: "%s" has MVCSwagExampleFromFields, so its required field "%s" needs a MVCSwagExample',
+            [aRttiType.Name, lField.Name]));
+        Continue;
+      end;
+      lValue := TJSONObject.ParseJSONValue(lField.Example);
+      if lValue = nil then
+        Continue; // not JSON: the field itself raises, with its name, when the schema is written
+      lExample.AddPair(lField.Name, lValue);
+    end;
+    aJsonRoot.Example := lExample.ToJSON;
+  finally
+    lExample.Free;
+  end;
+end;
+
 // MVCSwagFormat / MaxLength / Minimum / Maximum / Pattern onto the schema field.
 // A keyword that does not apply to the field's type is left out.
 procedure ApplySwagSchemaKeywords(const aJsonField: TJsonField; const aAttributes: TArray<TCustomAttribute>);
@@ -905,6 +952,7 @@ begin
     end;
 
     ExtractJsonSchemaFromClass(lJsonRoot, aClass, aHTTPMethod, aIsResponseSchema);
+    SetExampleFromFields(lJsonRoot, fRttiContext.GetType(aClass), aIsResponseSchema);
     Result := lJsonSchema.ToJsonSchema;
   finally
     lJsonSchema.Free;
@@ -948,6 +996,7 @@ begin
             'SWAGGER Definition Error: Type "'+aTypeName+'" not found. Is the unit name included to create a fully '+
             'qualified name for "'+aTypeName+'"?');
     ExtractJsonSchemaFromRecord(lTypeInfo, lJsonRoot, aHTTPMethod, aIsResponseSchema);
+    SetExampleFromFields(lJsonRoot, lTypeInfo, aIsResponseSchema);
     Result := lJsonSchema.ToJsonSchema;
   finally
     lJsonSchema.Free;

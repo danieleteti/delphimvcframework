@@ -169,6 +169,61 @@ type
     property Quantity: Integer read fQuantity write fQuantity;
   end;
 
+  // a PATCH body (issue #929): absent = unchanged, so the sample holds only the fields with an example
+  [MVCSwagExampleFromFields]
+  TSwagTestItemPatch = class
+  private
+    fID: Integer;
+    fDescription: string;
+    fParentID: Integer;
+  public
+    [MVCSWAGFieldSerializationType(fsReadOnly)]
+    [MVCSwagExample('7')]
+    property ID: Integer read fID write fID;
+    [MVCSwagExample('"Podatelna"')]
+    property Description: string read fDescription write fDescription;
+    [MVCSwagJSONSchemaField('parentId', 'Parent record. null = no parent, absent = unchanged.', False, True)]
+    property ParentID: Integer read fParentID write fParentID;
+  end;
+
+  // not registered on any engine: its document cannot be built
+  [MVCSwagExampleFromFields]
+  TSwagTestRequiredWithoutExample = class
+  private
+    fName: string;
+  public
+    [MVCSwagJSONSchemaField('name', 'Required, and without an example', True)]
+    property Name: string read fName write fName;
+  end;
+
+  TSwagTestRequiredWithoutExampleActions = class
+  public
+    [MVCSwagParam(plBody, 'item', 'Item', TSwagTestRequiredWithoutExample)]
+    procedure Patch;
+  end;
+
+  // a response is not a sample to send: its required fields need no example
+  [MVCSwagExampleFromFields]
+  TSwagTestResponseWithRequired = class
+  private
+    fID: Integer;
+    fName: string;
+  public
+    [MVCSwagJSONSchemaField('id', 'Required, and without an example', True)]
+    property ID: Integer read fID write fID;
+    [MVCSwagExample('"Podatelna"')]
+    property Name: string read fName write fName;
+  end;
+
+  [MVCPath('/api/answers')]
+  TSwagTestResponseController = class(TMVCController)
+  public
+    [MVCPath]
+    [MVCHTTPMethod([httpGET])]
+    [MVCSwagResponses(200, 'OK', TSwagTestResponseWithRequired)]
+    procedure GetOne;
+  end;
+
   [MVCPath('/api/batch')]
   TSwagTestBatchController = class(TMVCController)
   public
@@ -176,6 +231,10 @@ type
     [MVCHTTPMethod([httpPOST])]
     [MVCSwagParam(plBody, 'items', 'Items', TSwagTestBatchItem, ptArray)]
     procedure CreateItems;
+    [MVCPath]
+    [MVCHTTPMethod([httpPATCH])]
+    [MVCSwagParam(plBody, 'item', 'The fields to change', TSwagTestItemPatch)]
+    procedure PatchItem;
     [MVCPath]
     [MVCHTTPMethod([httpGET])]
     [MVCSwagParam(plQuery, 'types', 'Types', ptArray, False, '', 'money,loading,unloading')]
@@ -268,6 +327,14 @@ type
     [Test]
     procedure OpenAPI3FieldExampleIsWrittenAsExamples;
     [Test]
+    procedure ExampleFromFieldsHasOnlyTheFieldsWithAnExample;
+    [Test]
+    procedure OpenAPI3ExampleFromFieldsHasOnlyTheFieldsWithAnExample;
+    [Test]
+    procedure ExampleFromFieldsRejectsARequiredFieldWithoutExample;
+    [Test]
+    procedure ExampleFromFieldsOnAResponseNeedsNoRequiredExample;
+    [Test]
     procedure JWTBundleIsDocumentedAsTheJWTMiddleware;
     [Test]
     procedure JWTBundleWithoutLoginHasTheBearerSchemeOnly;
@@ -306,7 +373,10 @@ implementation
 uses
   System.Classes,
   System.IOUtils,
+  System.Rtti,
   System.TypInfo, // lets ApplyNameCase (inline) expand: H2443 without it
+  Swag.Doc.Definition,
+  Swag.Doc.Path.Operation.RequestParameter,
   MVCFramework.JWT,
   MVCFramework.Middleware.JWT,
   MVCFramework.Middleware.Swagger,
@@ -362,6 +432,18 @@ begin
 end;
 
 procedure TSwagTestBatchController.CreateItems;
+begin
+end;
+
+procedure TSwagTestBatchController.PatchItem;
+begin
+end;
+
+procedure TSwagTestRequiredWithoutExampleActions.Patch;
+begin
+end;
+
+procedure TSwagTestResponseController.GetOne;
 begin
 end;
 
@@ -601,6 +683,62 @@ begin
     Assert.AreEqual(42, lProps.O[KeyOf('Quantity')].A['examples'].I[0], lProps.ToJSON);
   finally
     Free;
+  end;
+end;
+
+procedure TSwaggerMiddlewareTests.ExampleFromFieldsHasOnlyTheFieldsWithAnExample;
+var
+  lSchema: TJsonObject;
+begin
+  with GetJSON('/swagger.json') do
+  try
+    lSchema := O['definitions'].O['SwagTestItemPatch'];
+    Assert.IsTrue(lSchema.Types['example'] = jdtObject, lSchema.ToJSON);
+    // the read-only id has an example but is not in a request body
+    Assert.AreEqual(1, lSchema.O['example'].Count, lSchema.ToJSON);
+    Assert.AreEqual('Podatelna', lSchema.O['example'].S[KeyOf('Description')], lSchema.ToJSON);
+    // left out of the sample, still documented
+    Assert.IsTrue(lSchema.O['properties'].Contains(KeyOf('ParentID')), lSchema.ToJSON);
+  finally
+    Free;
+  end;
+end;
+
+procedure TSwaggerMiddlewareTests.OpenAPI3ExampleFromFieldsHasOnlyTheFieldsWithAnExample;
+var
+  lSchema: TJsonObject;
+begin
+  with GetJSON('/openapi3.json') do
+  try
+    lSchema := O['components'].O['schemas'].O['SwagTestItemPatch'];
+    Assert.AreEqual(1, lSchema.A['examples'].Count, lSchema.ToJSON);
+    Assert.AreEqual(1, lSchema.A['examples'].O[0].Count, lSchema.ToJSON);
+    Assert.AreEqual('Podatelna', lSchema.A['examples'].O[0].S[KeyOf('Description')], lSchema.ToJSON);
+    Assert.IsTrue(lSchema.O['properties'].Contains(KeyOf('ParentID')), lSchema.ToJSON);
+  finally
+    Free;
+  end;
+end;
+
+procedure TSwaggerMiddlewareTests.ExampleFromFieldsRejectsARequiredFieldWithoutExample;
+var
+  lContext: TRttiContext;
+  lMethod: TRttiMethod;
+  lDefinitions: TObjectList<TSwagDefinition>;
+begin
+  lMethod := lContext.GetType(TSwagTestRequiredWithoutExampleActions).GetMethod('Patch');
+  lDefinitions := TObjectList<TSwagDefinition>.Create;
+  try
+    Assert.WillRaise(
+      procedure
+      var
+        lParam: TSwagRequestParameter;
+      begin
+        for lParam in TMVCSwagger.GetParamsFromMethod('/items', lMethod, lDefinitions, httpPATCH, nil, '', '') do
+          lParam.Free; // only when nothing was raised
+      end, EMVCSWAGError);
+  finally
+    lDefinitions.Free;
   end;
 end;
 
@@ -886,6 +1024,7 @@ const
   JWT_BUNDLE_TEST_PORT = 8911;
   JWT_NO_LOGIN_BUNDLE_TEST_PORT = 8912;
   JWT_GROUP_BUNDLES_TEST_PORT = 8913;
+  RESPONSE_EXAMPLE_TEST_PORT = 8914;
   SWAGGER_TEST_SECRET = 'swagger_tests_secret_not_used_to_sign_anything_7c1f';
 
 function SwagTestClaimsSetup: TJWTClaimsSetup;
@@ -1049,6 +1188,25 @@ begin
     Assert.IsTrue(lDoc.O['paths'].Contains('/login'), '/login');
     Assert.IsTrue(lDoc.O['paths'].Contains('/admin/login'), '/admin/login');
     Assert.IsTrue(lDoc.O['securityDefinitions'].Contains('bearer'), 'bearer');
+  finally
+    lDoc.Free;
+  end;
+end;
+
+procedure TSwaggerMiddlewareTests.ExampleFromFieldsOnAResponseNeedsNoRequiredExample;
+var
+  lEngine: TMVCEngine;
+  lInfo: TMVCSwaggerInfo;
+  lDoc: TJsonObject;
+begin
+  lEngine := TMVCEngine.Create;
+  lEngine.AddController(TSwagTestResponseController);
+  lInfo.Title := 'Swagger response example tests';
+  lEngine.Use(SwaggerHTTPFilter(lEngine, lInfo, '/swagger.json'));
+  lDoc := TJsonObject.Parse(DocumentsOf(lEngine, RESPONSE_EXAMPLE_TEST_PORT, ['/swagger.json'])[0]) as TJsonObject;
+  try
+    Assert.AreEqual('Podatelna',
+      lDoc.O['definitions'].O['SwagTestResponseWithRequired'].O['example'].S[KeyOf('Name')], lDoc.ToJSON);
   finally
     lDoc.Free;
   end;
