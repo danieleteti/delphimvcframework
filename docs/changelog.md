@@ -1613,6 +1613,12 @@ the same socket.
   and Apache and the Indy bridge are unchanged. The ISAPI test run now also checks the DLL addressed in the URL. Fix
   by Frederic Schenckel (PR #925): thank you, Frederic.
 
+- **Trace: passwords, tokens and secrets in a body or query string are logged as `***` (request in issue #931).**
+  The value of a JSON member (string, number, flat array or object), form field, query string field or XML element
+  whose name has `password`, `passwd`, `passphrase`, `pwd`, `secret`, `token`, `jwt`, `api key`, `private key`,
+  `credential`, `authorization`, `cookie` or `session` in it is masked, also when the size limit cuts it, by the
+  Trace filter and by `TMVCTraceMiddleware` alike, as the `Authorization` header already was.
+  `TraceHTTPFilter(..., [tfLogBodySecrets])` logs them raw.
 - **Indy Direct: the `Content-Type` of a response is the one that was set.** Indy keeps the charset apart from the
   media type and, when a new `Content-Type` names none, keeps the previous one: a `text/plain` body written in the
   ANSI code page went out as `text/plain; charset=utf-8`, the default of the engine. The response now declares what

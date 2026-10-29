@@ -48,6 +48,7 @@ uses
   MVCFramework.Commons,
   MVCFramework.Logger,
   MVCFramework.Server.Intf,
+  MVCFramework.Filters, // TMVCTraceFlags
   LoggerPro.MemoryAppender;
 
 const
@@ -299,7 +300,8 @@ type
     fVerbosity: TLogLevel;
     fEngine: TMVCEngine;
     fServer: IMVCServer;
-    procedure Listen(const AKind: string; const AMaxBodySize: Integer; const AHost: string = 'IndyDirect');
+    procedure Listen(const AKind: string; const AMaxBodySize: Integer; const AHost: string = 'IndyDirect';
+      const AFlags: TMVCTraceFlags = []);
     function LoggedBody(const AMarker: string): string;
   public
     [Setup]
@@ -343,6 +345,31 @@ type
     // the middleware takes an unsigned size: only the filter can get a negative one
     [Test]
     procedure ANegativeSizeLimitDoesNotBreakAStreamResponse;
+    // passwords, tokens and secrets in a body are masked (the filter's tfLogBodySecrets logs them raw)
+    [Test]
+    [TestCase('filter', 'filter')]
+    [TestCase('middleware', 'middleware')]
+    procedure SecretsInAJSONBodyAreMasked(const AKind: string);
+    [Test]
+    [TestCase('filter', 'filter')]
+    [TestCase('middleware', 'middleware')]
+    procedure ASecretCutByTheSizeLimitIsMasked(const AKind: string);
+    [Test]
+    [TestCase('filter', 'filter')]
+    [TestCase('middleware', 'middleware')]
+    procedure SecretsInAFormBodyAreMasked(const AKind: string);
+    [Test]
+    [TestCase('filter', 'filter')]
+    [TestCase('middleware', 'middleware')]
+    procedure ASecretInAResponseIsMasked(const AKind: string);
+    [Test]
+    procedure LogBodySecretsLogsThemRaw;
+    [Test]
+    [TestCase('filter', 'filter')]
+    [TestCase('middleware', 'middleware')]
+    procedure SecretsInArraysObjectsAndXMLAreMasked(const AKind: string);
+    [Test]
+    procedure ASecretInTheQueryStringIsMasked;
   end;
 
 implementation
@@ -362,7 +389,6 @@ uses
   MVCFramework.Server.Factory,
   MVCFramework.RESTClient,
   MVCFramework.RESTClient.Intf,
-  MVCFramework.Filters,
   MVCFramework.Filters.ActiveRecord,
   MVCFramework.ActiveRecord,
   MVCFramework.Middleware.ETag,
@@ -1256,6 +1282,9 @@ type
     [MVCPath('/ansi')]
     [MVCHTTPMethod([httpGET])]
     function Ansi: string;
+    [MVCPath('/token')]
+    [MVCHTTPMethod([httpGET])]
+    function Token: string;
   end;
 
 const
@@ -1264,6 +1293,8 @@ const
   TRACE_TURKISH = #$00C7#$0131'k'#$0131#$015F' yap'#$0131'ld'#$0131;
   TRACE_JSON = '{"message":"' + TRACE_TURKISH + '"}';
   TRACE_ANSI = 'Perch'#$00E9' citt'#$00E0;
+  TRACE_LOGIN = '{"user":"daniele","password":"s3\"cr3t","refresh_token":"abc.def","attempts":3,"api_key":42}';
+  TRACE_LOGIN_MASKED = '{"user":"daniele","password":"***","refresh_token":"***","attempts":3,"api_key":"***"}';
 
 function TTraceCharsetController.Json: string;
 begin
@@ -1287,6 +1318,12 @@ end;
 function TTraceCharsetController.Body: string;
 begin
   Result := 'ok';
+end;
+
+function TTraceCharsetController.Token: string;
+begin
+  ContentType := TMVCMediaType.APPLICATION_JSON + '; charset=utf-8';
+  Result := '{"token":"xyz","user":"daniele"}';
 end;
 
 function TTraceCharsetController.Ansi: string;
@@ -1332,7 +1369,8 @@ begin
   UseLoggerVerbosityLevel := fVerbosity;
 end;
 
-procedure THTTPFilterTraceTests.Listen(const AKind: string; const AMaxBodySize: Integer; const AHost: string);
+procedure THTTPFilterTraceTests.Listen(const AKind: string; const AMaxBodySize: Integer; const AHost: string;
+  const AFlags: TMVCTraceFlags);
 begin
   fEngine := TMVCEngine.Create;
   fEngine.AddController(TTraceCharsetController);
@@ -1343,7 +1381,7 @@ begin
     {$WARN SYMBOL_DEPRECATED DEFAULT}
   end
   else
-    fEngine.Use(TraceHTTPFilter(AMaxBodySize, TRACE_TAG));
+    fEngine.Use(TraceHTTPFilter(AMaxBodySize, TRACE_TAG, AFlags));
   if AHost = 'HttpSys' then
     fServer := TMVCServerFactory.CreateHttpSys(fEngine)
   else
@@ -1455,6 +1493,76 @@ begin
   lRes := Client(HF_TRACE_PORT).Get('/trace931/json');
   Assert.AreEqual(200, lRes.StatusCode, lRes.Content);
   Assert.AreEqual(TRACE_JSON, lRes.Content);
+end;
+
+function TraceBody(const AText: string): TStream;
+begin
+  Result := TBytesStream.Create(TEncoding.UTF8.GetBytes(AText));
+end;
+
+procedure THTTPFilterTraceTests.SecretsInAJSONBodyAreMasked(const AKind: string);
+begin
+  Listen(AKind, 1024);
+  Client(HF_TRACE_PORT).AddBody(TraceBody(TRACE_LOGIN), True, 'application/json; charset=utf-8')
+    .Post('/trace931/body');
+  Assert.AreEqual(TRACE_LOGIN_MASKED, LoggedBody(RequestBodyMarker(AKind)));
+end;
+
+procedure THTTPFilterTraceTests.ASecretCutByTheSizeLimitIsMasked(const AKind: string);
+begin
+  // 33 characters: {"user":"daniele","password":"s3\ - the value is cut, it is masked all the same
+  Listen(AKind, 33);
+  Client(HF_TRACE_PORT).AddBody(TraceBody(TRACE_LOGIN), True, 'application/json; charset=utf-8')
+    .Post('/trace931/body');
+  Assert.AreEqual('{"user":"daniele","password":"***"', LoggedBody(RequestBodyMarker(AKind)));
+end;
+
+procedure THTTPFilterTraceTests.SecretsInAFormBodyAreMasked(const AKind: string);
+begin
+  Listen(AKind, 1024);
+  Client(HF_TRACE_PORT)
+    .AddBody(TraceBody('user=daniele&password=s3cr3t&client_secret=a%20b&page=2'), True,
+      TMVCMediaType.APPLICATION_FORM_URLENCODED)
+    .Post('/trace931/body');
+  Assert.AreEqual('user=daniele&password=***&client_secret=***&page=2', LoggedBody(RequestBodyMarker(AKind)));
+end;
+
+procedure THTTPFilterTraceTests.ASecretInAResponseIsMasked(const AKind: string);
+begin
+  Listen(AKind, 1024);
+  Assert.AreEqual(200, Client(HF_TRACE_PORT).Get('/trace931/token').StatusCode);
+  Assert.AreEqual('{"token":"***","user":"daniele"}', LoggedBody(ResponseBodyMarker(AKind)));
+end;
+
+procedure THTTPFilterTraceTests.SecretsInArraysObjectsAndXMLAreMasked(const AKind: string);
+begin
+  Listen(AKind, 1024);
+  Client(HF_TRACE_PORT).AddBody(TraceBody('{"authorization":"Bearer x","api_keys":["a","b"],' +
+    '"secret":{"v":"x"},"sessionId":"s1","page":2}'), True, 'application/json; charset=utf-8')
+    .Post('/trace931/body');
+  Assert.AreEqual('{"authorization":"***","api_keys":"***","secret":"***","sessionId":"***","page":2}',
+    LoggedBody(RequestBodyMarker(AKind)));
+  TearDown;
+  Setup;
+  Listen(AKind, 1024);
+  Client(HF_TRACE_PORT).AddBody(TraceBody('<login><user>d</user><password>x</password></login>'), True,
+    TMVCMediaType.APPLICATION_XML).Post('/trace931/body');
+  Assert.AreEqual('<login><user>d</user><password>***</password></login>', LoggedBody(RequestBodyMarker(AKind)));
+end;
+
+procedure THTTPFilterTraceTests.ASecretInTheQueryStringIsMasked;
+begin
+  Listen('filter', 1024);
+  Assert.AreEqual(200, Client(HF_TRACE_PORT).Get('/trace931/json?access_token=abc&page=2').StatusCode);
+  Assert.IsTrue(LoggedBody('[QS:').StartsWith('access_token=***,page=2]'), LoggedBody('[QS:'));
+end;
+
+procedure THTTPFilterTraceTests.LogBodySecretsLogsThemRaw;
+begin
+  Listen('filter', 1024, 'IndyDirect', [tfLogBodySecrets]);
+  Client(HF_TRACE_PORT).AddBody(TraceBody(TRACE_LOGIN), True, 'application/json; charset=utf-8')
+    .Post('/trace931/body');
+  Assert.AreEqual(TRACE_LOGIN, LoggedBody(RequestBodyMarker('filter')));
 end;
 
 initialization

@@ -78,7 +78,7 @@ uses
   System.Math,
   System.Diagnostics,
   System.SyncObjs,
-  MVCFramework.Filters.Internal; // MVCTraceBodyText
+  MVCFramework.Filters.Internal; // MVCTraceBodyText, MVCTraceMaskSecrets
 
 const
   // keys used to carry per-request state across the middleware hooks
@@ -143,7 +143,7 @@ begin
     lReq.HTTPMethodAsString,
     lReq.ClientIp,
     lReq.PathInfo,
-    lReq.QueryFieldsDelimitedText,
+    MVCTraceMaskSecrets(lReq.QueryFieldsDelimitedText),
     lReq.ContentLength,
     lReq.Accept,
     lReq.UserAgent,
@@ -160,8 +160,8 @@ begin
     begin
       lBytes := AContext.Request.RawContent;
       Log.Debug('%s [BEFORE ROUTING][REQUEST][BODY] %s',
-        [RequestId(AContext), ClampBody(MVCTraceBodyText(MVCTraceBodyBytes(lBytes, fMaxBodySize), Length(lBytes),
-        lContentType))], fLogTag);
+        [RequestId(AContext), MVCTraceMaskSecrets(ClampBody(MVCTraceBodyText(MVCTraceBodyBytes(lBytes, fMaxBodySize),
+        Length(lBytes), lContentType)))], fLogTag);
     end
     else
     begin
@@ -204,7 +204,7 @@ begin
   begin
     lBody := ClampBody(AContext.Response.Content);
   end;
-  Log.Debug('%s [AFTER ACTION][RESPONSE][BODY] %s', [RequestId(AContext), lBody], fLogTag);
+  Log.Debug('%s [AFTER ACTION][RESPONSE][BODY] %s', [RequestId(AContext), MVCTraceMaskSecrets(lBody)], fLogTag);
 end;
 
 procedure TMVCTraceMiddleware.OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);

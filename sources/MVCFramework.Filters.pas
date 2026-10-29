@@ -105,7 +105,8 @@ type
 
   TMVCTraceFlag = (
     tfLogAuthorization, // the request Authorization is logged raw instead of 'Bearer ***' (leaks tokens to the log)
-    tfLogNonTextBody    // the body of a non-text content type is logged too
+    tfLogNonTextBody,   // the body of a non-text content type is logged too
+    tfLogBodySecrets    // passwords, tokens and secrets in a body or query string are logged raw instead of '***'
   );
   TMVCTraceFlags = set of TMVCTraceFlag;
 
@@ -535,13 +536,15 @@ function GetAnalyticsDefaultLogger: ILogWriter;
 // writes such a body in) and cut to AMaxBodySize characters (to AMaxBodySize bytes
 // when the response is a stream, leaving out a UTF-8 character cut in two); bytes
 // that are not UTF-8 when the charset says so are logged as
-// '<N bytes not decodable as utf-8>'. Indy Direct keeps the charset of a response
-// apart from its ContentType: there a response is read as UTF-8 or ANSI.
+// '<N bytes not decodable as utf-8>'.
 // Non-text content types are hidden unless AFlags has tfLogNonTextBody. The
 // request Authorization is masked ('Bearer ***'), and so are Authorization,
 // Cookie and Set-Cookie among the response headers; tfLogAuthorization logs the
 // request Authorization raw (useful for debugging, leaks bearer tokens to your
-// log files).
+// log files). In a body and in the query string, the value of a JSON member, form
+// field or XML element whose name has password, passwd, passphrase, pwd, secret,
+// token, jwt, api key, private key, credential, authorization, cookie or session
+// in it is logged as ***; tfLogBodySecrets logs it raw.
 //
 //   lEngine.Use(TraceHTTPFilter(4096, 'trace', [tfLogAuthorization]));
 function TraceHTTPFilter(const AMaxBodySize: Int64 = 1024;
@@ -800,7 +803,7 @@ uses
   MVCFramework.HMAC,                // HMAC (CSRF token)
   LoggerPro.FileAppender,           // TLoggerProSimpleFileAppender (Analytics default logger)
   LoggerPro.Builder,                // LoggerProBuilder (Analytics default logger)
-  MVCFramework.Filters.Internal;    // FilterAuthHandler, CheckHandler, SameSecret, CSRFCheck, MVCRateLimitExceeded, MVCTraceBodyText
+  MVCFramework.Filters.Internal;    // FilterAuthHandler, CheckHandler, SameSecret, CSRFCheck, MVCRateLimitExceeded, MVCTrace*
 
 const
   { Largest slice served in a single 206 response. }
@@ -2203,6 +2206,14 @@ var
   // process-wide counter: the correlation id of a request that does not bring one
   gTraceRequestCounter: Int64 = 0;
 
+function TraceQueryString(const AQueryString: string; const AFlags: TMVCTraceFlags): string;
+begin
+  if tfLogBodySecrets in AFlags then
+    Result := AQueryString
+  else
+    Result := MVCTraceMaskSecrets(AQueryString);
+end;
+
 function TraceClamp(const AValue: string; const AMaxLength: Int64): string;
 begin
   Result := Copy(AValue, 1, Integer(Min(AMaxLength, MaxInt)));
@@ -2241,7 +2252,7 @@ begin
         lAuth := MVCRedactSecret(lReq.Authorization);
       Log.Debug(Format('%s[TRACE][REQ][%s][IP:%s][URL:%s][QS:%s][LEN:%d][ACCEPT:%s][UA:%s][AUTH:%s]', [
         lRid, lReq.HTTPMethodAsString, lReq.ClientIp, lReq.PathInfo,
-        lReq.QueryFieldsDelimitedText, lReq.ContentLength,
+        TraceQueryString(lReq.QueryFieldsDelimitedText, AFlags), lReq.ContentLength,
         lReq.Accept, lReq.UserAgent, lAuth]), ALogTag);
 
       if lReq.HTTPMethod in [httpPOST, httpPUT, httpPATCH] then
@@ -2252,6 +2263,8 @@ begin
           lBytes := lReq.RawContent;
           lBody := TraceClamp(MVCTraceBodyText(MVCTraceBodyBytes(lBytes, AMaxBodySize), Length(lBytes),
             lReq.Headers['content-type']), AMaxBodySize);
+          if not (tfLogBodySecrets in AFlags) then
+            lBody := MVCTraceMaskSecrets(lBody);
         end
         else
           lBody := '<hidden non text content>';
@@ -2290,6 +2303,8 @@ begin
           end
           else
             lBody := TraceClamp(AContext.Response.Content, AMaxBodySize);
+          if not (tfLogBodySecrets in AFlags) then
+            lBody := MVCTraceMaskSecrets(lBody);
           Log.Debug(lRid + '[TRACE][RES][BODY] ' + lBody, ALogTag);
         end
         else

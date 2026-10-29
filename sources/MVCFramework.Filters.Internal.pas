@@ -91,12 +91,20 @@ function MVCTraceBodyText(const ABytes: TBytes; const ABodySize: Int64;
 // a large body is not decoded whole to log its first characters.
 function MVCTraceBodyBytes(const ABytes: TBytes; const AMaxChars: Int64): TBytes;
 
+// A body or query string as the trace logs it: the value of a JSON member, form
+// field or XML element whose name has password, passwd, passphrase, pwd, secret,
+// token, jwt, api key, private key, credential, authorization, cookie or session
+// in it becomes ***. The body can be cut by the size limit: a value cut in two
+// is masked as well.
+function MVCTraceMaskSecrets(const ABody: string): string;
+
 implementation
 
 uses
   System.Generics.Collections,
   System.Math,                      // Max (RateLimit headers)
   System.DateUtils,                 // DateTimeToUnix, SecondsBetween (RateLimit)
+  System.RegularExpressions,        // MVCTraceMaskSecrets
   MVCFramework.Commons;
 
 type
@@ -491,6 +499,26 @@ begin
   if AMaxChars >= Length(ABytes) then
     Exit(ABytes);
   Result := Copy(ABytes, 0, Integer(Min(Int64(Length(ABytes)), AMaxChars * 4)));
+end;
+
+const
+  // the names the Authorization and Cookie headers are already masked for, and the usual secret ones; at most 64
+  // characters on each side of the word, so that a long run of "token" in a body costs linear time
+  TRACE_SECRET_NAME = '[^"\\=&<>\s,]{0,64}(?:password|passwd|passphrase|pwd|secret|token|jwt|api[_-]?key|' +
+    'private[_-]?key|credential|authorization|cookie|session)[^"\\=&<>\s,]{0,64}';
+
+function MVCTraceMaskSecrets(const ABody: string): string;
+begin
+  // compiled at each call: a TRegEx is not thread-safe, and only a traced request gets here
+  // JSON: a string (escaped quotes, or cut at the end; unrolled, no recursion per character), a flat array or
+  // object (cut at the end too), a scalar
+  Result := TRegEx.Replace(ABody,
+    '("' + TRACE_SECRET_NAME + '"\s*:\s*)(?:"[^"\\]*(?:\\.[^"\\]*)*\\?(?:"|$)|\[[^\]]*(?:\]|$)|\{[^}]*(?:\}|$)|' +
+    '[^\s,{}\[\]"][^\s,}\]]*)', '$1"***"', [roIgnoreCase]);
+  // a form field, or a field of the query string the trace logs comma separated
+  Result := TRegEx.Replace(Result, '(^|[&,])(' + TRACE_SECRET_NAME + '=)[^&,"]*', '$1$2***', [roIgnoreCase]);
+  // an XML element (its opening tag, not the closing one)
+  Result := TRegEx.Replace(Result, '(<(?!/)' + TRACE_SECRET_NAME + '(?:\s[^>]*)?>)[^<]*', '$1***', [roIgnoreCase]);
 end;
 
 end.
