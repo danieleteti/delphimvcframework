@@ -35,11 +35,11 @@
 
 # DelphiMVCFramework
 [![GitHub All Releases](https://img.shields.io/github/downloads/danieleteti/delphimvcframework/total?label=Downloads)](https://github.com/danieleteti/delphimvcframework/releases)
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/danieleteti/delphimvcframework)
-[![Mentioned in Awesome](https://awesome.re/mentioned-badge.svg)](https://github.com/sindresorhus/awesome)
+[![Ask DeepWiki](https://img.shields.io/badge/Ask-DeepWiki-blue)](https://deepwiki.com/danieleteti/delphimvcframework)
+[![Mentioned in Awesome](https://awesome.re/mentioned-badge.svg)](https://github.com/Fr0sT-Brutal/awesome-pascal)
 
-![](https://img.shields.io/badge/stable-dmvcframework--3.4.3--aluminium-blue)
-![](https://img.shields.io/badge/beta-dmvcframework--3.5.0--silicon-orange)
+[![stable](https://img.shields.io/badge/stable-dmvcframework--3.4.3--aluminium-blue)](https://github.com/danieleteti/delphimvcframework/releases/tag/v3.4.3-aluminium)
+[![release candidate](https://img.shields.io/badge/release%20candidate-dmvcframework--3.5.0--silicon--rc9-orange)](https://github.com/danieleteti/delphimvcframework/releases/tag/v3.5.0-silicon-rc9)
 
 **The most popular Delphi RESTful framework on GitHub**
 
@@ -47,7 +47,8 @@ DelphiMVCFramework is a powerful, open-source framework for building RESTful ser
 
 ## 🚀 Quick Links
 
-- **[📖 Official Guide](http://www.danieleteti.it/books/)** - Comprehensive documentation and tutorials
+- **[🧪 Release candidate](https://github.com/danieleteti/delphimvcframework/releases/tag/v3.5.0-silicon-rc9)** - 3.5.0-silicon RC9, to try the next version before its final release
+- **[📖 Official Guide](https://www.danieleteti.it/books/)** - Comprehensive documentation and tutorials
 - **[⚡ Quick Start Guide](docs/quickstart_guide.md)** - Get up and running in 5 minutes
 - **[📦 Installation](docs/installation_guide.md)** - Step-by-step installation instructions
 - **[🎯 Samples](docs/samples_guide.md)** - 40+ examples covering all features
@@ -221,7 +222,6 @@ Premium guides and video tutorials available at the [DMVCFramework Patreon Shop]
 ### 💬 **Get Help**
 - [Facebook Group](https://www.facebook.com/groups/delphimvcframework) - Active community with 6000+ members
 - [GitHub Issues](https://github.com/danieleteti/delphimvcframework/issues) - Bug reports and feature requests
-- [GitHub Discussions](https://github.com/danieleteti/delphimvcframework/discussions) - General questions and discussions
 
 ### 🎯 **Support the Project**
 - ⭐ **Star this repository** - Help others discover DMVCFramework
@@ -255,20 +255,20 @@ DelphiMVCFramework is proudly sponsored by:
 | Silver Sponsors |
 |---|
 | [Centro Software](https://www.centrosoftware.com) |
-| [Delphi Studio ES](http://www.delphistudio.es) |
+| [Delphi Studio ES](https://www.delphistudio.es) |
 | [Orion Law](https://orionlaw.com/) |
 | [Vivaticket](https://www.vivaticket.com/) |
 
 ## 📄 **License**
 
-DelphiMVCFramework is released under the Apache License 2.0. See [LICENSE](LICENSE) file for details.
+DelphiMVCFramework is released under the Apache License 2.0. See the [License.txt](License.txt) file for details.
 
 ## 🔗 **Quick Navigation**
 
 | Documentation | Community |
 |---|---|
 | [Quick Start](docs/quickstart_guide.md) | [Facebook Group](https://www.facebook.com/groups/delphimvcframework) |
-| [Installation](docs/installation_guide.md) | [GitHub Discussions](https://github.com/danieleteti/delphimvcframework/discussions) |
+| [Installation](docs/installation_guide.md) | [GitHub Issues](https://github.com/danieleteti/delphimvcframework/issues) |
 | [Samples](docs/samples_guide.md) | [X](https://x.com/danieleteti) |
 | [RQL Guide](docs/rql_guide.md) | [Blog](https://www.danieleteti.it) |
 | [dotEnv](docs/dotenv_guide.md) |  |
