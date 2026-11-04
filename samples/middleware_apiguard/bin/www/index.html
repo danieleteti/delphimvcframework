@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>APIGuard Monitor</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #667085; --border: #e3e6eb;
+    --accent: #2f6fde; --danger: #c8372d; --ok: #1f8a4c; --warn: #b7791f; --bar: #2f6fde;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #98a2b3; --border: #2c3340;
+      --accent: #6d9cf0; --danger: #ef6b61; --ok: #4cc283; --warn: #e3b04b; --bar: #6d9cf0;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px;
+    padding: 16px; border-bottom: 1px solid var(--border); background: var(--panel); }
+  header h1 { margin: 0; font-size: 18px; }
+  #state { color: var(--muted); }
+  #state.error { color: var(--danger); }
+  main { padding: 16px; max-width: 1200px; margin: 0 auto; display: grid; gap: 16px; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+  .tile, section { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; }
+  .tile { padding: 12px 14px; }
+  .tile .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  .tile .value { font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .tile.danger .value { color: var(--danger); }
+  section { padding: 12px 14px; min-width: 0; }
+  section h2 { margin: 0 0 8px; font-size: 15px; }
+  .chart { display: flex; align-items: flex-end; gap: 2px; height: 80px; }
+  .chart div { flex: 1; background: var(--bar); border-radius: 2px 2px 0 0; min-height: 1px; opacity: .85; }
+  .chart-legend { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; }
+  .scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; }
+  td.wrap { white-space: normal; word-break: break-all; }
+  .empty { color: var(--muted); padding: 8px 0; }
+  .badge { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 12px;
+    border: 1px solid var(--border); }
+  .badge.on { color: var(--ok); border-color: var(--ok); }
+  .badge.off { color: var(--muted); }
+  .badge.perm { color: var(--danger); border-color: var(--danger); }
+  #state.stale { color: var(--warn); }
+  /* dotted underline = hover for how the value is computed */
+  [title] { cursor: help; }
+  .tile .label, th[title], h2[title] { text-decoration: underline dotted var(--muted); text-underline-offset: 3px; }
+  label { color: var(--muted); }
+  footer { max-width: 1200px; margin: 0 auto; padding: 4px 16px 24px; color: var(--muted); font-size: 12px; }
+  footer a { color: var(--accent); }
+  select { background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 4px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>APIGuard Monitor</h1>
+  <span id="state" title="Time of the last successful read of /api-guard/status. If a read fails, the data of the last good read stays on screen, marked as stale.">loading...</span>
+  <span style="flex:1"></span>
+  <label title="How often this page reads /api-guard/status. The next read starts only after the previous one has finished.">refresh
+    <select id="interval">
+      <option value="2000">2 s</option>
+      <option value="5000" selected>5 s</option>
+      <option value="15000">15 s</option>
+      <option value="0">paused</option>
+    </select>
+  </label>
+</header>
+<main>
+  <div class="tiles">
+    <div class="tile" title="Requests counted in the last 60 seconds: one counter per second, the last 60 summed. The same requests as 'Requests total'."><div class="label">Requests / minute</div><div class="value" id="rpm">-</div></div>
+    <div class="tile" title="Every request that reached the guard since the server started or the last Reset, blocked and whitelisted ones included. This dashboard's own calls (the status endpoint and the monitor-only paths, from a monitor IP) are not counted."><div class="label">Requests total</div><div class="value" id="total">-</div></div>
+    <div class="tile danger" title="Requests answered 403 because their IP was blocked, since start or Reset. Includes the request that tripped a request rule (flood, injection, bad_agent, custom); a response rule (scan, bruteforce) blocks from the next request on."><div class="label">Blocked requests</div><div class="value" id="blockedReq">-</div></div>
+    <div class="tile danger" title="IPs with a block active right now: rows of the 'Blocked IPs' table. Expired blocks are not counted."><div class="label">Blocked IPs</div><div class="value" id="blockedIps">-</div></div>
+    <div class="tile" title="Time since the guard was created, i.e. since the server started. Reset does not change it."><div class="label">Uptime</div><div class="value" id="uptime">-</div></div>
+  </div>
+
+  <section>
+    <h2 title="One bar per read made by this page: the 'Requests / minute' value at that moment. The history lives in this page only (last 60 reads): reloading the page starts it over. The bar height is relative to the highest bar shown.">Requests / minute (this page's samples)</h2>
+    <div class="chart" id="chart"></div>
+    <div class="chart-legend"><span id="chartFrom"></span><span id="chartMax"></span><span>now</span></div>
+  </section>
+
+  <section>
+    <h2 title="The blacklist: IPs blocked right now, most recent block first. A row leaves the table when its block expires or is lifted (UnblockIP, Reset). The list is persisted, so it survives a restart.">Blocked IPs</h2>
+    <div class="scroll"><table>
+      <thead><tr>
+        <th title="The blocked address: the socket peer, or ClientIp when UseClientIp is on; IPv6 in canonical form.">IP</th>
+        <th title="The rule that blocked it. 'manual' = BlockIP, or a line written by hand in the blacklist file or table.">Rule</th>
+        <th title="Stored with the block. For a rule: the occurrences counted within its window when it tripped. For a manual block: the text passed to BlockIP.">Reason</th>
+        <th title="When the block started (server clock, shown in this browser's time zone).">Blocked at</th>
+        <th title="Blocked at + the rule's block time. 'permanent' = block time 0: it lasts until UnblockIP or Reset.">Expires</th>
+      </tr></thead>
+      <tbody id="blockedBody"></tbody>
+    </table></div>
+  </section>
+
+  <section>
+    <h2 title="The configured rules and their counters. Counters restart from 0 on a server restart or a Reset.">Rules</h2>
+    <div class="scroll"><table>
+      <thead><tr>
+        <th title="Built-in (scan, bruteforce, flood, injection, bad_agent) or added with AddRule.">Rule</th>
+        <th title="on = evaluated; off = ignored (Enabled = False).">State</th>
+        <th title="request = checked before routing, on the request; response = checked after routing, on the response status.">Phase</th>
+        <th title="Occurrences from one IP within the window that block it.">Threshold</th>
+        <th title="Fixed counting window, per IP: it opens at the first occurrence and the count restarts when it closes, so a burst across two windows can reach almost twice the threshold.">Window</th>
+        <th title="How long an IP blocked by this rule stays blocked. permanent = 0.">Block</th>
+        <th title="Requests this rule matched, from every IP, since start or Reset, whether or not they led to a block. Whitelisted IPs and IPs already blocked are not evaluated, so they add nothing.">Detections</th>
+        <th title="Times this rule blocked an IP since start or Reset: one alert each.">Blocks</th>
+      </tr></thead>
+      <tbody id="rulesBody"></tbody>
+    </table></div>
+  </section>
+
+  <section>
+    <h2 title="One alert per block (by a rule or by BlockIP), newest first. Only the last MaxAlerts (default 100) are kept, in memory: they are lost on restart and cleared by Reset. An alert stays here after its block expires. Unblocks and 403s are not alerts: they are in the audit log.">Alerts</h2>
+    <div class="scroll"><table>
+      <thead><tr>
+        <th title="When the IP was blocked (server clock, shown in this browser's time zone).">Time</th>
+        <th title="The IP that was blocked.">IP</th>
+        <th title="The rule that blocked it; 'manual' = BlockIP.">Rule</th>
+        <th title="Path of the request that tripped the rule, as sent by the client. Empty for a manual block.">Path</th>
+        <th title="For a rule: occurrences counted within its window. For a manual block: the reason passed to BlockIP.">Message</th>
+      </tr></thead>
+      <tbody id="alertsBody"></tbody>
+    </table></div>
+  </section>
+</main>
+<footer>
+  APIGuard middleware and monitor by Giordano Giaccaglia,
+  <a href="https://www.kdsoftware.it" target="_blank" rel="noopener noreferrer">KD Software S.r.l.s.</a>
+  &middot; <a href="mailto:info@kdsoftware.it">info@kdsoftware.it</a>
+</footer>
+<script>
+"use strict";
+// Same origin as the status endpoint; both are reserved to the monitor IPs by the guard.
+const STATUS_URL = "/api-guard/status";
+const HISTORY = 60;
+const history = [];
+let timer = null;
+
+const $ = (id) => document.getElementById(id);
+const fmtNum = (n) => Number(n).toLocaleString();
+const fmtTime = (iso) => iso ? new Date(iso).toLocaleString() : "";
+
+function fmtDuration(s) {
+  if (s <= 0) return "permanent";
+  const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60);
+  const parts = [];
+  if (d) parts.push(`${d}d`);
+  if (h) parts.push(`${h}h`);
+  if (m && !d) parts.push(`${m}m`);
+  if (s % 60 && !d && !h) parts.push(`${s % 60}s`);
+  return parts.join(" ");
+}
+
+// Everything that comes from the server goes in as text: alert paths are written by the attacker.
+function cell(text, cls) {
+  const td = document.createElement("td");
+  if (text instanceof Node) td.appendChild(text); else td.textContent = text;
+  if (cls) td.className = cls;
+  return td;
+}
+
+function badge(text, cls) {
+  const b = document.createElement("span");
+  b.className = "badge " + cls;
+  b.textContent = text;
+  return b;
+}
+
+function fill(tbody, rows, columns, emptyText) {
+  const hints = [...tbody.parentElement.tHead.rows[0].cells].map((th) => th.title);
+  tbody.replaceChildren();
+  if (!rows.length) {
+    const tr = document.createElement("tr");
+    const td = cell(emptyText, "empty");
+    td.colSpan = columns;
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+    return;
+  }
+  rows.forEach((cells) => {
+    const tr = document.createElement("tr");
+    // each value carries its column's hint
+    cells.forEach((c, i) => { c.title = hints[i] || ""; tr.appendChild(c); });
+    tbody.appendChild(tr);
+  });
+}
+
+function drawChart() {
+  const chart = $("chart");
+  const max = Math.max(1, ...history.map((h) => h.v));
+  chart.replaceChildren();
+  // fixed slots: the bars fill from the right as samples arrive
+  for (let i = history.length; i < HISTORY; i++) {
+    const slot = document.createElement("div");
+    slot.style.visibility = "hidden";
+    chart.appendChild(slot);
+  }
+  history.forEach((h) => {
+    const bar = document.createElement("div");
+    bar.style.height = (h.v / max * 100) + "%";
+    bar.title = `${h.t.toLocaleTimeString()}: ${h.v} req/min`;
+    chart.appendChild(bar);
+  });
+  $("chartMax").textContent = `max ${fmtNum(max)}`;
+  $("chartFrom").textContent = history.length ? history[0].t.toLocaleTimeString() : "";
+}
+
+function render(s) {
+  $("rpm").textContent = fmtNum(s.requests_last_minute);
+  $("total").textContent = fmtNum(s.requests_total);
+  $("blockedReq").textContent = fmtNum(s.blocked_requests_total);
+  $("blockedIps").textContent = fmtNum(s.blocked_ips_count);
+  $("uptime").textContent = fmtDuration(s.uptime_seconds);
+
+  history.push({ t: new Date(), v: s.requests_last_minute });
+  if (history.length > HISTORY) history.shift();
+  drawChart();
+
+  const blocked = [...s.blocked_ips].sort((a, b) => b.blocked_at.localeCompare(a.blocked_at));
+  fill($("blockedBody"), blocked.map((b) => [
+    cell(b.ip), cell(b.rule), cell(b.reason, "wrap"), cell(fmtTime(b.blocked_at)),
+    cell(b.expires_at ? fmtTime(b.expires_at) : badge("permanent", "perm")),
+  ]), 5, "No blocked IPs");
+
+  fill($("rulesBody"), s.rules.map((r) => [
+    cell(r.name), cell(badge(r.enabled ? "on" : "off", r.enabled ? "on" : "off")), cell(r.phase),
+    cell(fmtNum(r.threshold)), cell(fmtDuration(r.window_seconds)), cell(fmtDuration(r.block_seconds)),
+    cell(fmtNum(r.detections)), cell(fmtNum(r.blocks)),
+  ]), 8, "No rules");
+
+  fill($("alertsBody"), s.alerts.map((a) => [
+    cell(fmtTime(a.timestamp)), cell(a.ip), cell(a.rule), cell(a.path, "wrap"), cell(a.message, "wrap"),
+  ]), 5, "No alerts");
+}
+
+let seq = 0;
+let lastGood = null;
+
+async function refresh() {
+  const state = $("state");
+  const mine = ++seq;
+  try {
+    const resp = await fetch(STATUS_URL, { cache: "no-store", signal: AbortSignal.timeout(10000) });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+    // a newer read started meanwhile (interval changed): an older answer must not overwrite it
+    if (mine !== seq) return;
+    render(data);
+    lastGood = new Date();
+    state.className = "";
+    state.textContent = "updated " + lastGood.toLocaleTimeString();
+  } catch (e) {
+    if (mine !== seq) return;
+    // keep the last good data on screen, say how old it is
+    state.className = lastGood ? "stale" : "error";
+    state.textContent = "cannot read the status: " + e.message +
+      (lastGood ? ` - showing data from ${lastGood.toLocaleTimeString()}` : "");
+  }
+}
+
+// a timeout chain, not setInterval: the next read starts after the previous one ends,
+// so slow answers cannot pile up or arrive out of order
+function schedule() {
+  clearTimeout(timer);
+  const ms = Number($("interval").value);
+  if (ms > 0) timer = setTimeout(async () => { await refresh(); schedule(); }, ms);
+}
+
+$("interval").addEventListener("change", () => { schedule(); refresh(); });
+refresh();
+schedule();
+</script>
+</body>
+</html>
