@@ -2,6 +2,9 @@
 
 Contributed by Giordano Giaccaglia, [KD Software S.r.l.s.](https://www.kdsoftware.it) ([info@kdsoftware.it](mailto:info@kdsoftware.it)).
 
+> The middleware is deprecated in 3.5: the same guard as an HTTP filter is in
+> [`samples/filters_apiguard`](../filters_apiguard) ([docs](../../docs/apiguard_filter.md)).
+
 `TMVCAPIGuardMiddleware` (`MVCFramework.Middleware.APIGuard`) watches every request and response per
 client IP and **blocks the IP** when a rule trips. Blocked IPs get `403 {"error":"Forbidden"}` until the
 block expires (or forever, with a block time of 0).

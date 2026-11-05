@@ -2,6 +2,10 @@
 
 Contributed by Giordano Giaccaglia, [KD Software S.r.l.s.](https://www.kdsoftware.it) ([info@kdsoftware.it](mailto:info@kdsoftware.it)).
 
+> **Deprecated in 3.5.** New code uses the HTTP filter, `AEngine.Use(APIGuardHTTPFilter(lGuard))` in
+> `MVCFramework.Filters.APIGuard`: same guard, same rules, same storages. See
+> [APIGuard HTTP Filter](apiguard_filter.md). `TMVCAPIGuardMiddleware` is now a thin wrapper over it.
+
 `TMVCAPIGuardMiddleware` is an intrusion guard for DelphiMVCFramework services. It watches every
 request and every response per client IP, and when an IP behaves like an attacker — path scanning,
 password brute force, flooding, injection probes, known attack tools, or anything you describe with a

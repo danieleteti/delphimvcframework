@@ -89,7 +89,7 @@ Three backends, one controller stack, selected in the `.dpr` via `TMVCServerFact
 | Core | `MVCFramework.pas`, `MVCFramework.Router.pas`, `MVCFramework.Commons.pas` | `TMVCEngine`, `TMVCController` |
 | Hosting | `MVCFramework.Server.{Intf,Factory,Indy,HttpSys,WebBroker}.pas`, `.Signal.pas` | `IMVCServer`, `TMVCServerFactory` |
 | Minimal API | `MVCFramework.MinimalAPI.pas` | `TMVCRouteGroup<T>`, `TMVCRouteHandle`, `TMVCFormFile` |
-| Filters | `MVCFramework.Filters.pas`, `MVCFramework.Filters.Authentication.pas` (+ companion units `.Filters.{ActiveRecord,Swagger,OpenAPI,Redis,OIDC}.pas`: the core does not depend on the optional layers) | `TMVCEndpointFilter` (after routing), `TMVCHTTPFilter` (engine-wide), `IMVCFilterBundle` (in `MVCFramework.pas`) |
+| Filters | `MVCFramework.Filters.pas`, `MVCFramework.Filters.Authentication.pas` (+ companion units `.Filters.{ActiveRecord,Swagger,OpenAPI,Redis,OIDC,APIGuard,APIGuard.FireDAC}.pas`: the core does not depend on the optional layers) | `TMVCEndpointFilter` (after routing), `TMVCHTTPFilter` (engine-wide), `IMVCFilterBundle` (in `MVCFramework.pas`) |
 | ORM | `MVCFramework.ActiveRecord.pas`, `MVCFramework.ActiveRecordController.pas`, `MVCFramework.Repository.pas` | `TMVCActiveRecord`, `IMVCRepository<T>` |
 | Middleware | `Middleware.{JWT,CORS,Compression,StaticFiles,RateLimit,ETag,Swagger,Analytics,Trace,ActiveRecord}.pas` | `IMVCMiddleware` |
 | Serialization | `Serializer.JsonDataObjects.pas` | JSON with naming conventions |

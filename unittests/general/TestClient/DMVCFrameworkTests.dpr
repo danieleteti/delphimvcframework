@@ -116,6 +116,7 @@ uses
   MVCFramework.Middleware.CSRF in '..\..\..\sources\MVCFramework.Middleware.CSRF.pas',
   APIGuardMiddlewareTestsU in 'APIGuardMiddlewareTestsU.pas',
   MVCFramework.Middleware.APIGuard in '..\..\..\sources\MVCFramework.Middleware.APIGuard.pas',
+  MVCFramework.Filters.APIGuard in '..\..\..\sources\MVCFramework.Filters.APIGuard.pas',
   SwaggerMiddlewareTestsU in 'SwaggerMiddlewareTestsU.pas',
   MultiAuthTestsU in 'MultiAuthTestsU.pas',
   AuthFilterSupportU in '..\TestServer\AuthFilterSupportU.pas',
