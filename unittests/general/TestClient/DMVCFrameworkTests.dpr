@@ -114,6 +114,8 @@ uses
   SwaggerFixesTestsU in 'SwaggerFixesTestsU.pas',
   CSRFMiddlewareTestsU in 'CSRFMiddlewareTestsU.pas',
   MVCFramework.Middleware.CSRF in '..\..\..\sources\MVCFramework.Middleware.CSRF.pas',
+  APIGuardMiddlewareTestsU in 'APIGuardMiddlewareTestsU.pas',
+  MVCFramework.Middleware.APIGuard in '..\..\..\sources\MVCFramework.Middleware.APIGuard.pas',
   SwaggerMiddlewareTestsU in 'SwaggerMiddlewareTestsU.pas',
   MultiAuthTestsU in 'MultiAuthTestsU.pas',
   AuthFilterSupportU in '..\TestServer\AuthFilterSupportU.pas',
