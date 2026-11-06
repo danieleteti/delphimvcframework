@@ -33,8 +33,10 @@ unit MVCFramework.Filters.OIDC;
 interface
 
 uses
+  System.SysUtils,
   System.Generics.Collections,
   MVCFramework,
+  MVCFramework.Commons,                        // EMVCException
   MVCFramework.JWT,                            // TJWTCheckableClaims, IJWKSProvider, TMVCJWTCookieSameSite
   MVCFramework.Filters,                        // TMVCAuthCookieOptions
   JsonDataObjects;
@@ -46,6 +48,24 @@ const
   OIDC_DEFAULT_HTTP_TIMEOUT_MS = 10000;
 
 type
+  /// <summary>
+  /// Raised when the OIDC provider cannot be reached or answers a discovery,
+  /// token or JWKS request with a server error.
+  /// </summary>
+  EMVCOIDCProviderException = class(EMVCException);
+
+  /// <summary>
+  /// Callback invoked when the login or the callback fails because the OIDC
+  /// provider cannot be reached. Write a response to AContext and set
+  /// AHandled to True; leave AHandled False to get the default answer
+  /// (503 Service Unavailable with a short plain text).
+  /// </summary>
+  TMVCOIDCProviderErrorProc = reference to procedure(
+    const AContext: TWebContext;
+    const AError: Exception;
+    var AHandled: Boolean
+  );
+
   /// <summary>
   /// Callback invoked after a successful OIDC authentication. Use this to
   /// populate user roles and session data from the ID token and UserInfo claims.
@@ -83,6 +103,7 @@ type
   TMVCOIDCOptions = record
     OnUserAuthenticated: TMVCOIDCUserAuthenticatedProc; // roles and session data from the ID token and UserInfo
     OnAuthRequired: TMVCOIDCAuthRequiredProc;           // per controller action; nil: every action requires authentication
+    OnProviderError: TMVCOIDCProviderErrorProc;         // provider not reachable on login or callback; nil: 503, plain text
     Issuer: string;
     ClientId: string;
     ClientSecret: string;
@@ -114,7 +135,9 @@ type
 // exchanges the code, validates the ID token, calls OnUserAuthenticated and
 // sets the session cookie, then redirects to PostLoginRedirectURL; LogoutURL
 // clears the cookie and redirects to the provider's end_session_endpoint (or
-// to PostLogoutRedirectURL). Every other request goes on.
+// to PostLogoutRedirectURL). Every other request goes on. When the provider
+// cannot be reached on LoginURL or CallbackURL, OnProviderError answers (nil:
+// 503 with a short plain text).
 // Endpoint part: the check. Without a valid session cookie the request is
 // redirected (302) to LoginURL; with one, Context.LoggedUser gets the user,
 // the roles and the session data. A controller action that OnAuthRequired
@@ -138,6 +161,7 @@ class function TMVCOIDCOptions.Default: TMVCOIDCOptions;
 begin
   Result.OnUserAuthenticated := nil;
   Result.OnAuthRequired := nil;
+  Result.OnProviderError := nil;
   Result.Issuer := '';
   Result.ClientId := '';
   Result.ClientSecret := '';
@@ -183,6 +207,7 @@ begin
   Result.SetPKCE(ofPKCE in AOptions.Flags);
   Result.SetBaseURL(AOptions.BaseURL);
   Result.SetHTTPTimeouts(AOptions.ConnectTimeoutMS, AOptions.ReadTimeoutMS);
+  Result.SetOnProviderError(AOptions.OnProviderError);
   if Assigned(AOptions.JWKSProvider) then
     Result.SetJWKSProvider(AOptions.JWKSProvider);
 end;
