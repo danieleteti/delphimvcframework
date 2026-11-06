@@ -158,6 +158,13 @@ type
     ///     .SetJWKSProvider(TMVCJWKSClient.CreateFromIssuer('https://...'));
     /// </summary>
     function SetJWKSProvider(const AProvider: IJWKSProvider): TMVCOIDCAuthenticationMiddleware;
+    /// <summary>
+    /// Sets the connect and response timeouts, in milliseconds, of the HTTP
+    /// calls to the provider (discovery, token exchange, UserInfo). Default:
+    /// OIDC_DEFAULT_HTTP_TIMEOUT_MS for both. A JWKS provider has its own
+    /// setting (TMVCJWKSClient.SetTimeouts).
+    /// </summary>
+    function SetHTTPTimeouts(AConnectTimeoutMS, AReadTimeoutMS: Integer): TMVCOIDCAuthenticationMiddleware;
   end deprecated 'Use the OIDC filter bundle (MVCFramework.Filters.OIDC): AEngine.Use(OIDCAuthenticationBundle(...))';
 
 /// <summary>
@@ -307,6 +314,13 @@ function TMVCOIDCAuthenticationMiddleware.SetJWKSProvider(
   const AProvider: IJWKSProvider): TMVCOIDCAuthenticationMiddleware;
 begin
   fFlow.SetJWKSProvider(AProvider);
+  Result := Self;
+end;
+
+function TMVCOIDCAuthenticationMiddleware.SetHTTPTimeouts(
+  AConnectTimeoutMS, AReadTimeoutMS: Integer): TMVCOIDCAuthenticationMiddleware;
+begin
+  fFlow.SetHTTPTimeouts(AConnectTimeoutMS, AReadTimeoutMS);
   Result := Self;
 end;
 

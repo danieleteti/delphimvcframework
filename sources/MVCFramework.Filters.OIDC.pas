@@ -39,6 +39,12 @@ uses
   MVCFramework.Filters,                        // TMVCAuthCookieOptions
   JsonDataObjects;
 
+const
+  // Default connect and response timeout, in milliseconds, of the HTTP calls to
+  // the provider. Without it a provider that does not answer holds the request
+  // for the platform default (60 s or more).
+  OIDC_DEFAULT_HTTP_TIMEOUT_MS = 10000;
+
 type
   /// <summary>
   /// Callback invoked after a successful OIDC authentication. Use this to
@@ -96,6 +102,8 @@ type
     Flags: TMVCOIDCFlags;                               // [ofFetchUserInfo, ofPKCE]
     BaseURL: string;                                    // e.g. 'https://app.example.com', for the logout at the provider
     JWKSProvider: IJWKSProvider;                        // nil: the ID token signature is not verified (TLS trust)
+    ConnectTimeoutMS: Integer;                          // OIDC_DEFAULT_HTTP_TIMEOUT_MS; discovery, token, userinfo
+    ReadTimeoutMS: Integer;                             // OIDC_DEFAULT_HTTP_TIMEOUT_MS; a JWKSProvider has its own
     class function Default: TMVCOIDCOptions; static;
   end;
 
@@ -151,6 +159,8 @@ begin
   Result.Flags := [ofFetchUserInfo, ofPKCE];
   Result.BaseURL := '';
   Result.JWKSProvider := nil;
+  Result.ConnectTimeoutMS := OIDC_DEFAULT_HTTP_TIMEOUT_MS;
+  Result.ReadTimeoutMS := OIDC_DEFAULT_HTTP_TIMEOUT_MS;
 end;
 
 function NewOIDCFlow(const AOptions: TMVCOIDCOptions;
@@ -172,6 +182,7 @@ begin
   Result.SetFetchUserInfo(ofFetchUserInfo in AOptions.Flags);
   Result.SetPKCE(ofPKCE in AOptions.Flags);
   Result.SetBaseURL(AOptions.BaseURL);
+  Result.SetHTTPTimeouts(AOptions.ConnectTimeoutMS, AOptions.ReadTimeoutMS);
   if Assigned(AOptions.JWKSProvider) then
     Result.SetJWKSProvider(AOptions.JWKSProvider);
 end;

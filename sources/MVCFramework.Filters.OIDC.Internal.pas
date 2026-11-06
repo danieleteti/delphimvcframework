@@ -48,6 +48,7 @@ type
     procedure SetPKCE(AUse: Boolean);
     procedure SetBaseURL(const AURL: string);
     procedure SetJWKSProvider(const AProvider: IJWKSProvider);
+    procedure SetHTTPTimeouts(AConnectTimeoutMS, AReadTimeoutMS: Integer); // raises for a value <= 0
     // answers LoginURL, CallbackURL and LogoutURL (AHandled = True); every other request goes on
     procedure HandleAuthURL(const AContext: TWebContext; var AHandled: Boolean);
     // without a valid session where one is required, redirects to LoginURL (AHandled = True)
@@ -153,12 +154,16 @@ type
     fFetchUserInfo: Boolean;
     fUsePKCE: Boolean;
     fBaseURL: string;
+    { HTTP timeouts of the calls to the provider, in milliseconds }
+    fConnectTimeout: Integer;
+    fReadTimeout: Integer;
     { JWKS signature verification (optional, requires TaurusTLS) }
     fJWKSProvider: IJWKSProvider;
     { Callbacks }
     fOnUserAuthenticated: TMVCOIDCUserAuthenticatedProc;
     fOnAuthRequired: TMVCOIDCAuthRequiredProc;
     { OIDC operations }
+    function NewProviderClient(const AURL: string): IMVCRESTClient;
     procedure DiscoverEndpoints;
     function BuildAuthorizationURL(const AState, ANonce, ACodeVerifier: string): string;
     function ExchangeCodeForTokens(const ACode, ACodeVerifier: string): TJsonObject;
@@ -208,6 +213,7 @@ type
     procedure SetPKCE(AUse: Boolean);
     procedure SetBaseURL(const AURL: string);
     procedure SetJWKSProvider(const AProvider: IJWKSProvider);
+    procedure SetHTTPTimeouts(AConnectTimeoutMS, AReadTimeoutMS: Integer);
     procedure HandleAuthURL(const AContext: TWebContext; var AHandled: Boolean);
     procedure CheckSession(const AContext: TWebContext; const AControllerQualifiedClassName,
       AActionName: string; var AHandled: Boolean);
@@ -284,6 +290,8 @@ begin
   fCookieDomain := '';
   fFetchUserInfo := True;
   fUsePKCE := True;
+  fConnectTimeout := OIDC_DEFAULT_HTTP_TIMEOUT_MS;
+  fReadTimeout := OIDC_DEFAULT_HTTP_TIMEOUT_MS;
   // One-time startup notice about signature verification
   fJWKSProvider := nil;
   LogI('OIDC: ID token signature verification not configured. ' +
@@ -366,7 +374,23 @@ begin
     LogI('OIDC: JWKS provider cleared - falling back to TLS trust');
 end;
 
+procedure TMVCOIDCAuthenticationFlow.SetHTTPTimeouts(AConnectTimeoutMS, AReadTimeoutMS: Integer);
+begin
+  if (AConnectTimeoutMS <= 0) or (AReadTimeoutMS <= 0) then
+    raise EMVCException.Create('OIDC: HTTP timeouts must be greater than zero.');
+  fConnectTimeout := AConnectTimeoutMS;
+  fReadTimeout := AReadTimeoutMS;
+end;
+
 { OIDC operations }
+
+function TMVCOIDCAuthenticationFlow.NewProviderClient(const AURL: string): IMVCRESTClient;
+begin
+  Result := TMVCRESTClient.New
+    .BaseURL(AURL)
+    .ConnectTimeout(fConnectTimeout)
+    .ReadTimeout(fReadTimeout);
+end;
 
 procedure TMVCOIDCAuthenticationFlow.DiscoverEndpoints;
 var
@@ -387,7 +411,7 @@ begin
       lDiscoveryURL := lDiscoveryURL + '/';
     lDiscoveryURL := lDiscoveryURL + '.well-known/openid-configuration';
     LogI(Format(SOIDCDiscoveryRequest, [lDiscoveryURL]));
-    lClient := TMVCRESTClient.New.BaseURL(lDiscoveryURL);
+    lClient := NewProviderClient(lDiscoveryURL);
     lResponse := lClient.Get;
     if not lResponse.Success then
       raise EMVCException.CreateFmt(SOIDCDiscoveryError,
@@ -434,7 +458,7 @@ var
   lResponse: IMVCRESTResponse;
 begin
   LogI(Format(SOIDCTokenExchangeRequest, [fTokenEndpoint]));
-  lClient := TMVCRESTClient.New.BaseURL(fTokenEndpoint);
+  lClient := NewProviderClient(fTokenEndpoint);
   lClient
     .AddBodyFieldURLEncoded('grant_type', 'authorization_code')
     .AddBodyFieldURLEncoded('code', ACode)
@@ -575,8 +599,7 @@ var
   lResponse: IMVCRESTResponse;
 begin
   LogI(Format(SOIDCUserInfoRequest, [fUserinfoEndpoint]));
-  lClient := TMVCRESTClient.New
-    .BaseURL(fUserinfoEndpoint)
+  lClient := NewProviderClient(fUserinfoEndpoint)
     .SetBearerAuthorization(AAccessToken);
   lResponse := lClient.Get;
   if not lResponse.Success then
