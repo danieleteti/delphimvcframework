@@ -924,7 +924,8 @@ Config[TMVCConfigKey.LoadSystemControllers] := 'true';
   (requests/minute, blocked IPs, per-rule counters, latest alerts) answers only the monitor IPs, and
   `AddMonitorOnlyPath` reserves a path, e.g. a dashboard, to them. IPs are compared in one normalised spelling
   (IPv6 canonical, IPv4-mapped IPv6 as IPv4); behind a reverse proxy `UseClientIp` keys the counters on `ClientIp`,
-  which reads `X-Forwarded-For` only with `MVCTrustProxyForwardedHeaders`. Register it first. Sample in
+  which reads `X-Forwarded-For` only with `MVCTrustProxyForwardedHeaders`. Register it first. The project wizard has
+  an "API Guard" box (Options page, off in every preset) that registers it first, with the blacklist in memory. Sample in
   `samples/filters_apiguard`, guide in `docs/apiguard_filter.md`. Contributed by Giordano Giaccaglia, KD Software
   (PR #934): thank you, Giordano.
 - **OIDC: timeouts on the calls to the provider and a 503 when it is down (PR #937).** Discovery, token exchange and
