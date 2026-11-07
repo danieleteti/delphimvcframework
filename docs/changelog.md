@@ -1857,6 +1857,11 @@ the same socket.
   `MVCRESTClientAcceptInvalidCertificates` can still turn a refusal into an accept; a certificate the platform
   rejected stays refused, and a proc set with `SetValidateServerCertificateProc` decides on its own as before.
   Fix by Bastian (PR #935): thank you, Bastian.
+- **Exception handler: a route that does not exist reaches it with a real exception.** `SetExceptionHandler`'s procedure
+  was called with `E = nil` for a route that matches nothing, so a handler that uses `E` without checking raised an
+  access violation on the first 404. `E` is now an `EMVCException` with `HTTPStatusCode` 404 and the message
+  `Not Found` (`SelectedController` is still nil); `Handled := True` replaces the default 404 as before. The contract
+  is documented on `TMVCExceptionHandlerProc`.
 - **`GetLoggedUser` raised on a request carrying a session cookie when no session middleware or filter is
   installed (PR #936).** Browsers send the cookies of every application on the same host whatever the port, so the
   session id could arrive at an application that has no session support; `TWebContext.SessionStarted` then raised
