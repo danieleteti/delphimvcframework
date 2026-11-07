@@ -1695,7 +1695,10 @@ begin
   LTestCase.ExpectedFiles := ['AGENTS.md', 'CLAUDE.md', 'GEMINI.md', 'update_ai_skills.bat',
     '.claude/skills/VERSION', '.claude/skills/delphi/SKILL.md', '.claude/skills/delphi-code-smells/SKILL.md',
     '.claude/skills/dmvcframework/SKILL.md', '.claude/skills/dmvcframework/reference/activerecord.md',
-    '.claude/skills/dmvcframework-security/SKILL.md', '.claude/skills/dmvcframework-testing/SKILL.md'];
+    '.claude/skills/dmvcframework-security/SKILL.md', '.claude/skills/dmvcframework-testing/SKILL.md',
+    '.claude/skills/delphi-firedac/SKILL.md', '.claude/skills/delphi-testing/SKILL.md',
+    '.claude/skills/delphi-build/SKILL.md', '.claude/skills/delphi-build/scripts/build.bat',
+    '.claude/skills/delphi-security/SKILL.md', '.claude/skills/exewatch-delphi/SKILL.md'];
   LTestCase.ForbiddenFiles := ['.claude/skills/dmvcframework-minimal-api', '.claude/skills/dmvcframework-webapp',
     '.claude/skills/dmvcframework-ui', '.claude/skills/htmx-skill', '.claude/skills/dmvcframework-jsonrpc'];
   LTestCase.MustContain := ['CLAUDE.md|@AGENTS.md', 'GEMINI.md|@AGENTS.md',
@@ -1706,7 +1709,7 @@ begin
     'AGENTS.md|`.claude/skills/dmvcframework-security/SKILL.md`',
     'AGENTS.md|DelphiMVCFramework ' + AISkillsLine + '.x',
     'update_ai_skills.bat|set "REF=' + AISkillsRef + '"',
-    'update_ai_skills.bat|set "SKILLS=delphi delphi-code-smells dmvcframework dmvcframework-security dmvcframework-testing"',
+    'update_ai_skills.bat|set "SKILLS=delphi delphi-code-smells dmvcframework dmvcframework-security dmvcframework-testing delphi-firedac delphi-testing delphi-build delphi-security exewatch-delphi"',
     '.claude/skills/VERSION|' + AISkillsLine];
   LTestCase.MustNotContain := ['AGENTS.md|dmvcframework-webapp', 'AGENTS.md|{{', 'update_ai_skills.bat|{{'];
   // $(BDS) is set only when a Delphi install was found (not with --skip-compile)
@@ -2444,11 +2447,11 @@ begin
   LConfig := CreateBaseConfig;
   try
     LSkills := AISkillsFor(LConfig);
-    Result := Check('base project: the five core skills', string.Join(' ', LSkills) =
-      'delphi delphi-code-smells dmvcframework dmvcframework-security dmvcframework-testing',
+    Result := Check('base project: the ten core skills', string.Join(' ', LSkills) =
+      'delphi delphi-code-smells dmvcframework dmvcframework-security dmvcframework-testing delphi-firedac delphi-testing delphi-build delphi-security exewatch-delphi',
       string.Join(' ', LSkills)) and Result;
     LConfig.B[TConfigKey.program_ssv_mustache] := True;
-    Result := Check('Mustache views: no TemplatePro web skills', Length(AISkillsFor(LConfig)) = 5,
+    Result := Check('Mustache views: no TemplatePro web skills', Length(AISkillsFor(LConfig)) = 10,
       string.Join(' ', AISkillsFor(LConfig))) and Result;
   finally
     LConfig.Free;

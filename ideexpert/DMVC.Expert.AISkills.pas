@@ -85,7 +85,7 @@ type
   end;
 
 const
-  AI_SKILLS: array [0 .. 9] of TAISkillInfo = (
+  AI_SKILLS: array [0 .. 14] of TAISkillInfo = (
     (Name: 'delphi'; Description: 'the language and the RTL: version gating, lifetime, strings, generics, threading'),
     (Name: 'delphi-code-smells'; Description: 'code review: compiler warnings, static analysis, memory leaks'),
     (Name: 'dmvcframework'; Description: 'controllers, ActiveRecord, validation, DI, middleware, servers, dotEnv'),
@@ -95,7 +95,12 @@ const
     (Name: 'dmvcframework-security'; Description: 'REQUIRED for any endpoint taking client input'),
     (Name: 'dmvcframework-jsonrpc'; Description: 'JSON-RPC 2.0 services and client'),
     (Name: 'dmvcframework-testing'; Description: 'DUnitX integration tests'),
-    (Name: 'htmx-skill'; Description: 'index of the htmx 2.x reference pages'));
+    (Name: 'htmx-skill'; Description: 'index of the htmx 2.x reference pages'),
+    (Name: 'delphi-firedac'; Description: 'FireDAC in plain Delphi: connections, queries, transactions'),
+    (Name: 'delphi-testing'; Description: 'DUnitX in plain Delphi: fixtures, assertions, leak detection'),
+    (Name: 'delphi-build'; Description: 'command-line builds: rsvars, msbuild, dcc, warnings as errors'),
+    (Name: 'delphi-security'; Description: 'security of desktop, service and client code'),
+    (Name: 'exewatch-delphi'; Description: 'ExeWatch Delphi SDK: remote logging and crash reports, used only by projects that use ExeWatch'));
 
 function AISkillsDMVCVersion: string;
 begin
@@ -122,7 +127,8 @@ end;
 
 function AISkillsFor(const AConfig: TJsonObject): TArray<string>;
 begin
-  Result := ['delphi', 'delphi-code-smells', 'dmvcframework', 'dmvcframework-security', 'dmvcframework-testing'];
+  Result := ['delphi', 'delphi-code-smells', 'dmvcframework', 'dmvcframework-security', 'dmvcframework-testing',
+    'delphi-firedac', 'delphi-testing', 'delphi-build', 'delphi-security', 'exewatch-delphi'];
   if AConfig.B[TConfigKey.program_minimal_api] then
     Result := Result + ['dmvcframework-minimal-api'];
   // the web skills teach TemplatePro, not Mustache or WebStencils
