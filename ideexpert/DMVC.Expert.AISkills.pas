@@ -95,7 +95,7 @@ const
     (Name: 'dmvcframework-security'; Description: 'REQUIRED for any endpoint taking client input'),
     (Name: 'dmvcframework-jsonrpc'; Description: 'JSON-RPC 2.0 services and client'),
     (Name: 'dmvcframework-testing'; Description: 'DUnitX integration tests'),
-    (Name: 'htmx-skill'; Description: 'index of the official htmx.org docs'));
+    (Name: 'htmx-skill'; Description: 'index of the htmx 2.x reference pages'));
 
 function AISkillsDMVCVersion: string;
 begin
