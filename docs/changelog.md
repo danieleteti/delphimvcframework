@@ -914,7 +914,7 @@ Config[TMVCConfigKey.LoadSystemControllers] := 'true';
   is written to the response stream via `TJsonBaseObject.SaveToStream`,
   skipping the UTF-16 Delphi string that `ToJSON(True)` would allocate
   and the subsequent UTF-8 re-encode inside `Render(AContent: string)`.
-- **APIGuard: an intrusion guard as an HTTP filter (PR #934).** `APIGuardHTTPFilter(TMVCAPIGuard.Create(...))`
+- **APIGuard: an intrusion guard as an HTTP filter (PR #934).** `APIGuardHTTPFilter(lGuard)`, `lGuard: IMVCAPIGuard := TMVCAPIGuard.Create(...)`
   (`MVCFramework.Filters.APIGuard`) watches requests and responses per client IP and blocks the IP when a rule trips:
   path scanning (`scan`), brute force (`bruteforce`), flooding (`flood`), injection probes (`injection`), known attack
   tools (`bad_agent`), or a rule of your own (`AddRule`). Thresholds, windows and block times are set per rule, and a
@@ -924,7 +924,8 @@ Config[TMVCConfigKey.LoadSystemControllers] := 'true';
   (requests/minute, blocked IPs, per-rule counters, latest alerts) answers only the monitor IPs, and
   `AddMonitorOnlyPath` reserves a path, e.g. a dashboard, to them. IPs are compared in one normalised spelling
   (IPv6 canonical, IPv4-mapped IPv6 as IPv4); behind a reverse proxy `UseClientIp` keys the counters on `ClientIp`,
-  which reads `X-Forwarded-For` only with `MVCTrustProxyForwardedHeaders`. Register it first. The project wizard has
+  which reads `X-Forwarded-For` only with `MVCTrustProxyForwardedHeaders`. Register it first. Keep the guard in an `IMVCAPIGuard`
+  variable: a configuration that raises before `Use` releases it, with its writer thread. The project wizard has
   an "API Guard" box (Options page, off in every preset) that registers it first, with the blacklist in memory. Sample in
   `samples/filters_apiguard`, guide in `docs/apiguard_filter.md`. Contributed by Giordano Giaccaglia, KD Software
   (PR #934): thank you, Giordano.
