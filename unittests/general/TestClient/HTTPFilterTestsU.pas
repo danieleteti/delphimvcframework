@@ -229,6 +229,9 @@ type
     // no session filter: the session cannot be stopped, the exception is still answered
     [Test]
     procedure ASessionExpiredInAFilterWithoutSessionsIsAnswered;
+    // a route that does not exist reaches the exception handler with a real 404 exception, never nil
+    [Test]
+    procedure TheExceptionHandlerGetsARealExceptionOnARouteNotFound;
     // a text body without a charset goes out as UTF-8, on Indy Direct as on HTTP.sys
     [Test]
     [TestCase('IndyDirect', 'IndyDirect')]
@@ -916,6 +919,53 @@ begin
   Assert.IsTrue(lWithoutController, 'SelectedController = nil');
   Assert.AreEqual(409, lRes.StatusCode);
   Assert.AreEqual('handled: Too many attempts', lRes.Content);
+end;
+
+procedure THTTPFilterTests.TheExceptionHandlerGetsARealExceptionOnARouteNotFound;
+var
+  lEngine: TMVCEngine;
+  lServer: IMVCServer;
+  lRes: IMVCRESTResponse;
+  lCalls: Integer;
+  lWasNil: Boolean;
+  lStatus: Integer;
+begin
+  lCalls := 0;
+  lWasNil := False;
+  lStatus := 0;
+  lEngine := TMVCEngine.Create;
+  try
+    lEngine.SetExceptionHandler(
+      procedure(E: Exception; SelectedController: TMVCController; WebContext: TWebContext; var Handled: Boolean)
+      begin
+        Inc(lCalls);
+        lWasNil := E = nil;
+        if lWasNil then
+          Exit;
+        // what a handler that does not check E does
+        if E is EMVCException then
+          lStatus := EMVCException(E).HTTPStatusCode;
+        WebContext.Response.ContentType := TMVCMediaType.TEXT_PLAIN;
+        WebContext.Response.Content := 'handled: ' + E.ClassName + ': ' + E.Message;
+        WebContext.Response.StatusCode := lStatus;
+        Handled := True;
+      end);
+    lServer := TMVCServerFactory.CreateIndyDirect(lEngine);
+    try
+      lServer.Listen(HF_STREAM_INDY_PORT, 'localhost');
+      lRes := Client(HF_STREAM_INDY_PORT).Get('/this-does-not-exist');
+    finally
+      lServer.Stop;
+      lServer := nil;
+    end;
+  finally
+    lEngine.Free;
+  end;
+  Assert.AreEqual(1, lCalls, 'the handler is called once');
+  Assert.IsFalse(lWasNil, 'E is not nil');
+  Assert.AreEqual(404, lStatus, 'EMVCException.HTTPStatusCode');
+  Assert.AreEqual(404, lRes.StatusCode, lRes.Content);
+  Assert.AreEqual('handled: EMVCException: Not Found', lRes.Content);
 end;
 
 procedure THTTPFilterTests.ATextBodyWithoutCharsetIsUTF8(const AHost: string);

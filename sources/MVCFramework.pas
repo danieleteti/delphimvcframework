@@ -1263,6 +1263,8 @@ type
     function EndpointFilters: TArray<TMVCEndpointFilter>;
   end;
 
+  // E is never nil: a route that does not exist is an EMVCException with HTTPStatusCode 404.
+  // SelectedController is nil when no controller was selected (route not found, HTTP filters, Minimal API).
   TMVCExceptionHandlerProc = reference to procedure(E: Exception;
     SelectedController: TMVCController; WebContext: TWebContext; var ExceptionHandled: Boolean);
 
@@ -3696,6 +3698,7 @@ var
   lRoutingPath: string;
   lRawPath: string;
   lDecodedPath: string;
+  lNotFound: EMVCException;
 begin
   Result := False;
   lHandled := False;
@@ -3803,9 +3806,14 @@ begin
             AContext.Response.ReasonString := 'Not Found';
             AContext.Data['__duration'] := Format('%dms', [AStopWatch.ElapsedMilliseconds]);
             fOnRouterLog(rlsRouteNotFound, AContext);
-            if not CustomExceptionHandling(nil, nil, AContext) then
-            begin
-              SendHTTPStatus(AContext, HTTP_STATUS.NotFound);
+            lNotFound := EMVCException.Create(HTTP_STATUS.NotFound, 'Not Found');
+            try
+              if not CustomExceptionHandling(lNotFound, nil, AContext) then
+              begin
+                SendHTTPStatus(AContext, HTTP_STATUS.NotFound);
+              end;
+            finally
+              lNotFound.Free;
             end;
           end
           else
