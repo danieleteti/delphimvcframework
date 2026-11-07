@@ -18,10 +18,7 @@ The guard is additive and opt-in: nothing changes until you register it on the e
 same in front of controllers and Minimal API routes.
 
 - Sample: [`samples/filters_apiguard`](../samples/filters_apiguard) (Minimal API server, dashboard, admin routes, attack simulator)
-- Tests: `unittests/general/TestClient/APIGuardMiddlewareTestsU.pas` (`TAPIGuardFilterTests`)
-- The classic middleware, `TMVCAPIGuardMiddleware`, is a deprecated wrapper over the same guard: see
-  [Migrating from the middleware](#migrating-from-the-middleware) and the
-  [middleware documentation](apiguard_middleware.md).
+- Tests: `unittests/general/TestClient/APIGuardFilterTestsU.pas` (`TAPIGuardFilterTests`)
 
 ---
 
@@ -29,7 +26,6 @@ same in front of controllers and Minimal API routes.
 
 1. [Units](#units)
 2. [Quick start](#quick-start)
-    - [Migrating from the middleware](#migrating-from-the-middleware)
 3. [How a request is processed](#how-a-request-is-processed)
 4. [Rules](#rules)
 5. [Signatures and user agents](#signatures-and-user-agents)
@@ -56,10 +52,7 @@ same in front of controllers and Minimal API routes.
 | `MVCFramework.Filters.APIGuard` | `TMVCAPIGuard`, `APIGuardHTTPFilter`, rules, file storage and file audit log, `APIGuardNormalizeIP` | none |
 | `MVCFramework.Filters.APIGuard.FireDAC` | `TMVCAPIGuardFireDACStorage` and `TMVCAPIGuardFireDACAuditLog`, the blacklist and the audit log in tables | FireDAC + the driver unit of your database |
 
-`MVCFramework.Middleware.APIGuard` and `MVCFramework.Middleware.APIGuard.FireDAC` still exist: they
-re-export these types for the deprecated middleware. No filter unit uses them.
-
-All four units are in the `dmvcframeworkRT` runtime package and compile on every supported Delphi
+Both units are in the `dmvcframeworkRT` runtime package and compile on every supported Delphi
 (10.2 Tokyo and later). The guard is host-independent: Indy Direct, HTTP.sys and WebBroker
 (ISAPI / Apache) run the same code.
 
@@ -100,24 +93,6 @@ long as the engine keeps the filter, and the guard goes when the engine is freed
 a Minimal API route or a controller), is fine. `APIGuardHTTPFilter(nil)` raises `EMVCConfigException`.
 
 Register a guard once: two filters over the same guard would count every request twice.
-
-### Migrating from the middleware
-
-The guard is the same object with the same members: only its class name and the way it is
-registered change.
-
-| Middleware (deprecated) | HTTP filter |
-|-------------------------|-------------|
-| `uses MVCFramework.Middleware.APIGuard` | `uses MVCFramework.Filters.APIGuard` |
-| `uses MVCFramework.Middleware.APIGuard.FireDAC` | `uses MVCFramework.Filters.APIGuard.FireDAC` |
-| `lGuard: TMVCAPIGuardMiddleware` | `lGuard: TMVCAPIGuard` |
-| `AEngine.AddMiddleware(lGuard)`, first middleware | `AEngine.Use(APIGuardHTTPFilter(lGuard))`, first filter |
-| `TMVCStaticFilesMiddleware.Create('/ui', 'www')` | `StaticFilesHTTPFilter('/ui', 'www')` |
-
-Rules, storages, audit logs, the status JSON and the responses are unchanged, and the blacklist and
-audit files (or tables) written by the middleware are read by the filter as they are.
-`TMVCAPIGuardMiddleware` descends from `TMVCAPIGuard`, so code that takes a `TMVCAPIGuard` works with
-both.
 
 ---
 
@@ -894,7 +869,7 @@ python test_apiguard.py bruteforce --port 8080
 | `OnAlert: TMVCAPIGuardAlertProc` | called for every block, under the lock |
 | `AuditLog: IMVCAPIGuardAuditLog` | history of blocks, unblocks and 403s, written by the writer thread; `nil` (default) = none |
 | `AuditRetentionDays: Integer` | events older than this are purged hourly; `0` (default) = kept forever |
-| `HandleRequest(AContext): Boolean` / `HandleResponse(AContext)` | the two halves the filter (and the deprecated middleware) calls; not for application code |
+| `HandleRequest(AContext): Boolean` / `HandleResponse(AContext)` | the two halves the filter calls; not for application code |
 
 ### `TMVCAPIGuardRule`
 

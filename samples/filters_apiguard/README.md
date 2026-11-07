@@ -64,5 +64,4 @@ unblocks and refused requests in `bin/apiguard_audit.txt` (`TMVCAPIGuardFileAudi
 The script sends each attack from its own loopback address (`127.0.0.2` ... `127.0.0.7`) so that one block
 does not stop the next scenario, then prints the status endpoint read from `127.0.0.1`.
 
-Full documentation: [`docs/apiguard_filter.md`](../../docs/apiguard_filter.md). The same guard as a
-classic (deprecated) middleware: [`samples/middleware_apiguard`](../middleware_apiguard).
+Full documentation: [`docs/apiguard_filter.md`](../../docs/apiguard_filter.md).

@@ -66,6 +66,7 @@ Each folder contains a self-contained sample project. Build with Delphi 10.1+ an
 
 | Sample | Description |
 |--------|-------------|
+| `filters_apiguard` | Intrusion guard as an HTTP filter (`APIGuardHTTPFilter`): scan, brute-force, flood, injection and bad-agent rules, persisted blacklist, audit log, status endpoint and dashboard, on a Minimal API |
 | `middleware` | Middleware pipeline basics |
 | `middleware_activerecord` | ActiveRecord connection management middleware |
 | `middleware_analytics` | Request analytics and tracking |

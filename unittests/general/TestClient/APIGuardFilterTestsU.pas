@@ -1,15 +1,12 @@
-unit APIGuardMiddlewareTestsU;
+unit APIGuardFilterTestsU;
 
 // Contributor of this file: Giordano Giaccaglia - KD Software S.r.l.s.
 // https://www.kdsoftware.it - info@kdsoftware.it
 
-// End-to-end tests of TMVCAPIGuardMiddleware: an embedded server, real requests
+// End-to-end tests of APIGuardHTTPFilter: an embedded server, real requests
 // from 127.0.0.1, the guard reset before every test.
-// TAPIGuardFilterTests runs the same tests against APIGuardHTTPFilter.
 
 interface
-
-{$WARN SYMBOL_DEPRECATED OFF} // the middleware is tested on purpose
 
 uses
   DUnitX.TestFramework,
@@ -19,8 +16,7 @@ uses
   MVCFramework,
   MVCFramework.Commons,
   MVCFramework.Server.Intf,
-  MVCFramework.Filters.APIGuard,
-  MVCFramework.Middleware.APIGuard;
+  MVCFramework.Filters.APIGuard;
 
 const
   APIGUARD_PORT = 8993;
@@ -41,7 +37,7 @@ type
   end;
 
   [TestFixture]
-  TAPIGuardMiddlewareTests = class
+  TAPIGuardFilterTests = class
   private
     fServer: IMVCServer;
     fEngine: TMVCEngine;
@@ -50,10 +46,6 @@ type
   protected
     fPort: Integer;
     fGuard: TMVCAPIGuard;
-    function BasePort: Integer; virtual;
-    // the guard under test, registered on AEngine
-    procedure UseGuard(const AEngine: TMVCEngine; const AGuard: TMVCAPIGuard); virtual;
-    function NewGuard: TMVCAPIGuard; virtual;
     function Get(const APath: string; const AUserAgent: string = ''): IHTTPResponse;
     function Post(const APath: string): Integer;
   public
@@ -118,16 +110,6 @@ type
     [TestCase('v4 mapped expanded', '0:0:0:0:0:ffff:7f00:1,127.0.0.1')]
     [TestCase('garbage kept', 'not:an:ip,not:an:ip')]
     procedure NormalizeIP(const AInput, AExpected: string);
-  end;
-
-  // the same tests, APIGuardHTTPFilter instead of the middleware
-  [TestFixture]
-  TAPIGuardFilterTests = class(TAPIGuardMiddlewareTests)
-  protected
-    function BasePort: Integer; override;
-    procedure UseGuard(const AEngine: TMVCEngine; const AGuard: TMVCAPIGuard); override;
-    function NewGuard: TMVCAPIGuard; override;
-  public
     [Test]
     procedure ResponseOfALaterHTTPFilter_IsCounted;
     [Test]
@@ -159,29 +141,14 @@ begin
   Result := 'monitor';
 end;
 
-{ TAPIGuardMiddlewareTests }
+{ TAPIGuardFilterTests }
 
-function TAPIGuardMiddlewareTests.BasePort: Integer;
+procedure TAPIGuardFilterTests.SetupFixture;
 begin
-  Result := APIGUARD_PORT;
-end;
-
-function TAPIGuardMiddlewareTests.NewGuard: TMVCAPIGuard;
-begin
-  Result := TMVCAPIGuardMiddleware.Create;
-end;
-
-procedure TAPIGuardMiddlewareTests.UseGuard(const AEngine: TMVCEngine; const AGuard: TMVCAPIGuard);
-begin
-  AEngine.AddMiddleware(AGuard as TMVCAPIGuardMiddleware); // the engine holds the interface reference
-end;
-
-procedure TAPIGuardMiddlewareTests.SetupFixture;
-begin
-  fPort := BasePort;
+  fPort := APIGUARD_PORT;
   fEngine := TMVCEngine.Create;
   fEngine.AddController(TAPIGuardTestController);
-  fGuard := NewGuard;
+  fGuard := TMVCAPIGuard.Create;
   fGuard.Rule(GUARD_RULE_SCAN).Configure(3, 60, 60);
   fGuard.Rule(GUARD_RULE_BRUTEFORCE).Configure(3, 60, 60).OnPaths(['/api/login']);
   fGuard.Rule(GUARD_RULE_FLOOD).Configure(40, 60, 60);
@@ -192,13 +159,22 @@ begin
       Result := AContext.Request.Headers['X-Evil'] <> '';
     end);
   fGuard.AddMonitorOnlyPath('/api/monitor');
-  UseGuard(fEngine, fGuard);
+  fEngine.Use(APIGuardHTTPFilter(fGuard)); // the filter holds the guard
+  // an HTTP filter that answers by itself, as a login filter does
+  fEngine.Use(
+    procedure(const AContext: TWebContext; const ANext: TMVCHTTPFilterNext)
+    begin
+      if AContext.Request.PathInfo = '/api/login/filter' then
+        AContext.Response.StatusCode := HTTP_STATUS.Unauthorized
+      else
+        ANext();
+    end);
   fServer := TMVCServerFactory.CreateIndyDirect(fEngine);
   fServer.Listen(fPort);
   fClient := THTTPClient.Create;
 end;
 
-procedure TAPIGuardMiddlewareTests.TeardownFixture;
+procedure TAPIGuardFilterTests.TeardownFixture;
 begin
   fClient.Free;
   fServer.Stop;
@@ -206,13 +182,13 @@ begin
   fEngine.Free; // the server does not own it; the engine releases the guard
 end;
 
-procedure TAPIGuardMiddlewareTests.Setup;
+procedure TAPIGuardFilterTests.Setup;
 begin
   fGuard.Reset;
   fGuard.Rule(GUARD_RULE_SCAN).Enabled := True;
 end;
 
-function TAPIGuardMiddlewareTests.Get(const APath, AUserAgent: string): IHTTPResponse;
+function TAPIGuardFilterTests.Get(const APath, AUserAgent: string): IHTTPResponse;
 var
   lReq: IHTTPRequest;
 begin
@@ -222,7 +198,7 @@ begin
   Result := fClient.Execute(lReq);
 end;
 
-function TAPIGuardMiddlewareTests.Post(const APath: string): Integer;
+function TAPIGuardFilterTests.Post(const APath: string): Integer;
 var
   lBody: TStringStream;
 begin
@@ -234,7 +210,7 @@ begin
   end;
 end;
 
-procedure TAPIGuardMiddlewareTests.CleanTraffic_PassesThrough;
+procedure TAPIGuardFilterTests.CleanTraffic_PassesThrough;
 var
   I: Integer;
 begin
@@ -243,7 +219,7 @@ begin
   Assert.IsFalse(fGuard.IsBlocked('127.0.0.1'));
 end;
 
-procedure TAPIGuardMiddlewareTests.Scan_TooMany404_BlocksIP;
+procedure TAPIGuardFilterTests.Scan_TooMany404_BlocksIP;
 begin
   Assert.AreEqual(404, Get('/nope1').StatusCode);
   Assert.AreEqual(404, Get('/nope2').StatusCode);
@@ -251,7 +227,7 @@ begin
   Assert.AreEqual(403, Get('/api/ok').StatusCode);
 end;
 
-procedure TAPIGuardMiddlewareTests.BruteForce_TooMany401OnLogin_BlocksIP;
+procedure TAPIGuardFilterTests.BruteForce_TooMany401OnLogin_BlocksIP;
 begin
   Assert.AreEqual(401, Post('/api/login'));
   Assert.AreEqual(401, Post('/api/login'));
@@ -260,23 +236,23 @@ begin
   Assert.AreEqual(GUARD_RULE_BRUTEFORCE, fGuard.BlockedIPs[0].Rule);
 end;
 
-procedure TAPIGuardMiddlewareTests.Injection_TraversalInQuery_BlocksIP;
+procedure TAPIGuardFilterTests.Injection_TraversalInQuery_BlocksIP;
 begin
   Assert.AreEqual(403, Get('/api/ok?file=..%2F..%2Fetc%2Fpasswd').StatusCode);
   Assert.AreEqual(403, Get('/api/ok').StatusCode);
 end;
 
-procedure TAPIGuardMiddlewareTests.Injection_DoubleEncoded_BlocksIP;
+procedure TAPIGuardFilterTests.Injection_DoubleEncoded_BlocksIP;
 begin
   Assert.AreEqual(403, Get('/api/ok?q=1%2527%2520union%2520select%2520').StatusCode);
 end;
 
-procedure TAPIGuardMiddlewareTests.BadAgent_Sqlmap_BlocksIP;
+procedure TAPIGuardFilterTests.BadAgent_Sqlmap_BlocksIP;
 begin
   Assert.AreEqual(403, Get('/api/ok', 'sqlmap/1.7#stable').StatusCode);
 end;
 
-procedure TAPIGuardMiddlewareTests.Flood_OverThreshold_BlocksIP;
+procedure TAPIGuardFilterTests.Flood_OverThreshold_BlocksIP;
 var
   I: Integer;
 begin
@@ -285,7 +261,7 @@ begin
   Assert.AreEqual(403, Get('/api/ok').StatusCode);
 end;
 
-procedure TAPIGuardMiddlewareTests.CustomRule_BlocksIP;
+procedure TAPIGuardFilterTests.CustomRule_BlocksIP;
 var
   lReq: IHTTPRequest;
 begin
@@ -295,7 +271,7 @@ begin
   Assert.AreEqual('secret_header', fGuard.BlockedIPs[0].Rule);
 end;
 
-procedure TAPIGuardMiddlewareTests.DisabledRule_DoesNotBlock;
+procedure TAPIGuardFilterTests.DisabledRule_DoesNotBlock;
 var
   I: Integer;
 begin
@@ -305,7 +281,7 @@ begin
   Assert.AreEqual(200, Get('/api/ok').StatusCode);
 end;
 
-procedure TAPIGuardMiddlewareTests.Status_FromLoopback_ReportsBlockEvenWhenBlocked;
+procedure TAPIGuardFilterTests.Status_FromLoopback_ReportsBlockEvenWhenBlocked;
 var
   lResp: IHTTPResponse;
   lJSON: TJsonObject;
@@ -330,7 +306,7 @@ begin
   end;
 end;
 
-procedure TAPIGuardMiddlewareTests.Unblock_LetsTheIPBackIn;
+procedure TAPIGuardFilterTests.Unblock_LetsTheIPBackIn;
 begin
   fGuard.BlockIP('127.0.0.1', 'test', 60);
   Assert.AreEqual(403, Get('/api/ok').StatusCode);
@@ -338,19 +314,19 @@ begin
   Assert.AreEqual(200, Get('/api/ok').StatusCode);
 end;
 
-procedure TAPIGuardMiddlewareTests.ExpiredBlock_IsGoneAndReblockable;
+procedure TAPIGuardFilterTests.ExpiredBlock_IsGoneAndReblockable;
 begin
   fGuard.BlockIP('127.0.0.1', 'short', 1);
   Sleep(1100);
   // expired but not yet swept (the cleanup runs once a minute): neither listed nor blocking
-  Assert.AreEqual(0, Length(fGuard.BlockedIPs));
+  Assert.AreEqual(0, Integer(Length(fGuard.BlockedIPs)));
   Assert.AreEqual(200, Get('/api/ok').StatusCode);
   // and a rule can block the IP again straight away
   Assert.AreEqual(403, Get('/api/ok?f=../../etc/passwd').StatusCode);
   Assert.IsTrue(fGuard.IsBlocked('127.0.0.1'));
 end;
 
-procedure TAPIGuardMiddlewareTests.FileStorage_SurvivesRestart;
+procedure TAPIGuardFilterTests.FileStorage_SurvivesRestart;
 var
   lFile: string;
   lGuard: TMVCAPIGuard;
@@ -374,7 +350,7 @@ begin
   end;
 end;
 
-procedure TAPIGuardMiddlewareTests.FileStorage_HandEditedLine_IsPermanent;
+procedure TAPIGuardFilterTests.FileStorage_HandEditedLine_IsPermanent;
 var
   lFile: string;
   lGuard: TMVCAPIGuard;
@@ -388,14 +364,14 @@ begin
     lRef := lGuard;
     Assert.IsTrue(lGuard.IsBlocked('192.168.0.9'));
     Assert.IsTrue(lGuard.IsBlocked('192.168.0.10'));
-    Assert.AreEqual(2, Length(lGuard.BlockedIPs));
+    Assert.AreEqual(2, Integer(Length(lGuard.BlockedIPs)));
   finally
     lRef := nil;
     TFile.Delete(lFile);
   end;
 end;
 
-function TAPIGuardMiddlewareTests.WaitForLines(const AFile: string;
+function TAPIGuardFilterTests.WaitForLines(const AFile: string;
   const ACount: Integer): TArray<string>;
 var
   I: Integer;
@@ -414,7 +390,7 @@ begin
   Assert.Fail(Format('%s: expected %d lines', [AFile, ACount]));
 end;
 
-procedure TAPIGuardMiddlewareTests.FileAuditLog_RecordsBlockAndUnblock;
+procedure TAPIGuardFilterTests.FileAuditLog_RecordsBlockAndUnblock;
 var
   lFile: string;
   lGuard: TMVCAPIGuard;
@@ -432,11 +408,11 @@ begin
     lGuard.Reset; // unblocks 10.1.2.4; the history survives it
     lRef := nil; // the destructor flushes the queue
     lLines := TFile.ReadAllLines(lFile, TEncoding.UTF8);
-    Assert.AreEqual(5, Length(lLines), 'header + 4 events');
+    Assert.AreEqual(5, Integer(Length(lLines)), 'header + 4 events');
     Assert.StartsWith('#', lLines[0]);
     Assert.AreEqual('block|10.1.2.3|manual', string.Join('|', Copy(lLines[1].Split([#9]), 1, 3)));
     Assert.AreEqual('unblock|10.1.2.3|manual', string.Join('|', Copy(lLines[2].Split([#9]), 1, 3)));
-    Assert.AreEqual(6, Length(lLines[3].Split([#9])), 'tabs and line breaks in the reason are flattened');
+    Assert.AreEqual(6, Integer(Length(lLines[3].Split([#9]))), 'tabs and line breaks in the reason are flattened');
     Assert.AreEqual('block|10.1.2.4|manual', string.Join('|', Copy(lLines[3].Split([#9]), 1, 3)));
     Assert.AreEqual('unblock|10.1.2.4|manual', string.Join('|', Copy(lLines[4].Split([#9]), 1, 3)));
   finally
@@ -446,7 +422,7 @@ begin
   end;
 end;
 
-procedure TAPIGuardMiddlewareTests.FileAuditLog_RecordsDeniedRequest;
+procedure TAPIGuardFilterTests.FileAuditLog_RecordsDeniedRequest;
 var
   lFile: string;
   lLines, lFields: TArray<string>;
@@ -470,7 +446,7 @@ begin
   end;
 end;
 
-procedure TAPIGuardMiddlewareTests.FileAuditLog_Retention_PurgesOldLines;
+procedure TAPIGuardFilterTests.FileAuditLog_Retention_PurgesOldLines;
 var
   lFile: string;
   lGuard: TMVCAPIGuard;
@@ -490,7 +466,7 @@ begin
     lGuard.BlockIP('10.1.2.3', 'wakes the writer');
     lRef := nil;
     lLines := TFile.ReadAllLines(lFile, TEncoding.UTF8);
-    Assert.AreEqual(4, Length(lLines), 'header, undated, recent, new');
+    Assert.AreEqual(4, Integer(Length(lLines)), 'header, undated, recent, new');
     Assert.Contains(lLines[1], 'undated');
     Assert.Contains(lLines[2], 'recent');
     Assert.Contains(lLines[3], '10.1.2.3');
@@ -501,20 +477,20 @@ begin
   end;
 end;
 
-procedure TAPIGuardMiddlewareTests.Status_FromIPv6Loopback_Answers;
+procedure TAPIGuardFilterTests.Status_FromIPv6Loopback_Answers;
 begin
   // browsers resolve localhost to ::1, which Indy reports as 0:0:0:0:0:0:0:1
   Assert.AreEqual(200, fClient.Get('http://[::1]:' + fPort.ToString + '/api-guard/status').StatusCode);
 end;
 
-procedure TAPIGuardMiddlewareTests.MonitorOnlyPath_FromLoopback_PassesThrough;
+procedure TAPIGuardFilterTests.MonitorOnlyPath_FromLoopback_PassesThrough;
 begin
   // the denial (404 from a non-monitor IP) needs another source address: see the sample's test script
   Assert.AreEqual(200, Get('/api/monitor/data').StatusCode);
   Assert.AreEqual(200, fClient.Get('http://[::1]:' + fPort.ToString + '/api/monitor/data').StatusCode);
 end;
 
-procedure TAPIGuardMiddlewareTests.Monitor_ForwardedFromLocalProxy_Denied;
+procedure TAPIGuardFilterTests.Monitor_ForwardedFromLocalProxy_Denied;
 
   function GetForwarded(const APath: string): Integer;
   var
@@ -538,44 +514,18 @@ begin
   end;
 end;
 
-procedure TAPIGuardMiddlewareTests.NormalizeIP(const AInput, AExpected: string);
+procedure TAPIGuardFilterTests.NormalizeIP(const AInput, AExpected: string);
 begin
   Assert.AreEqual(AExpected, APIGuardNormalizeIP(AInput));
 end;
 
-procedure TAPIGuardMiddlewareTests.UnknownRule_Raises;
+procedure TAPIGuardFilterTests.UnknownRule_Raises;
 begin
   Assert.WillRaise(
     procedure
     begin
       fGuard.Rule('does_not_exist');
     end, EMVCException);
-end;
-
-{ TAPIGuardFilterTests }
-
-function TAPIGuardFilterTests.BasePort: Integer;
-begin
-  Result := APIGUARD_PORT + 1;
-end;
-
-function TAPIGuardFilterTests.NewGuard: TMVCAPIGuard;
-begin
-  Result := TMVCAPIGuard.Create;
-end;
-
-procedure TAPIGuardFilterTests.UseGuard(const AEngine: TMVCEngine; const AGuard: TMVCAPIGuard);
-begin
-  AEngine.Use(APIGuardHTTPFilter(AGuard)); // the filter holds the guard
-  // an HTTP filter that answers by itself, as a login filter does
-  AEngine.Use(
-    procedure(const AContext: TWebContext; const ANext: TMVCHTTPFilterNext)
-    begin
-      if AContext.Request.PathInfo = '/api/login/filter' then
-        AContext.Response.StatusCode := HTTP_STATUS.Unauthorized
-      else
-        ANext();
-    end);
 end;
 
 procedure TAPIGuardFilterTests.ResponseOfALaterHTTPFilter_IsCounted;
@@ -599,7 +549,6 @@ end;
 
 initialization
 
-TDUnitX.RegisterTestFixture(TAPIGuardMiddlewareTests);
 TDUnitX.RegisterTestFixture(TAPIGuardFilterTests);
 
 end.

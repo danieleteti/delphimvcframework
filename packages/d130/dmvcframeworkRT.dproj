@@ -235,8 +235,6 @@
         <DCCReference Include="..\..\sources\MVCFramework.Middleware.RateLimit.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Filters.APIGuard.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Filters.APIGuard.FireDAC.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Middleware.APIGuard.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Middleware.APIGuard.FireDAC.pas"/>
         <DCCReference Include="..\..\sources\TemplatePro.Types.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Validation.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.ValidationEngine.pas"/>

@@ -148,8 +148,6 @@ contains
   MVCFramework.Middleware.RateLimit in '..\..\sources\MVCFramework.Middleware.RateLimit.pas',
   MVCFramework.Filters.APIGuard in '..\..\sources\MVCFramework.Filters.APIGuard.pas',
   MVCFramework.Filters.APIGuard.FireDAC in '..\..\sources\MVCFramework.Filters.APIGuard.FireDAC.pas',
-  MVCFramework.Middleware.APIGuard in '..\..\sources\MVCFramework.Middleware.APIGuard.pas',
-  MVCFramework.Middleware.APIGuard.FireDAC in '..\..\sources\MVCFramework.Middleware.APIGuard.FireDAC.pas',
   TemplatePro.Types in '..\..\sources\TemplatePro.Types.pas',
   MVCFramework.Serializer.Streaming in '..\..\sources\MVCFramework.Serializer.Streaming.pas',
   MVCFramework.Serializer.Streaming.DataSet in '..\..\sources\MVCFramework.Serializer.Streaming.DataSet.pas',
