@@ -33,7 +33,7 @@ interface
 uses
   MVCFramework,
   MVCFramework.JWT,                            // TJWTCheckableClaims, IJWKSProvider, TMVCJWTCookieSameSite
-  MVCFramework.Filters.OIDC;                   // TMVCOIDCUserAuthenticatedProc, TMVCOIDCAuthRequiredProc
+  MVCFramework.Filters.OIDC;                   // TMVCOIDCUserAuthenticatedProc, TMVCOIDCAuthRequiredProc, TMVCOIDCProviderErrorProc
 
 type
   // The OIDC flow behind the OIDC filters and TMVCOIDCAuthenticationMiddleware.
@@ -48,6 +48,8 @@ type
     procedure SetPKCE(AUse: Boolean);
     procedure SetBaseURL(const AURL: string);
     procedure SetJWKSProvider(const AProvider: IJWKSProvider);
+    procedure SetHTTPTimeouts(AConnectTimeoutMS, AReadTimeoutMS: Integer); // raises for a value <= 0
+    procedure SetOnProviderError(const AProc: TMVCOIDCProviderErrorProc);   // nil: 503 with a short plain text
     // answers LoginURL, CallbackURL and LogoutURL (AHandled = True); every other request goes on
     procedure HandleAuthURL(const AContext: TWebContext; var AHandled: Boolean);
     // without a valid session where one is required, redirects to LoginURL (AHandled = True)
@@ -114,6 +116,9 @@ resourcestring
   SOIDCIDTokenIssuedInFuture = 'OIDC: ID token was issued in the future (iat beyond allowed clock skew)';
   SOIDCUserLoggedIn = 'OIDC: User authenticated and session created';
   SOIDCUserLoggedOut = 'OIDC: User session cleared';
+  SOIDCJWKSError = 'OIDC: Could not obtain the signing keys of the provider - %s';
+  SOIDCProviderUnreachable = 'OIDC: Provider not reachable - %s';
+  SOIDCProviderUnavailableText = 'The identity provider is not reachable. Please try again later.';
 
 type
   TMVCOIDCAuthenticationFlow = class(TInterfacedObject, IMVCOIDCAuthenticationFlow)
@@ -153,12 +158,17 @@ type
     fFetchUserInfo: Boolean;
     fUsePKCE: Boolean;
     fBaseURL: string;
+    { HTTP timeouts of the calls to the provider, in milliseconds }
+    fConnectTimeout: Integer;
+    fReadTimeout: Integer;
     { JWKS signature verification (optional, requires TaurusTLS) }
     fJWKSProvider: IJWKSProvider;
     { Callbacks }
     fOnUserAuthenticated: TMVCOIDCUserAuthenticatedProc;
     fOnAuthRequired: TMVCOIDCAuthRequiredProc;
+    fOnProviderError: TMVCOIDCProviderErrorProc;
     { OIDC operations }
+    function NewProviderClient(const AURL: string): IMVCRESTClient;
     procedure DiscoverEndpoints;
     function BuildAuthorizationURL(const AState, ANonce, ACodeVerifier: string): string;
     function ExchangeCodeForTokens(const ACode, ACodeVerifier: string): TJsonObject;
@@ -185,6 +195,8 @@ type
     procedure HandleLogin(AContext: TWebContext; var AHandled: Boolean);
     procedure HandleCallback(AContext: TWebContext; var AHandled: Boolean);
     procedure HandleLogout(AContext: TWebContext; var AHandled: Boolean);
+    // the provider cannot be reached: OnProviderError answers, or a 503 with a short plain text
+    procedure HandleProviderError(AContext: TWebContext; const AError: Exception);
   public
     constructor Create(
       const AOnUserAuthenticated: TMVCOIDCUserAuthenticatedProc;
@@ -208,6 +220,8 @@ type
     procedure SetPKCE(AUse: Boolean);
     procedure SetBaseURL(const AURL: string);
     procedure SetJWKSProvider(const AProvider: IJWKSProvider);
+    procedure SetHTTPTimeouts(AConnectTimeoutMS, AReadTimeoutMS: Integer);
+    procedure SetOnProviderError(const AProc: TMVCOIDCProviderErrorProc);
     procedure HandleAuthURL(const AContext: TWebContext; var AHandled: Boolean);
     procedure CheckSession(const AContext: TWebContext; const AControllerQualifiedClassName,
       AActionName: string; var AHandled: Boolean);
@@ -284,6 +298,8 @@ begin
   fCookieDomain := '';
   fFetchUserInfo := True;
   fUsePKCE := True;
+  fConnectTimeout := OIDC_DEFAULT_HTTP_TIMEOUT_MS;
+  fReadTimeout := OIDC_DEFAULT_HTTP_TIMEOUT_MS;
   // One-time startup notice about signature verification
   fJWKSProvider := nil;
   LogI('OIDC: ID token signature verification not configured. ' +
@@ -366,7 +382,28 @@ begin
     LogI('OIDC: JWKS provider cleared - falling back to TLS trust');
 end;
 
+procedure TMVCOIDCAuthenticationFlow.SetHTTPTimeouts(AConnectTimeoutMS, AReadTimeoutMS: Integer);
+begin
+  if (AConnectTimeoutMS <= 0) or (AReadTimeoutMS <= 0) then
+    raise EMVCException.Create('OIDC: HTTP timeouts must be greater than zero.');
+  fConnectTimeout := AConnectTimeoutMS;
+  fReadTimeout := AReadTimeoutMS;
+end;
+
+procedure TMVCOIDCAuthenticationFlow.SetOnProviderError(const AProc: TMVCOIDCProviderErrorProc);
+begin
+  fOnProviderError := AProc;
+end;
+
 { OIDC operations }
+
+function TMVCOIDCAuthenticationFlow.NewProviderClient(const AURL: string): IMVCRESTClient;
+begin
+  Result := TMVCRESTClient.New
+    .BaseURL(AURL)
+    .ConnectTimeout(fConnectTimeout)
+    .ReadTimeout(fReadTimeout);
+end;
 
 procedure TMVCOIDCAuthenticationFlow.DiscoverEndpoints;
 var
@@ -387,10 +424,15 @@ begin
       lDiscoveryURL := lDiscoveryURL + '/';
     lDiscoveryURL := lDiscoveryURL + '.well-known/openid-configuration';
     LogI(Format(SOIDCDiscoveryRequest, [lDiscoveryURL]));
-    lClient := TMVCRESTClient.New.BaseURL(lDiscoveryURL);
-    lResponse := lClient.Get;
+    lClient := NewProviderClient(lDiscoveryURL);
+    try
+      lResponse := lClient.Get;
+    except
+      on E: Exception do
+        raise EMVCOIDCProviderException.CreateFmt(SOIDCDiscoveryError, [lDiscoveryURL, E.Message]);
+    end;
     if not lResponse.Success then
-      raise EMVCException.CreateFmt(SOIDCDiscoveryError,
+      raise EMVCOIDCProviderException.CreateFmt(SOIDCDiscoveryError,
         [lDiscoveryURL, lResponse.StatusCode.ToString + ' ' + lResponse.StatusText]);
     lJSON := lResponse.ToJSONObject;
     try
@@ -434,7 +476,7 @@ var
   lResponse: IMVCRESTResponse;
 begin
   LogI(Format(SOIDCTokenExchangeRequest, [fTokenEndpoint]));
-  lClient := TMVCRESTClient.New.BaseURL(fTokenEndpoint);
+  lClient := NewProviderClient(fTokenEndpoint);
   lClient
     .AddBodyFieldURLEncoded('grant_type', 'authorization_code')
     .AddBodyFieldURLEncoded('code', ACode)
@@ -443,11 +485,20 @@ begin
     .AddBodyFieldURLEncoded('client_secret', fClientSecret);
   if fUsePKCE and (not ACodeVerifier.IsEmpty) then
     lClient.AddBodyFieldURLEncoded('code_verifier', ACodeVerifier);
-  lResponse := lClient.Post;
+  try
+    lResponse := lClient.Post;
+  except
+    on E: Exception do
+      raise EMVCOIDCProviderException.CreateFmt(SOIDCTokenExchangeError, [E.Message]);
+  end;
   if not lResponse.Success then
   begin
     LogE(Format('OIDC: Token exchange failed - status=%d body=%s',
       [lResponse.StatusCode, lResponse.Content]));
+    // a 4xx is a rejected code (expired, replayed); a 5xx is the provider
+    if lResponse.StatusCode >= HTTP_STATUS.InternalServerError then
+      raise EMVCOIDCProviderException.CreateFmt(SOIDCTokenExchangeError,
+        [lResponse.StatusCode.ToString]);
     raise EMVCException.CreateFmt(SOIDCTokenExchangeError,
       [lResponse.StatusCode.ToString]);
   end;
@@ -544,7 +595,12 @@ begin
     begin
       // Decode the header to get kid and alg for key lookup
       lHeaderJSON := Base64URLDecode(lParts[0]);
-      lSigner := fJWKSProvider.GetSignerForToken(lHeaderJSON);
+      try
+        lSigner := fJWKSProvider.GetSignerForToken(lHeaderJSON);
+      except
+        on E: Exception do
+          raise EMVCOIDCProviderException.CreateFmt(SOIDCJWKSError, [E.Message]);
+      end;
       if not Assigned(lSigner) then
         raise EMVCException.Create(SOIDCIDTokenSigNoKey);
       // Verify: signature is over "header.payload" (the first two base64url parts)
@@ -575,8 +631,7 @@ var
   lResponse: IMVCRESTResponse;
 begin
   LogI(Format(SOIDCUserInfoRequest, [fUserinfoEndpoint]));
-  lClient := TMVCRESTClient.New
-    .BaseURL(fUserinfoEndpoint)
+  lClient := NewProviderClient(fUserinfoEndpoint)
     .SetBearerAuthorization(AAccessToken);
   lResponse := lClient.Get;
   if not lResponse.Success then
@@ -783,7 +838,16 @@ var
   lCodeVerifier: string;
   lAuthURL: string;
 begin
-  DiscoverEndpoints;
+  try
+    DiscoverEndpoints;
+  except
+    on E: Exception do
+    begin
+      HandleProviderError(AContext, E);
+      AHandled := True;
+      Exit;
+    end;
+  end;
   // Generate CSRF state and nonce as stripped GUIDs
   lState := TGUID.NewGuid.ToString.Replace('{', '').Replace('}', '');
   lNonce := TGUID.NewGuid.ToString.Replace('{', '').Replace('}', '');
@@ -901,6 +965,12 @@ begin
       AContext.Response.SetCustomHeader('Location', fPostLoginRedirectURL);
       AHandled := True;
     except
+      on E: EMVCOIDCProviderException do
+      begin
+        ClearSessionCookie(AContext);
+        HandleProviderError(AContext, E);
+        AHandled := True;
+      end;
       on E: Exception do
       begin
         LogE(Format(SOIDCCallbackError, [E.Message]));
@@ -947,6 +1017,22 @@ begin
     AContext.Response.SetCustomHeader('Location', fPostLogoutRedirectURL);
   end;
   AHandled := True;
+end;
+
+procedure TMVCOIDCAuthenticationFlow.HandleProviderError(AContext: TWebContext; const AError: Exception);
+var
+  lHandled: Boolean;
+begin
+  LogE(Format(SOIDCProviderUnreachable, [AError.Message]));
+  lHandled := False;
+  if Assigned(fOnProviderError) then
+    fOnProviderError(AContext, AError, lHandled);
+  if not lHandled then
+  begin
+    AContext.Response.StatusCode := HTTP_STATUS.ServiceUnavailable;
+    AContext.Response.ContentType := TMVCMediaType.TEXT_PLAIN;
+    AContext.Response.Content := SOIDCProviderUnavailableText;
+  end;
 end;
 
 procedure TMVCOIDCAuthenticationFlow.HandleAuthURL(const AContext: TWebContext; var AHandled: Boolean);

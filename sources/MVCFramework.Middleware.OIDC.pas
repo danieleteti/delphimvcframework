@@ -77,6 +77,8 @@ type
   // moved to MVCFramework.Filters.OIDC
   TMVCOIDCUserAuthenticatedProc = MVCFramework.Filters.OIDC.TMVCOIDCUserAuthenticatedProc;
   TMVCOIDCAuthRequiredProc = MVCFramework.Filters.OIDC.TMVCOIDCAuthRequiredProc;
+  TMVCOIDCProviderErrorProc = MVCFramework.Filters.OIDC.TMVCOIDCProviderErrorProc;
+  EMVCOIDCProviderException = MVCFramework.Filters.OIDC.EMVCOIDCProviderException;
 
   /// <summary>
   /// OIDC Authorization Code flow middleware with JWT cookie sessions.
@@ -158,6 +160,20 @@ type
     ///     .SetJWKSProvider(TMVCJWKSClient.CreateFromIssuer('https://...'));
     /// </summary>
     function SetJWKSProvider(const AProvider: IJWKSProvider): TMVCOIDCAuthenticationMiddleware;
+    /// <summary>
+    /// Sets the connect and response timeouts, in milliseconds, of the HTTP
+    /// calls to the provider (discovery, token exchange, UserInfo). Default:
+    /// OIDC_DEFAULT_HTTP_TIMEOUT_MS for both. A JWKS provider has its own
+    /// setting (TMVCJWKSClient.SetTimeouts).
+    /// </summary>
+    function SetHTTPTimeouts(AConnectTimeoutMS, AReadTimeoutMS: Integer): TMVCOIDCAuthenticationMiddleware;
+    /// <summary>
+    /// Sets the callback that answers a login or callback request when the
+    /// OIDC provider cannot be reached (discovery, token exchange or JWKS
+    /// fetch failed). Without it the middleware answers 503 with a short
+    /// plain text.
+    /// </summary>
+    function SetOnProviderError(const AProc: TMVCOIDCProviderErrorProc): TMVCOIDCAuthenticationMiddleware;
   end deprecated 'Use the OIDC filter bundle (MVCFramework.Filters.OIDC): AEngine.Use(OIDCAuthenticationBundle(...))';
 
 /// <summary>
@@ -307,6 +323,20 @@ function TMVCOIDCAuthenticationMiddleware.SetJWKSProvider(
   const AProvider: IJWKSProvider): TMVCOIDCAuthenticationMiddleware;
 begin
   fFlow.SetJWKSProvider(AProvider);
+  Result := Self;
+end;
+
+function TMVCOIDCAuthenticationMiddleware.SetHTTPTimeouts(
+  AConnectTimeoutMS, AReadTimeoutMS: Integer): TMVCOIDCAuthenticationMiddleware;
+begin
+  fFlow.SetHTTPTimeouts(AConnectTimeoutMS, AReadTimeoutMS);
+  Result := Self;
+end;
+
+function TMVCOIDCAuthenticationMiddleware.SetOnProviderError(
+  const AProc: TMVCOIDCProviderErrorProc): TMVCOIDCAuthenticationMiddleware;
+begin
+  fFlow.SetOnProviderError(AProc);
   Result := Self;
 end;
 

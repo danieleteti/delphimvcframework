@@ -59,6 +59,13 @@ uses
   MVCFramework.Commons,
   JsonDataObjects;
 
+const
+  /// <summary>
+  /// Default connect and response timeout, in milliseconds, of the HTTP calls
+  /// to the JWKS and discovery endpoints.
+  /// </summary>
+  JWKS_DEFAULT_HTTP_TIMEOUT_MS = 10000;
+
 type
   EMVCJWKSException = class(Exception);
 
@@ -100,6 +107,8 @@ type
     FCacheTTLSeconds: Integer;
     FLastFetchTime: TDateTime;
     FLock: TObject;
+    FConnectTimeout: Integer;
+    FReadTimeout: Integer;
     procedure FetchKeys;
     procedure ResolveJWKSURI;
     procedure ParseJWKS(const AJWKSJSON: string);
@@ -127,6 +136,12 @@ type
     class function CreateFromIssuer(const AIssuerURL: string;
       ACacheTTLSeconds: Integer = 3600): TMVCJWKSClient;
     destructor Destroy; override;
+    /// <summary>
+    /// Sets the connect and response timeouts, in milliseconds, of the HTTP
+    /// calls to the JWKS and discovery endpoints. Default:
+    /// JWKS_DEFAULT_HTTP_TIMEOUT_MS for both.
+    /// </summary>
+    function SetTimeouts(AConnectTimeoutMS, AReadTimeoutMS: Integer): TMVCJWKSClient;
     /// <summary>
     /// IJWKSProvider implementation. Returns a signer for the given JWT header,
     /// matching by kid (Key ID) and alg (algorithm). Returns nil if no match.
@@ -543,7 +558,10 @@ var
 begin
   ResolveJWKSURI;
   LogI('JWKS: Fetching keys from ' + FJWKSURI);
-  lClient := TMVCRESTClient.New.BaseURL(FJWKSURI);
+  lClient := TMVCRESTClient.New
+    .BaseURL(FJWKSURI)
+    .ConnectTimeout(FConnectTimeout)
+    .ReadTimeout(FReadTimeout);
   lResponse := lClient.Get;
   if not lResponse.Success then
     raise EMVCJWKSException.CreateFmt(
@@ -642,6 +660,8 @@ begin
   FLastFetchTime := 0;
   FKeys := TObjectDictionary<string, TJWKKey>.Create([doOwnsValues]);
   FLock := TObject.Create;
+  FConnectTimeout := JWKS_DEFAULT_HTTP_TIMEOUT_MS;
+  FReadTimeout := JWKS_DEFAULT_HTTP_TIMEOUT_MS;
 end;
 
 class function TMVCJWKSClient.CreateFromIssuer(const AIssuerURL: string;
@@ -653,6 +673,16 @@ begin
   // able to boot when the identity provider is up, which is a needlessly
   // brittle dependency. The jwks_uri is resolved on first use instead.
   Result := TMVCJWKSClient.Create('', ACacheTTLSeconds, AIssuerURL);
+end;
+
+function TMVCJWKSClient.SetTimeouts(AConnectTimeoutMS,
+  AReadTimeoutMS: Integer): TMVCJWKSClient;
+begin
+  if (AConnectTimeoutMS <= 0) or (AReadTimeoutMS <= 0) then
+    raise EMVCJWKSException.Create('JWKS: HTTP timeouts must be greater than zero');
+  FConnectTimeout := AConnectTimeoutMS;
+  FReadTimeout := AReadTimeoutMS;
+  Result := Self;
 end;
 
 procedure TMVCJWKSClient.ResolveJWKSURI;
@@ -670,7 +700,10 @@ begin
   lDiscoveryURL := lDiscoveryURL + '.well-known/openid-configuration';
 
   LogI('JWKS: Discovering jwks_uri from ' + lDiscoveryURL);
-  lClient := TMVCRESTClient.New.BaseURL(lDiscoveryURL);
+  lClient := TMVCRESTClient.New
+    .BaseURL(lDiscoveryURL)
+    .ConnectTimeout(FConnectTimeout)
+    .ReadTimeout(FReadTimeout);
   lResponse := lClient.Get;
   if not lResponse.Success then
     raise EMVCJWKSException.CreateFmt(
