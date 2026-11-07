@@ -2705,6 +2705,12 @@ function TWebContext.SessionStarted: Boolean;
 var
   SId: string;
 begin
+  { Without a session middleware no session can have been started. The id may
+    still arrive: browsers send cookies of every application on the same host
+    regardless of the port. Raising here made GetLoggedUser fail on such a
+    request. }
+  if fSessionFactory = nil then
+    Exit(False);
   SId := SessionId;
   if SId.IsEmpty then
     Exit(False);
