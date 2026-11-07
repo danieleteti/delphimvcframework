@@ -66,11 +66,11 @@ uses
 
 procedure ConfigureEngine(AEngine: TMVCEngine);
 var
-  lGuard: TMVCAPIGuard;
+  lGuard: IMVCAPIGuard;
 begin
   lGuard := TMVCAPIGuard.Create(
     TMVCAPIGuardFileStorage.Create(TPath.Combine(AppPath, 'blacklist.txt')));
-  lGuard.Rule(GUARD_RULE_BRUTEFORCE).OnPaths(['/auth/login']);
+  lGuard.BruteForce.OnPaths(['/auth/login']);
 
   AEngine.Use(APIGuardHTTPFilter(lGuard));   // FIRST filter
   // ... the other filters, then the controllers or the Minimal API routes
@@ -87,9 +87,11 @@ order. Registered first, the guard sees every request before anything can answer
 CORS preflight, a login, a rate limit), and every final status after: a `401` written by an
 authentication bundle is counted like one written by an action.
 
-**Lifetime.** `TMVCAPIGuard` is reference counted. `APIGuardHTTPFilter` keeps the guard alive for as
+**Lifetime.** Keep the guard in an `IMVCAPIGuard` variable: `TMVCAPIGuard` is reference counted and
+implements it, so a guard whose configuration raises before `Use` is released, with its writer thread
+(a variable of type `TMVCAPIGuard` would leak it). `APIGuardHTTPFilter` keeps the guard alive for as
 long as the engine keeps the filter, and the guard goes when the engine is freed. Do not free
-`lGuard`. Keeping the object reference to configure it, or to call `BlockIP` later (for example from
+`lGuard`. Keeping the reference to configure it, or to call `BlockIP` later (for example from
 a Minimal API route or a controller), is fine. `APIGuardHTTPFilter(nil)` raises `EMVCConfigException`.
 
 Register a guard once: two filters over the same guard would count every request twice.
@@ -153,25 +155,26 @@ and for hand-written lines in the blacklist file.
 
 ### Tuning a rule
 
-`Rule(AName)` returns the rule (the name is case-insensitive) and raises `EMVCException` if no rule
-has that name. All the setters return the rule, so they can be chained:
+The built-in rules are properties of the guard: `Scan`, `BruteForce`, `Flood`, `Injection` and
+`BadAgent`. A rule of your own is the object `AddRule` returns: keep it. All the setters return the
+rule, so they can be chained:
 
 ```delphi
 // threshold, window (s), block (s); 0 = permanent
-lGuard.Rule(GUARD_RULE_SCAN).Configure(10, 60, 1800);
+lGuard.Scan.Configure(10, 60, 1800);
 
 // count only under these paths: prefix match on a segment boundary, case-insensitive.
 // '/auth' matches /auth and /auth/login, not /authors
-lGuard.Rule(GUARD_RULE_BRUTEFORCE).Configure(5, 300, 3600).OnPaths(['/auth/login', '/api/token']);
+lGuard.BruteForce.Configure(5, 300, 3600).OnPaths(['/auth/login', '/api/token']);
 
 // a response rule without a matcher counts these statuses (empty = every status)
-lGuard.Rule(GUARD_RULE_SCAN).OnStatusCodes([404]);
+lGuard.Scan.OnStatusCodes([404]);
 
 // switch a rule off
-lGuard.Rule(GUARD_RULE_FLOOD).Enabled := False;
+lGuard.Flood.Enabled := False;
 
 // properties can also be set one by one
-lGuard.Rule(GUARD_RULE_INJECTION).BlockSeconds := 0;   // permanent
+lGuard.Injection.BlockSeconds := 0;   // permanent
 ```
 
 `Configure` validates its arguments: threshold and window must be at least 1, and the block time at
@@ -663,7 +666,7 @@ admin route. Protect that route: put it under a monitor-only path, behind authen
 The sample does it with two Minimal API routes that capture the guard:
 
 ```delphi
-procedure ConfigureRoutes(const ARoot: TMVCRouteGroup<TObject>; const AGuard: TMVCAPIGuard);
+procedure ConfigureRoutes(const ARoot: TMVCRouteGroup<TObject>; const AGuard: IMVCAPIGuard);
 var
   lAdmin: TMVCRouteGroup<TObject>;
 begin
@@ -720,7 +723,7 @@ section. The filter has no state of its own: it calls `HandleRequest` before `AN
 `HandleResponse` after it. The request path holds it only for short dictionary operations; custom matchers run outside
 it.
 
-**Configuration is not synchronized.** Call `Rule(...)`, `Configure`, `OnPaths`, `OnStatusCodes`,
+**Configuration is not synchronized.** Call the rule properties (`Scan`, `BruteForce`, ...), `Configure`, `OnPaths`, `OnStatusCodes`,
 `Enabled`, `AddRule`, `AddSignature`, `AddBadUserAgent`, the `Clear*` methods, `AddWhitelistIP`,
 `AddMonitorIP`, `AddMonitorOnlyPath`, `UseClientIp`, `MaxAlerts`, `OnAlert`, `AuditLog` and
 `AuditRetentionDays` while configuring the
@@ -741,9 +744,9 @@ locking of their own.
 ### Protect only the login
 
 ```delphi
-lGuard.Rule(GUARD_RULE_SCAN).Enabled := False;
-lGuard.Rule(GUARD_RULE_FLOOD).Enabled := False;
-lGuard.Rule(GUARD_RULE_BRUTEFORCE).Configure(5, 900, 1800).OnPaths(['/auth/login']);
+lGuard.Scan.Enabled := False;
+lGuard.Flood.Enabled := False;
+lGuard.BruteForce.Configure(5, 900, 1800).OnPaths(['/auth/login']);
 ```
 
 ### A public API with real 404s
@@ -753,7 +756,7 @@ only unknown paths, not missing resources, by limiting `scan` to the paths no cl
 request:
 
 ```delphi
-lGuard.Rule(GUARD_RULE_SCAN).Enabled := False;
+lGuard.Scan.Enabled := False;
 lGuard.AddRule('scan_outside_api', gpResponse, 15, 60, 3600,
   function(const AContext: TWebContext): Boolean
   begin
@@ -765,8 +768,8 @@ lGuard.AddRule('scan_outside_api', gpResponse, 15, 60, 3600,
 ### Permanent ban for attack tools and injection probes
 
 ```delphi
-lGuard.Rule(GUARD_RULE_BAD_AGENT).BlockSeconds := 0;
-lGuard.Rule(GUARD_RULE_INJECTION).Configure(1, 60, 0);
+lGuard.BadAgent.BlockSeconds := 0;
+lGuard.Injection.Configure(1, 60, 0);
 ```
 
 ### Behind nginx
@@ -845,14 +848,16 @@ python test_apiguard.py bruteforce --port 8080
 
 | Member | Description |
 |--------|-------------|
-| `APIGuardHTTPFilter(AGuard: TMVCAPIGuard): TMVCHTTPFilter` | the filter of `AGuard`, which it keeps alive; register it first with `AEngine.Use`. Raises `EMVCConfigException` on `nil` |
+| `APIGuardHTTPFilter(AGuard: IMVCAPIGuard): TMVCHTTPFilter` | the filter of `AGuard`, which it keeps alive; register it first with `AEngine.Use`. Raises `EMVCConfigException` on `nil` |
 
-### `TMVCAPIGuard`
+### `IMVCAPIGuard` and `TMVCAPIGuard`
+
+`IMVCAPIGuard` has every member below except the constructor; `TMVCAPIGuard` is the class that implements it, and the one you create.
 
 | Member | Description |
 |--------|-------------|
 | `Create(AStorage: IMVCAPIGuardStorage = nil; AStatusPath = '/api-guard/status')` | `nil` storage = memory only; `''` path = no endpoint. Loads the blacklist |
-| `Rule(AName): TMVCAPIGuardRule` | a built-in or custom rule; raises if unknown |
+| `Scan`, `BruteForce`, `Flood`, `Injection`, `BadAgent`: `TMVCAPIGuardRule` | the built-in rules, to tune them |
 | `AddRule(AName, APhase, AThreshold, AWindowSeconds, ABlockSeconds, AMatcher = nil)` | adds a custom rule, owned by the guard; raises on a duplicate name |
 | `AddSignature(s)` / `ClearSignatures` | substrings for `injection` |
 | `AddBadUserAgent(s)` / `ClearBadUserAgents` | substrings for `bad_agent` |

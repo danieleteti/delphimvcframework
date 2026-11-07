@@ -45,7 +45,7 @@ type
     function WaitForLines(const AFile: string; const ACount: Integer): TArray<string>;
   protected
     fPort: Integer;
-    fGuard: TMVCAPIGuard;
+    fGuard: IMVCAPIGuard;
     function Get(const APath: string; const AUserAgent: string = ''): IHTTPResponse;
     function Post(const APath: string): Integer;
   public
@@ -90,8 +90,6 @@ type
     procedure FileAuditLog_RecordsDeniedRequest;
     [Test]
     procedure FileAuditLog_Retention_PurgesOldLines;
-    [Test]
-    procedure UnknownRule_Raises;
     [Test]
     procedure Status_FromIPv6Loopback_Answers;
     [Test]
@@ -149,10 +147,10 @@ begin
   fEngine := TMVCEngine.Create;
   fEngine.AddController(TAPIGuardTestController);
   fGuard := TMVCAPIGuard.Create;
-  fGuard.Rule(GUARD_RULE_SCAN).Configure(3, 60, 60);
-  fGuard.Rule(GUARD_RULE_BRUTEFORCE).Configure(3, 60, 60).OnPaths(['/api/login']);
-  fGuard.Rule(GUARD_RULE_FLOOD).Configure(40, 60, 60);
-  fGuard.Rule(GUARD_RULE_INJECTION).Configure(1, 60, 60);
+  fGuard.Scan.Configure(3, 60, 60);
+  fGuard.BruteForce.Configure(3, 60, 60).OnPaths(['/api/login']);
+  fGuard.Flood.Configure(40, 60, 60);
+  fGuard.Injection.Configure(1, 60, 60);
   fGuard.AddRule('secret_header', gpRequest, 1, 60, 60,
     function(const AContext: TWebContext): Boolean
     begin
@@ -185,7 +183,7 @@ end;
 procedure TAPIGuardFilterTests.Setup;
 begin
   fGuard.Reset;
-  fGuard.Rule(GUARD_RULE_SCAN).Enabled := True;
+  fGuard.Scan.Enabled := True;
 end;
 
 function TAPIGuardFilterTests.Get(const APath, AUserAgent: string): IHTTPResponse;
@@ -275,7 +273,7 @@ procedure TAPIGuardFilterTests.DisabledRule_DoesNotBlock;
 var
   I: Integer;
 begin
-  fGuard.Rule(GUARD_RULE_SCAN).Enabled := False;
+  fGuard.Scan.Enabled := False;
   for I := 1 to 5 do
     Assert.AreEqual(404, Get('/nope').StatusCode);
   Assert.AreEqual(200, Get('/api/ok').StatusCode);
@@ -329,23 +327,20 @@ end;
 procedure TAPIGuardFilterTests.FileStorage_SurvivesRestart;
 var
   lFile: string;
-  lGuard: TMVCAPIGuard;
-  lRef: IInterface;
+  lGuard: IMVCAPIGuard;
 begin
   lFile := TPath.GetTempFileName;
   try
     lGuard := TMVCAPIGuard.Create(TMVCAPIGuardFileStorage.Create(lFile));
-    lRef := lGuard;
     lGuard.BlockIP('10.1.2.3', 'tab'#9'in reason', 3600);
     lGuard.BlockIP('10.1.2.4', 'permanent');
-    lRef := nil; // a restart: the writer flushes the list before the guard goes
+    lGuard := nil; // a restart: the writer flushes the list before the guard goes
     lGuard := TMVCAPIGuard.Create(TMVCAPIGuardFileStorage.Create(lFile));
-    lRef := lGuard;
     Assert.IsTrue(lGuard.IsBlocked('10.1.2.3'));
     Assert.IsTrue(lGuard.IsBlocked('10.1.2.4'));
     Assert.IsFalse(lGuard.IsBlocked('10.1.2.5'));
   finally
-    lRef := nil;
+    lGuard := nil;
     TFile.Delete(lFile);
   end;
 end;
@@ -353,20 +348,18 @@ end;
 procedure TAPIGuardFilterTests.FileStorage_HandEditedLine_IsPermanent;
 var
   lFile: string;
-  lGuard: TMVCAPIGuard;
-  lRef: IInterface;
+  lGuard: IMVCAPIGuard;
 begin
   lFile := TPath.GetTempFileName;
   try
     TFile.WriteAllText(lFile, '# comment' + sLineBreak + '192.168.0.9' + sLineBreak +
       '192.168.0.10'#9'scan'#9'not-a-date'#9'not-a-date'#9'x' + sLineBreak, TEncoding.UTF8);
     lGuard := TMVCAPIGuard.Create(TMVCAPIGuardFileStorage.Create(lFile));
-    lRef := lGuard;
     Assert.IsTrue(lGuard.IsBlocked('192.168.0.9'));
     Assert.IsTrue(lGuard.IsBlocked('192.168.0.10'));
     Assert.AreEqual(2, Integer(Length(lGuard.BlockedIPs)));
   finally
-    lRef := nil;
+    lGuard := nil;
     TFile.Delete(lFile);
   end;
 end;
@@ -393,20 +386,18 @@ end;
 procedure TAPIGuardFilterTests.FileAuditLog_RecordsBlockAndUnblock;
 var
   lFile: string;
-  lGuard: TMVCAPIGuard;
-  lRef: IInterface;
+  lGuard: IMVCAPIGuard;
   lLines: TArray<string>;
 begin
   lFile := TPath.Combine(TPath.GetTempPath, TPath.GetGUIDFileName + '.txt');
   try
     lGuard := TMVCAPIGuard.Create;
-    lRef := lGuard;
     lGuard.AuditLog := TMVCAPIGuardFileAuditLog.Create(lFile);
     lGuard.BlockIP('10.1.2.3', 'first');
     lGuard.UnblockIP('10.1.2.3');
     lGuard.BlockIP('10.1.2.4', 'forged'#13#10'line'#9'field');
     lGuard.Reset; // unblocks 10.1.2.4; the history survives it
-    lRef := nil; // the destructor flushes the queue
+    lGuard := nil; // the destructor flushes the queue
     lLines := TFile.ReadAllLines(lFile, TEncoding.UTF8);
     Assert.AreEqual(5, Integer(Length(lLines)), 'header + 4 events');
     Assert.StartsWith('#', lLines[0]);
@@ -416,7 +407,7 @@ begin
     Assert.AreEqual('block|10.1.2.4|manual', string.Join('|', Copy(lLines[3].Split([#9]), 1, 3)));
     Assert.AreEqual('unblock|10.1.2.4|manual', string.Join('|', Copy(lLines[4].Split([#9]), 1, 3)));
   finally
-    lRef := nil;
+    lGuard := nil;
     if TFile.Exists(lFile) then
       TFile.Delete(lFile);
   end;
@@ -449,8 +440,7 @@ end;
 procedure TAPIGuardFilterTests.FileAuditLog_Retention_PurgesOldLines;
 var
   lFile: string;
-  lGuard: TMVCAPIGuard;
-  lRef: IInterface;
+  lGuard: IMVCAPIGuard;
   lLines: TArray<string>;
 begin
   lFile := TPath.Combine(TPath.GetTempPath, TPath.GetGUIDFileName + '.txt');
@@ -460,18 +450,17 @@ begin
       'not-a-date'#9'block'#9'10.0.0.2'#9'scan'#9#9'undated, kept' + sLineBreak +
       DateTimeToISOTimeStamp(Now - 1)+ #9'block'#9'10.0.0.3'#9'scan'#9#9'recent' + sLineBreak, TEncoding.UTF8);
     lGuard := TMVCAPIGuard.Create;
-    lRef := lGuard;
     lGuard.AuditLog := TMVCAPIGuardFileAuditLog.Create(lFile);
     lGuard.AuditRetentionDays := 30;
     lGuard.BlockIP('10.1.2.3', 'wakes the writer');
-    lRef := nil;
+    lGuard := nil;
     lLines := TFile.ReadAllLines(lFile, TEncoding.UTF8);
     Assert.AreEqual(4, Integer(Length(lLines)), 'header, undated, recent, new');
     Assert.Contains(lLines[1], 'undated');
     Assert.Contains(lLines[2], 'recent');
     Assert.Contains(lLines[3], '10.1.2.3');
   finally
-    lRef := nil;
+    lGuard := nil;
     if TFile.Exists(lFile) then
       TFile.Delete(lFile);
   end;
@@ -503,7 +492,7 @@ procedure TAPIGuardFilterTests.Monitor_ForwardedFromLocalProxy_Denied;
 
 begin
   // a reverse proxy on the same host: the peer is loopback, the client is not
-  fGuard.Rule(GUARD_RULE_SCAN).Enabled := False; // three 404s would block 127.0.0.1; Setup re-enables it
+  fGuard.Scan.Enabled := False; // three 404s would block 127.0.0.1; Setup re-enables it
   Assert.AreEqual(404, GetForwarded('/api-guard/status'), 'untrusted proxy, status');
   Assert.AreEqual(404, GetForwarded('/api/monitor/data'), 'untrusted proxy, monitor path');
   MVCTrustProxyForwardedHeaders := True;
@@ -517,15 +506,6 @@ end;
 procedure TAPIGuardFilterTests.NormalizeIP(const AInput, AExpected: string);
 begin
   Assert.AreEqual(AExpected, APIGuardNormalizeIP(AInput));
-end;
-
-procedure TAPIGuardFilterTests.UnknownRule_Raises;
-begin
-  Assert.WillRaise(
-    procedure
-    begin
-      fGuard.Rule('does_not_exist');
-    end, EMVCException);
 end;
 
 procedure TAPIGuardFilterTests.ResponseOfALaterHTTPFilter_IsCounted;

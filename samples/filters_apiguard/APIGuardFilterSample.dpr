@@ -29,7 +29,7 @@ const
   PORT = 8080;
   BLOCK_SECONDS = 60; // short, so the demo can be replayed; production: hours, or 0 = permanent
 
-function CreateGuard: TMVCAPIGuard;
+function CreateGuard: IMVCAPIGuard;
 begin
   // The blacklist survives a restart in a text file next to the exe.
   // For a database: TMVCAPIGuardFireDACStorage.Create('MyConnDef')
@@ -50,11 +50,11 @@ begin
   Result.AuditLog := TMVCAPIGuardFileAuditLog.Create(TPath.Combine(AppPath, 'apiguard_audit.txt'));
 
   // Every built-in rule tuned: threshold, window (s), block (s)
-  Result.Rule(GUARD_RULE_SCAN).Configure(10, 60, BLOCK_SECONDS);
-  Result.Rule(GUARD_RULE_BRUTEFORCE).Configure(5, 300, BLOCK_SECONDS).OnPaths(['/api/login']);
-  Result.Rule(GUARD_RULE_FLOOD).Configure(100, 10, BLOCK_SECONDS);
-  Result.Rule(GUARD_RULE_INJECTION).Configure(1, 60, BLOCK_SECONDS);
-  Result.Rule(GUARD_RULE_BAD_AGENT).Configure(1, 60, BLOCK_SECONDS);
+  Result.Scan.Configure(10, 60, BLOCK_SECONDS);
+  Result.BruteForce.Configure(5, 300, BLOCK_SECONDS).OnPaths(['/api/login']);
+  Result.Flood.Configure(100, 10, BLOCK_SECONDS);
+  Result.Injection.Configure(1, 60, BLOCK_SECONDS);
+  Result.BadAgent.Configure(1, 60, BLOCK_SECONDS);
 
   // A custom rule: nobody legitimate asks for these files, one hit is enough
   Result.AddRule('honeypot', gpRequest, 1, 60, BLOCK_SECONDS,
@@ -85,7 +85,7 @@ begin
     end;
 end;
 
-procedure ConfigureRoutes(const ARoot: TMVCRouteGroup<TObject>; const AGuard: TMVCAPIGuard);
+procedure ConfigureRoutes(const ARoot: TMVCRouteGroup<TObject>; const AGuard: IMVCAPIGuard);
 var
   lApi, lAdmin: TMVCRouteGroup<TObject>;
 begin
@@ -139,7 +139,7 @@ procedure RunServer;
 var
   lEngine: TMVCEngine;
   lServer: IMVCServer;
-  lGuard: TMVCAPIGuard;
+  lGuard: IMVCAPIGuard;
 begin
   WriteLn('** DMVCFramework APIGuard HTTP Filter Sample ** build ' + DMVCFRAMEWORK_VERSION);
   WriteLn;

@@ -39,9 +39,11 @@ unit MVCFramework.Filters.APIGuard;
   An HTTP filter: register it FIRST, so it is the outermost and sees every
   request and every final status (the classic middleware run inside it).
 
+    lGuard: IMVCAPIGuard;
+    ...
     lGuard := TMVCAPIGuard.Create(
       TMVCAPIGuardFileStorage.Create('blacklist.txt'));
-    lGuard.Rule(GUARD_RULE_BRUTEFORCE).Configure(5, 300, 3600).OnPaths(['/auth']);
+    lGuard.BruteForce.Configure(5, 300, 3600).OnPaths(['/auth']);
     lGuard.AddMonitorIP('10.0.0.5');
     AEngine.Use(APIGuardHTTPFilter(lGuard));
 }
@@ -191,10 +193,60 @@ type
     property Matcher: TMVCAPIGuardMatcher read fMatcher write fMatcher;
   end;
 
+  /// <summary>The guard through an interface. Keep it in an IMVCAPIGuard variable: it is
+  /// reference counted, so a guard whose configuration raises is released, with its
+  /// writer thread. APIGuardHTTPFilter keeps it alive for as long as the engine has
+  /// the filter. See TMVCAPIGuard for what each member does.</summary>
+  IMVCAPIGuard = interface
+    ['{8C2E5B14-7D3A-4F96-B0E1-52A9D4C7F318}']
+    function GetScan: TMVCAPIGuardRule;
+    function GetBruteForce: TMVCAPIGuardRule;
+    function GetFlood: TMVCAPIGuardRule;
+    function GetInjection: TMVCAPIGuardRule;
+    function GetBadAgent: TMVCAPIGuardRule;
+    function AddRule(const AName: string; const APhase: TMVCAPIGuardPhase;
+      const AThreshold, AWindowSeconds, ABlockSeconds: Integer;
+      const AMatcher: TMVCAPIGuardMatcher = nil): TMVCAPIGuardRule;
+    procedure AddWhitelistIP(const AIP: string);
+    procedure AddMonitorIP(const AIP: string);
+    procedure AddMonitorOnlyPath(const APath: string);
+    procedure AddSignature(const ASignature: string);
+    procedure ClearSignatures;
+    procedure AddBadUserAgent(const AAgent: string);
+    procedure ClearBadUserAgents;
+    procedure BlockIP(const AIP, AReason: string; const ABlockSeconds: Integer = 0);
+    procedure UnblockIP(const AIP: string);
+    function IsBlocked(const AIP: string): Boolean;
+    function BlockedIPs: TArray<TMVCAPIGuardBlockedIP>;
+    procedure Reset;
+    function GetUseClientIp: Boolean;
+    procedure SetUseClientIp(const AValue: Boolean);
+    function GetMaxAlerts: Integer;
+    procedure SetMaxAlerts(const AValue: Integer);
+    function GetOnAlert: TMVCAPIGuardAlertProc;
+    procedure SetOnAlert(const AValue: TMVCAPIGuardAlertProc);
+    function GetAuditLog: IMVCAPIGuardAuditLog;
+    procedure SetAuditLog(const AValue: IMVCAPIGuardAuditLog);
+    function GetAuditRetentionDays: Integer;
+    procedure SetAuditRetentionDays(const AValue: Integer);
+    function HandleRequest(const AContext: TWebContext): Boolean;
+    procedure HandleResponse(const AContext: TWebContext);
+    property Scan: TMVCAPIGuardRule read GetScan;
+    property BruteForce: TMVCAPIGuardRule read GetBruteForce;
+    property Flood: TMVCAPIGuardRule read GetFlood;
+    property Injection: TMVCAPIGuardRule read GetInjection;
+    property BadAgent: TMVCAPIGuardRule read GetBadAgent;
+    property UseClientIp: Boolean read GetUseClientIp write SetUseClientIp;
+    property MaxAlerts: Integer read GetMaxAlerts write SetMaxAlerts;
+    property OnAlert: TMVCAPIGuardAlertProc read GetOnAlert write SetOnAlert;
+    property AuditLog: IMVCAPIGuardAuditLog read GetAuditLog write SetAuditLog;
+    property AuditRetentionDays: Integer read GetAuditRetentionDays write SetAuditRetentionDays;
+  end;
+
   /// <summary>The guard: rules, blacklist, counters, status endpoint. The filter
   /// returned by APIGuardHTTPFilter keeps it alive; keep the object reference
   /// to tune it or to block and unblock at run time.</summary>
-  TMVCAPIGuard = class(TInterfacedObject)
+  TMVCAPIGuard = class(TInterfacedObject, IMVCAPIGuard)
   private type
     TCounter = record
       WindowStart: TDateTime;
@@ -205,6 +257,7 @@ type
     fStorage: IMVCAPIGuardStorage;
     fStatusPath: string;
     fRules: TObjectList<TMVCAPIGuardRule>;
+    fScan, fBruteForce, fFlood, fInjection, fBadAgent: TMVCAPIGuardRule; // owned by fRules
     fBlocked: TDictionary<string, TMVCAPIGuardBlockedIP>;
     fCounters: TDictionary<string, TCounter>;
     fWhitelist: TList<string>;
@@ -254,14 +307,27 @@ type
     procedure SendForbidden(const AContext: TWebContext);
     procedure SendNotFound(const AContext: TWebContext);
     procedure SendStatus(const AContext: TWebContext);
+    function GetScan: TMVCAPIGuardRule;
+    function GetBruteForce: TMVCAPIGuardRule;
+    function GetFlood: TMVCAPIGuardRule;
+    function GetInjection: TMVCAPIGuardRule;
+    function GetBadAgent: TMVCAPIGuardRule;
+    function GetUseClientIp: Boolean;
+    procedure SetUseClientIp(const AValue: Boolean);
+    function GetMaxAlerts: Integer;
+    procedure SetMaxAlerts(const AValue: Integer);
+    function GetOnAlert: TMVCAPIGuardAlertProc;
+    procedure SetOnAlert(const AValue: TMVCAPIGuardAlertProc);
+    function GetAuditLog: IMVCAPIGuardAuditLog;
+    procedure SetAuditLog(const AValue: IMVCAPIGuardAuditLog);
+    function GetAuditRetentionDays: Integer;
+    procedure SetAuditRetentionDays(const AValue: Integer);
   public
     /// <param name="AStorage">nil = the blacklist lives in memory only</param>
     /// <param name="AStatusPath">'' disables the status endpoint</param>
     constructor Create(const AStorage: IMVCAPIGuardStorage = nil;
       const AStatusPath: string = '/api-guard/status');
     destructor Destroy; override;
-    /// <summary>A built-in or added rule, to tune it. Raises if unknown.</summary>
-    function Rule(const AName: string): TMVCAPIGuardRule;
     /// <summary>A custom rule; the guard owns it. A response rule with a nil
     /// matcher counts the statuses set with OnStatusCodes.</summary>
     function AddRule(const AName: string; const APhase: TMVCAPIGuardPhase;
@@ -291,20 +357,27 @@ type
     function BlockedIPs: TArray<TMVCAPIGuardBlockedIP>;
     /// <summary>Forgets counters, blocks, alerts and statistics, and persists the empty list.</summary>
     procedure Reset;
+    /// <summary>The built-in rules, to tune them: Configure(threshold, window, block), OnPaths,
+    /// OnStatusCodes, Enabled. A rule of your own: keep what AddRule returns.</summary>
+    property Scan: TMVCAPIGuardRule read GetScan;
+    property BruteForce: TMVCAPIGuardRule read GetBruteForce;
+    property Flood: TMVCAPIGuardRule read GetFlood;
+    property Injection: TMVCAPIGuardRule read GetInjection;
+    property BadAgent: TMVCAPIGuardRule read GetBadAgent;
     /// <summary>Key the counters on ClientIp instead of the socket peer. ClientIp
     /// reads X-Forwarded-For only when MVCTrustProxyForwardedHeaders is True:
     /// set both, and only behind a reverse proxy that sets those headers,
     /// otherwise a client picks the IP that gets blocked.</summary>
-    property UseClientIp: Boolean read fUseClientIp write fUseClientIp;
-    property MaxAlerts: Integer read fMaxAlerts write fMaxAlerts;
+    property UseClientIp: Boolean read GetUseClientIp write SetUseClientIp;
+    property MaxAlerts: Integer read GetMaxAlerts write SetMaxAlerts;
     /// <summary>Called, under the guard's lock, for every block. Keep it short.</summary>
-    property OnAlert: TMVCAPIGuardAlertProc read fOnAlert write fOnAlert;
+    property OnAlert: TMVCAPIGuardAlertProc read GetOnAlert write SetOnAlert;
     /// <summary>nil = no history. Set it before the server starts. Written by
     /// the writer thread; a failed write is logged and the events are lost.</summary>
-    property AuditLog: IMVCAPIGuardAuditLog read fAuditLog write fAuditLog;
+    property AuditLog: IMVCAPIGuardAuditLog read GetAuditLog write SetAuditLog;
     /// <summary>Events older than this are purged, at most once an hour.
     /// 0 (default) = kept forever.</summary>
-    property AuditRetentionDays: Integer read fAuditRetentionDays write fAuditRetentionDays;
+    property AuditRetentionDays: Integer read GetAuditRetentionDays write SetAuditRetentionDays;
     /// <summary>Before routing. True: the guard has answered (403, 404 or the
     /// status), the request goes no further. Called by the filter.</summary>
     function HandleRequest(const AContext: TWebContext): Boolean;
@@ -314,7 +387,7 @@ type
 
 /// <summary>The HTTP filter of AGuard. Register it first:
 /// AEngine.Use(APIGuardHTTPFilter(lGuard)).</summary>
-function APIGuardHTTPFilter(const AGuard: TMVCAPIGuard): TMVCHTTPFilter;
+function APIGuardHTTPFilter(const AGuard: IMVCAPIGuard): TMVCHTTPFilter;
 
 /// <summary>One spelling per address, so that lists and blacklist keys compare
 /// equal whatever form the host reports: IPv6 canonical (RFC 5952: lower case,
@@ -702,11 +775,12 @@ begin
   fBadUserAgents.AddRange(['sqlmap', 'nikto', 'nmap', 'masscan', 'zgrab', 'nuclei',
     'dirbuster', 'gobuster', 'wpscan', 'acunetix', 'nessus', 'hydra', 'w3af', 'fimap']);
 
-  fRules.Add(TMVCAPIGuardRule.Create(GUARD_RULE_SCAN, gpResponse, 20, 60, 3600).OnStatusCodes([404, 405]));
-  fRules.Add(TMVCAPIGuardRule.Create(GUARD_RULE_BRUTEFORCE, gpResponse, 10, 300, 3600).OnStatusCodes([401, 403]));
-  fRules.Add(TMVCAPIGuardRule.Create(GUARD_RULE_FLOOD, gpRequest, 600, 60, 600));
-  fRules.Add(TMVCAPIGuardRule.Create(GUARD_RULE_INJECTION, gpRequest, 3, 300, 86400, MatchesSignature));
-  fRules.Add(TMVCAPIGuardRule.Create(GUARD_RULE_BAD_AGENT, gpRequest, 1, 60, 86400, MatchesBadUserAgent));
+  fScan := TMVCAPIGuardRule.Create(GUARD_RULE_SCAN, gpResponse, 20, 60, 3600).OnStatusCodes([404, 405]);
+  fBruteForce := TMVCAPIGuardRule.Create(GUARD_RULE_BRUTEFORCE, gpResponse, 10, 300, 3600).OnStatusCodes([401, 403]);
+  fFlood := TMVCAPIGuardRule.Create(GUARD_RULE_FLOOD, gpRequest, 600, 60, 600);
+  fInjection := TMVCAPIGuardRule.Create(GUARD_RULE_INJECTION, gpRequest, 3, 300, 86400, MatchesSignature);
+  fBadAgent := TMVCAPIGuardRule.Create(GUARD_RULE_BAD_AGENT, gpRequest, 1, 60, 86400, MatchesBadUserAgent);
+  fRules.AddRange([fScan, fBruteForce, fFlood, fInjection, fBadAgent]);
 
   if Assigned(fStorage) then
   begin
@@ -748,16 +822,6 @@ begin
   fRules.Free;
   fLock.Free;
   inherited;
-end;
-
-function TMVCAPIGuard.Rule(const AName: string): TMVCAPIGuardRule;
-var
-  lRule: TMVCAPIGuardRule;
-begin
-  for lRule in fRules do
-    if SameText(lRule.Name, AName) then
-      Exit(lRule);
-  raise EMVCException.CreateFmt('APIGuard: unknown rule "%s"', [AName]);
 end;
 
 function TMVCAPIGuard.AddRule(const AName: string; const APhase: TMVCAPIGuardPhase;
@@ -1319,9 +1383,9 @@ begin
   end;
 end;
 
-function APIGuardHTTPFilter(const AGuard: TMVCAPIGuard): TMVCHTTPFilter;
+function APIGuardHTTPFilter(const AGuard: IMVCAPIGuard): TMVCHTTPFilter;
 var
-  lGuard: IInterface;
+  lGuard: IMVCAPIGuard;
 begin
   if not Assigned(AGuard) then
     raise EMVCConfigException.Create('APIGuardHTTPFilter: the guard is nil');
@@ -1329,11 +1393,86 @@ begin
   Result :=
     procedure(const AContext: TWebContext; const ANext: TMVCHTTPFilterNext)
     begin
-      if TMVCAPIGuard(lGuard).HandleRequest(AContext) then
+      if lGuard.HandleRequest(AContext) then
         Exit;
       ANext();
-      TMVCAPIGuard(lGuard).HandleResponse(AContext);
+      lGuard.HandleResponse(AContext);
     end;
+end;
+
+function TMVCAPIGuard.GetScan: TMVCAPIGuardRule;
+begin
+  Result := fScan;
+end;
+
+function TMVCAPIGuard.GetBruteForce: TMVCAPIGuardRule;
+begin
+  Result := fBruteForce;
+end;
+
+function TMVCAPIGuard.GetFlood: TMVCAPIGuardRule;
+begin
+  Result := fFlood;
+end;
+
+function TMVCAPIGuard.GetInjection: TMVCAPIGuardRule;
+begin
+  Result := fInjection;
+end;
+
+function TMVCAPIGuard.GetBadAgent: TMVCAPIGuardRule;
+begin
+  Result := fBadAgent;
+end;
+
+function TMVCAPIGuard.GetUseClientIp: Boolean;
+begin
+  Result := fUseClientIp;
+end;
+
+procedure TMVCAPIGuard.SetUseClientIp(const AValue: Boolean);
+begin
+  fUseClientIp := AValue;
+end;
+
+function TMVCAPIGuard.GetMaxAlerts: Integer;
+begin
+  Result := fMaxAlerts;
+end;
+
+procedure TMVCAPIGuard.SetMaxAlerts(const AValue: Integer);
+begin
+  fMaxAlerts := AValue;
+end;
+
+function TMVCAPIGuard.GetOnAlert: TMVCAPIGuardAlertProc;
+begin
+  Result := fOnAlert;
+end;
+
+procedure TMVCAPIGuard.SetOnAlert(const AValue: TMVCAPIGuardAlertProc);
+begin
+  fOnAlert := AValue;
+end;
+
+function TMVCAPIGuard.GetAuditLog: IMVCAPIGuardAuditLog;
+begin
+  Result := fAuditLog;
+end;
+
+procedure TMVCAPIGuard.SetAuditLog(const AValue: IMVCAPIGuardAuditLog);
+begin
+  fAuditLog := AValue;
+end;
+
+function TMVCAPIGuard.GetAuditRetentionDays: Integer;
+begin
+  Result := fAuditRetentionDays;
+end;
+
+procedure TMVCAPIGuard.SetAuditRetentionDays(const AValue: Integer);
+begin
+  fAuditRetentionDays := AValue;
 end;
 
 function TMVCAPIGuard.HandleRequest(const AContext: TWebContext): Boolean;
