@@ -55,6 +55,9 @@ uses
 {$ENDIF}
   MVCFramework.SQLGenerators.Sqlite,
 {{endif}}
+{{if webmodule_middleware_apiguard}}
+  MVCFramework.Filters.APIGuard,
+{{endif}}
 {{if program_openapi_swagger}}
   MVCFramework.Swagger.Commons,
   MVCFramework.Filters.Swagger,
@@ -125,6 +128,12 @@ begin
 
   // Static files path (www folder at same level as executable)
   lWwwPath := TPath.Combine(AppPath, 'www');
+{{endif}}
+{{if webmodule_middleware_apiguard}}
+
+  // API Guard: first, so it counts the requests every other filter answers. Blacklist in memory.
+  // Behind a reverse proxy the peer is the proxy: configure UseClientIp (see MVCFramework.Filters.APIGuard)
+  AEngine.Use(APIGuardHTTPFilter(TMVCAPIGuard.Create));
 {{endif}}
 {{if program_minimal_api_admin_token}}
 

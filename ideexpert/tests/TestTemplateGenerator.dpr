@@ -437,6 +437,7 @@ begin
   Result.B[TConfigKey.webmodule_middleware_etag] := False;
   Result.B[TConfigKey.webmodule_middleware_cors] := False;
   Result.B[TConfigKey.webmodule_middleware_ratelimit] := False;
+  Result.B[TConfigKey.webmodule_middleware_apiguard] := False;
   Result.B[TConfigKey.webmodule_middleware_jwt] := False;
   Result.B[TConfigKey.webmodule_middleware_jwt_asymmetric] := False;
   Result.B[TConfigKey.webmodule_middleware_activerecord] := False;
@@ -2050,6 +2051,47 @@ begin
   LTestCase.ExpectedFiles := ['Controllers.HomeU.pas'];
   LTestCase.ForbiddenFiles := ['Tools.SampleU.pas', '.mcp.json', 'opencode.json'];
   LTestCase.MustNotContain := ['TestProject.dpr|MCP', 'WebModuleU.pas|MCP', 'bin/.env|mcp.'];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
+
+  // API Guard: opt-in, off in every preset; an HTTP filter, so the same line in controller and Minimal API projects
+  LTestCase.Name := 'indydirect_apiguard_off';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+  LTestCase.MustNotContain := ['EngineConfigU.pas|APIGuard'];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
+
+  LTestCase.Name := 'indydirect_apiguard';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_apiguard] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_cors] := True;
+  LTestCase.MustContain := ['EngineConfigU.pas|MVCFramework.Filters.APIGuard,',
+    'EngineConfigU.pas|AEngine.Use(APIGuardHTTPFilter(TMVCAPIGuard.Create));'];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
+
+  LTestCase.Name := 'indydirect_minimal_api_apiguard';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+  LTestCase.Config.B[TConfigKey.program_minimal_api] := True;
+  LTestCase.Config.B[TConfigKey.controller_index_methods_generate] := False;
+  LTestCase.Config.B['controller.main.generate'] := False;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_apiguard] := True;
+  LTestCase.MustContain := ['EngineConfigU.pas|AEngine.Use(APIGuardHTTPFilter(TMVCAPIGuard.Create));'];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
+
+  LTestCase.Name := 'isapi_apiguard';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.ISAPI;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_apiguard] := True;
+  LTestCase.MustContain := ['WebModuleU.pas|MVCFramework.Filters.APIGuard,',
+    'WebModuleU.pas|fMVC.Use(APIGuardHTTPFilter(TMVCAPIGuard.Create));'];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
 end;

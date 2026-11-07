@@ -969,6 +969,22 @@ object frmDMVCNewProject: TfrmDMVCNewProject
           Caption = 'Rate Limit'
           TabOrder = 6
         end
+        object chkAPIGuard: TCheckBox
+          Left = 310
+          Top = 74
+          Width = 130
+          Height = 17
+          Hint =
+            'Blocks scanners, brute force, floods and injection probes by IP ' +
+            '(403, then the IP is blocked for a while). First filter, state in ' +
+            'memory. Behind a reverse proxy every client has the proxy'#39's IP: ' +
+            'set UseClientIp first. From localhost, 20 404 responses in a ' +
+            'minute block you too'
+          Caption = 'API Guard'
+          ParentShowHint = False
+          ShowHint = True
+          TabOrder = 11
+        end
         object chkOpenAPI: TCheckBox
           Left = 310
           Top = 50

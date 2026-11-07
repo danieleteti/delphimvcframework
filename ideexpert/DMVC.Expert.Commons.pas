@@ -122,6 +122,7 @@ type
       webmodule_middleware_etag = 'webmodule.middleware.etag';
       webmodule_middleware_cors = 'webmodule.middleware.cors';
       webmodule_middleware_ratelimit = 'webmodule.middleware.ratelimit';
+      webmodule_middleware_apiguard = 'webmodule.middleware.apiguard';
       webmodule_middleware_jwt = 'webmodule.middleware.jwt';
       webmodule_middleware_jwt_asymmetric = 'webmodule.middleware.jwt.asymmetric';
       webmodule_middleware_activerecord = 'webmodule.middleware.activerecord';
