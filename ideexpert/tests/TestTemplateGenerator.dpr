@@ -2073,7 +2073,8 @@ begin
   LTestCase.Config.B[TConfigKey.webmodule_middleware_apiguard] := True;
   LTestCase.Config.B[TConfigKey.webmodule_middleware_cors] := True;
   LTestCase.MustContain := ['EngineConfigU.pas|MVCFramework.Filters.APIGuard,',
-    'EngineConfigU.pas|AEngine.Use(APIGuardHTTPFilter(TMVCAPIGuard.Create));'];
+    'EngineConfigU.pas|lGuard := TMVCAPIGuard.Create;', 'EngineConfigU.pas|AEngine.Use(APIGuardHTTPFilter(lGuard));',
+    'EngineConfigU.pas|lGuard.Scan.Configure', 'EngineConfigU.pas|lGuard.AddWhitelistIP', 'EngineConfigU.pas|lGuard.UseClientIp := True;'];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
 
@@ -2085,7 +2086,8 @@ begin
   LTestCase.Config.B[TConfigKey.controller_index_methods_generate] := False;
   LTestCase.Config.B['controller.main.generate'] := False;
   LTestCase.Config.B[TConfigKey.webmodule_middleware_apiguard] := True;
-  LTestCase.MustContain := ['EngineConfigU.pas|AEngine.Use(APIGuardHTTPFilter(TMVCAPIGuard.Create));'];
+  LTestCase.MustContain := ['EngineConfigU.pas|lGuard := TMVCAPIGuard.Create;', 'EngineConfigU.pas|AEngine.Use(APIGuardHTTPFilter(lGuard));',
+    'EngineConfigU.pas|lGuard.Scan.Configure', 'EngineConfigU.pas|lGuard.AddWhitelistIP', 'EngineConfigU.pas|lGuard.UseClientIp := True;'];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
 
@@ -2094,7 +2096,8 @@ begin
   LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.ISAPI;
   LTestCase.Config.B[TConfigKey.webmodule_middleware_apiguard] := True;
   LTestCase.MustContain := ['WebModuleU.pas|MVCFramework.Filters.APIGuard,',
-    'WebModuleU.pas|fMVC.Use(APIGuardHTTPFilter(TMVCAPIGuard.Create));'];
+    'WebModuleU.pas|lGuard := TMVCAPIGuard.Create;', 'WebModuleU.pas|fMVC.Use(APIGuardHTTPFilter(lGuard));',
+    'WebModuleU.pas|lGuard.Scan.Configure', 'WebModuleU.pas|lGuard.AddWhitelistIP', 'WebModuleU.pas|lGuard.UseClientIp := True;'];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
 end;

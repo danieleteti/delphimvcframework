@@ -594,14 +594,14 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       object gbApiStyle: TGroupBox
         Left = 20
         Top = 145
-        Width = 373
+        Width = 724
         Height = 70
         Caption = 'API Style'
         TabOrder = 1
         object lblApiStyleDescription: TLabel
           Left = 16
           Top = 44
-          Width = 345
+          Width = 696
           Height = 30
           AutoSize = False
           WordWrap = True
@@ -618,7 +618,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
         object chkMinimalAPI: TCheckBox
           Left = 16
           Top = 22
-          Width = 340
+          Width = 696
           Height = 17
           Caption = 'Use Minimal API (no controller class)'
           TabOrder = 0
@@ -960,30 +960,6 @@ object frmDMVCNewProject: TfrmDMVCNewProject
           Height = 17
           Caption = 'ETag'
           TabOrder = 5
-        end
-        object chkRateLimit: TCheckBox
-          Left = 310
-          Top = 27
-          Width = 130
-          Height = 17
-          Caption = 'Rate Limit'
-          TabOrder = 6
-        end
-        object chkAPIGuard: TCheckBox
-          Left = 310
-          Top = 74
-          Width = 130
-          Height = 17
-          Hint =
-            'Blocks scanners, brute force, floods and injection probes by IP ' +
-            '(403, then the IP is blocked for a while). First filter, state in ' +
-            'memory. Behind a reverse proxy every client has the proxy'#39's IP: ' +
-            'set UseClientIp first. From localhost, 20 404 responses in a ' +
-            'minute block you too'
-          Caption = 'API Guard'
-          ParentShowHint = False
-          ShowHint = True
-          TabOrder = 11
         end
         object chkOpenAPI: TCheckBox
           Left = 310
@@ -1366,6 +1342,35 @@ object frmDMVCNewProject: TfrmDMVCNewProject
           'HS256 (HMAC, shared secret)'
           'RS256 (RSA, asymmetric public/private keys)')
         TabOrder = 5
+      end
+      object chkRateLimit: TCheckBox
+        Left = 24
+        Top = 360
+        Width = 200
+        Height = 17
+        Hint = 
+          'Limits the requests per client, HTTP 429 above the limit. The ' +
+          'generated limit is a starting point: set it for your API'
+        Caption = 'Rate Limit'
+        ParentShowHint = False
+        ShowHint = True
+        TabOrder = 14
+      end
+      object chkAPIGuard: TCheckBox
+        Left = 250
+        Top = 360
+        Width = 200
+        Height = 17
+        Hint = 
+          'Blocks scanners, brute force, floods and injection probes by IP ' +
+          '(403, then the IP is blocked for a while). First filter, state in ' +
+          'memory. Behind a reverse proxy every client has the proxy'#39's IP: ' +
+          'set UseClientIp first. From localhost, 20 404 responses in a ' +
+          'minute block you too'
+        Caption = 'API Guard'
+        ParentShowHint = False
+        ShowHint = True
+        TabOrder = 15
       end
     end
   end

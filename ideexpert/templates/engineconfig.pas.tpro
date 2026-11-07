@@ -93,8 +93,11 @@ uses
   MVCFramework.Logger;
 
 procedure ConfigureEngine(AEngine: TMVCEngine);
-{{if @(((not program_minimal_api) and (webmodule_middleware_ratelimit or webmodule_middleware_jwt)) or program_ssv_any or webmodule_middleware_staticfiles or program_openapi_swagger or program_openapi_native)}}
+{{if @(webmodule_middleware_apiguard or ((not program_minimal_api) and (webmodule_middleware_ratelimit or webmodule_middleware_jwt)) or program_ssv_any or webmodule_middleware_staticfiles or program_openapi_swagger or program_openapi_native)}}
 var
+{{endif}}
+{{if webmodule_middleware_apiguard}}
+  lGuard: IMVCAPIGuard;
 {{endif}}
 {{if @((not program_minimal_api) and webmodule_middleware_ratelimit)}}
   lRateLimitOptions: TMVCRateLimitOptions;
@@ -129,11 +132,25 @@ begin
   // Static files path (www folder at same level as executable)
   lWwwPath := TPath.Combine(AppPath, 'www');
 {{endif}}
-{{if webmodule_middleware_apiguard}}
+{{if @(webmodule_middleware_apiguard and (program_minimal_api_admin_token or mcp_generate))}}
 
-  // API Guard: first, so it counts the requests every other filter answers. Blacklist in memory.
-  // Behind a reverse proxy the peer is the proxy: configure UseClientIp (see MVCFramework.Filters.APIGuard)
-  AEngine.Use(APIGuardHTTPFilter(TMVCAPIGuard.Create));
+  // API Guard: first of all, so it also counts the requests the guards below refuse. It blocks an IP (403) that
+  // trips a rule: scan (404/405), bruteforce (401/403), flood, injection probes, known attack tools.
+  // Tune it here; threshold = occurrences within the window, window and block time in seconds, 0 = permanent.
+  lGuard := TMVCAPIGuard.Create;
+  // lGuard.Scan.Configure(20, 60, 3600);
+  // lGuard.BruteForce.Configure(5, 300, 3600).OnPaths(['/auth']); // only the login
+  // lGuard.Flood.Enabled := False;
+  // lGuard.AddWhitelistIP('10.0.0.5');                // never blocked
+  // lGuard.BlockIP('203.0.113.7', 'known abuser');    // blocked now, 0 seconds = permanent
+  // Blacklist kept in a file, so it survives a restart (the folder must be writable):
+  // lGuard := TMVCAPIGuard.Create(TMVCAPIGuardFileStorage.Create(TPath.Combine(AppPath, 'apiguard_blacklist.txt')));
+  // Behind a reverse proxy the peer is the proxy: read the client from X-Forwarded-For, only if the proxy sets it
+  // MVCTrustProxyForwardedHeaders := True;
+  // lGuard.UseClientIp := True;
+  // GET /api-guard/status (rules, blocked IPs, alerts) answers localhost only; AddMonitorIP adds more.
+  // More in MVCFramework.Filters.APIGuard and docs/apiguard_filter.md of the framework.
+  AEngine.Use(APIGuardHTTPFilter(lGuard));
 {{endif}}
 {{if program_minimal_api_admin_token}}
 
@@ -191,10 +208,29 @@ begin
   AEngine.SetViewEngine(TMVCMustacheViewEngine);
   // Server Side View - END
 {{endif}}
-{{if @(program_minimal_api or program_ssv_any or webmodule_middleware_staticfiles or webmodule_middleware_analytics or webmodule_middleware_trace or webmodule_middleware_cors or webmodule_middleware_etag or webmodule_middleware_compression or webmodule_middleware_ratelimit or webmodule_middleware_activerecord or webmodule_middleware_session_memory or webmodule_middleware_session_file or webmodule_middleware_session_database or program_openapi_swagger or program_openapi_native)}}
+{{if @(webmodule_middleware_apiguard or program_minimal_api or program_ssv_any or webmodule_middleware_staticfiles or webmodule_middleware_analytics or webmodule_middleware_trace or webmodule_middleware_cors or webmodule_middleware_etag or webmodule_middleware_compression or webmodule_middleware_ratelimit or webmodule_middleware_activerecord or webmodule_middleware_session_memory or webmodule_middleware_session_file or webmodule_middleware_session_database or program_openapi_swagger or program_openapi_native)}}
 
   // HTTPFilter chain (engine-wide). Order matters: first = outermost. The filters wrap the whole
   // request: the classic middleware, the routing and the action.
+{{if @(webmodule_middleware_apiguard and (not (program_minimal_api_admin_token or mcp_generate)))}}
+  // API Guard: first, so it counts the requests every other filter answers. It blocks an IP (403) that
+  // trips a rule: scan (404/405), bruteforce (401/403), flood, injection probes, known attack tools.
+  // Tune it here; threshold = occurrences within the window, window and block time in seconds, 0 = permanent.
+  lGuard := TMVCAPIGuard.Create;
+  // lGuard.Scan.Configure(20, 60, 3600);
+  // lGuard.BruteForce.Configure(5, 300, 3600).OnPaths(['/auth']); // only the login
+  // lGuard.Flood.Enabled := False;
+  // lGuard.AddWhitelistIP('10.0.0.5');                // never blocked
+  // lGuard.BlockIP('203.0.113.7', 'known abuser');    // blocked now, 0 seconds = permanent
+  // Blacklist kept in a file, so it survives a restart (the folder must be writable):
+  // lGuard := TMVCAPIGuard.Create(TMVCAPIGuardFileStorage.Create(TPath.Combine(AppPath, 'apiguard_blacklist.txt')));
+  // Behind a reverse proxy the peer is the proxy: read the client from X-Forwarded-For, only if the proxy sets it
+  // MVCTrustProxyForwardedHeaders := True;
+  // lGuard.UseClientIp := True;
+  // GET /api-guard/status (rules, blocked IPs, alerts) answers localhost only; AddMonitorIP adds more.
+  // More in MVCFramework.Filters.APIGuard and docs/apiguard_filter.md of the framework.
+  AEngine.Use(APIGuardHTTPFilter(lGuard));
+{{endif}}
 {{if @(program_ssv_any and (not program_minimal_api))}}
   AEngine.Use(RedirectHTTPFilter(['/'], '/web'));
 {{endif}}
