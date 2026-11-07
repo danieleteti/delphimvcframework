@@ -39,7 +39,7 @@
 [![Mentioned in Awesome](https://awesome.re/mentioned-badge.svg)](https://github.com/Fr0sT-Brutal/awesome-pascal)
 
 [![stable](https://img.shields.io/badge/stable-dmvcframework--3.4.3--aluminium-blue)](https://github.com/danieleteti/delphimvcframework/releases/tag/v3.4.3-aluminium)
-[![release candidate](https://img.shields.io/badge/release%20candidate-dmvcframework--3.5.0--silicon--rc9-orange)](https://github.com/danieleteti/delphimvcframework/releases/tag/v3.5.0-silicon-rc9)
+[![release candidate](https://img.shields.io/badge/release%20candidate-dmvcframework--3.5.0--silicon--rc10-orange)](https://github.com/danieleteti/delphimvcframework/releases/tag/v3.5.0-silicon-rc10)
 
 **The most popular Delphi RESTful framework on GitHub**
 
@@ -47,7 +47,7 @@ DelphiMVCFramework is a powerful, open-source framework for building RESTful ser
 
 ## 🚀 Quick Links
 
-- **[🧪 Release candidate](https://github.com/danieleteti/delphimvcframework/releases/tag/v3.5.0-silicon-rc9)** - 3.5.0-silicon RC9, to try the next version before its final release
+- **[🧪 Release candidate](https://github.com/danieleteti/delphimvcframework/releases/tag/v3.5.0-silicon-rc10)** - 3.5.0-silicon RC10, to try the next version before its final release
 - **[📖 Official Guide](https://www.danieleteti.it/books/)** - Comprehensive documentation and tutorials
 - **[⚡ Quick Start Guide](docs/quickstart_guide.md)** - Get up and running in 5 minutes
 - **[📦 Installation](docs/installation_guide.md)** - Step-by-step installation instructions
