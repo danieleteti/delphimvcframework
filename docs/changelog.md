@@ -914,6 +914,27 @@ Config[TMVCConfigKey.LoadSystemControllers] := 'true';
   is written to the response stream via `TJsonBaseObject.SaveToStream`,
   skipping the UTF-16 Delphi string that `ToJSON(True)` would allocate
   and the subsequent UTF-8 re-encode inside `Render(AContent: string)`.
+- **APIGuard: an intrusion guard as an HTTP filter (PR #934).** `APIGuardHTTPFilter(TMVCAPIGuard.Create(...))`
+  (`MVCFramework.Filters.APIGuard`) watches requests and responses per client IP and blocks the IP when a rule trips:
+  path scanning (`scan`), brute force (`bruteforce`), flooding (`flood`), injection probes (`injection`), known attack
+  tools (`bad_agent`), or a rule of your own (`AddRule`). Thresholds, windows and block times are set per rule, and a
+  rule can be limited to some paths. The blacklist survives a restart in a text file or, with
+  `MVCFramework.Filters.APIGuard.FireDAC`, in a database table; the history of blocks, unblocks and refused requests
+  goes to an audit log with the same two backends, written off the request threads. A JSON status endpoint
+  (requests/minute, blocked IPs, per-rule counters, latest alerts) answers only the monitor IPs, and
+  `AddMonitorOnlyPath` reserves a path, e.g. a dashboard, to them. IPs are compared in one normalised spelling
+  (IPv6 canonical, IPv4-mapped IPv6 as IPv4); behind a reverse proxy `UseClientIp` keys the counters on `ClientIp`,
+  which reads `X-Forwarded-For` only with `MVCTrustProxyForwardedHeaders`. Register it first. Sample in
+  `samples/filters_apiguard`, guide in `docs/apiguard_filter.md`. Contributed by Giordano Giaccaglia, KD Software
+  (PR #934): thank you, Giordano.
+- **OIDC: timeouts on the calls to the provider and a 503 when it is down (PR #937).** Discovery, token exchange and
+  UserInfo used the platform default timeout (60 s or more), so a provider that did not answer held the request.
+  `TMVCOIDCOptions.ConnectTimeoutMS` and `ReadTimeoutMS` (default `OIDC_DEFAULT_HTTP_TIMEOUT_MS`, 10 s; the deprecated
+  middleware has `SetHTTPTimeouts`) set them, and `TMVCJWKSClient.SetTimeouts` does the same for the JWKS and
+  discovery calls. When the provider cannot be reached, or answers the token exchange with a 5xx, on `LoginURL` or
+  `CallbackURL`, the filter answers 503 with a short plain text instead of a 500; `TMVCOIDCOptions.OnProviderError`
+  (`SetOnProviderError` on the middleware) replaces that answer. A rejected code (4xx) is still a failed login, not a
+  provider error. Contributed by Bastian (PR #937): thank you, Bastian.
 
 ### Changed
 
@@ -1828,6 +1849,19 @@ the same socket.
   longer collides with a REST controller of the same name; a blank line always
   separates a `uses` clause from the routine after it; `ConfigureEngine` and
   `WebModuleCreate` declare their locals in one `var` section.
+- **REST client: a certificate the platform accepted is no longer refused (PR #935, related to #926).**
+  `TMVCRESTClient` always assigns a certificate handler, and the RTL also calls it for certificates it has accepted:
+  WinHTTP before every HTTPS request, and on Linux (libcurl) when a server sends no stapled OCSP response. The handler
+  overwrote the RTL's verdict with `MVCRESTClientAcceptInvalidCertificates` (False by default), so hosts with a valid
+  chain answered "Server certificate not accepted". It now keeps the verdict it receives, and
+  `MVCRESTClientAcceptInvalidCertificates` can still turn a refusal into an accept; a certificate the platform
+  rejected stays refused, and a proc set with `SetValidateServerCertificateProc` decides on its own as before.
+  Fix by Bastian (PR #935): thank you, Bastian.
+- **`GetLoggedUser` raised on a request carrying a session cookie when no session middleware or filter is
+  installed (PR #936).** Browsers send the cookies of every application on the same host whatever the port, so the
+  session id could arrive at an application that has no session support; `TWebContext.SessionStarted` then raised
+  `EMVCConfigException`. Without a session factory no session can have been started: it answers False. Fix by Bastian
+  (PR #936): thank you, Bastian.
 
 ### Performance
 
