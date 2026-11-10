@@ -83,6 +83,9 @@ var
 {{if logging_profile_json}}
   lConfigFile: String;
 {{endif}}  
+{{if @(logging_exewatch and (not logging_profile_disabled))}}
+  lExeWatchOn: Boolean;
+{{endif}}
 begin
 {{if logging_profile_fluent}}
   lBuilder := LoggerProBuilder
@@ -158,13 +161,6 @@ begin
 {{endif}}
 {{endif}}
 
-{{if logging_exewatch}}
-  lBuilder := WithExeWatch(lBuilder)
-    .WithAPIKey(dotEnv.Env('exewatch.apikey', ''))
-    .WithCustomerId(dotEnv.Env('exewatch.customerid', ''))
-    .WithAppVersion(dotEnv.Env('exewatch.appversion', ''))
-    .Done;
-{{endif}}
 {{endif}}
 {{if logging_profile_json}}
   // Config loaded from JSON file (key 'logger.config.file' in dotEnv).
@@ -193,7 +189,25 @@ begin
       .Done;
 {{endif}}
 
+{{if @(logging_exewatch and (not logging_profile_disabled))}}
+  // ExeWatch is on only with a key in .env: an invalid one would stop the server at start-up.
+{{if logging_profile_json}}
+  // The appender is added here and not in loggerpro.json: the file is committed, the key must stay in .env.
+{{endif}}
+  // The customer id must not be empty: with an empty one the SDK keeps every event in memory.
+  lExeWatchOn := dotEnv.Env('exewatch.apikey', '').StartsWith('ew_');
+  if lExeWatchOn then
+    lBuilder := WithExeWatch(lBuilder)
+      .WithAPIKey(dotEnv.Env('exewatch.apikey', ''))
+      .WithCustomerId(dotEnv.Env('exewatch.customerid', '{{:program_name}}'))
+      .WithAppVersion(dotEnv.Env('exewatch.appversion', '1.0.0'))
+      .Done;
+{{endif}}
   SetDefaultLogger(lBuilder.Build);
+{{if @(logging_exewatch and (not logging_profile_disabled))}}
+  if not lExeWatchOn then
+    LogW('ExeWatch is off: put your API key in .env (exewatch.apikey)');
+{{endif}}
 end;
 
 procedure ConfigProfiler;

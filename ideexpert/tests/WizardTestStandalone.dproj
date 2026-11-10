@@ -114,6 +114,7 @@
         <DCCReference Include="..\DMVC.Expert.AISkills.pas"/>
         <DCCReference Include="..\DMVC.Expert.Commons.pas"/>
         <DCCReference Include="..\DMVC.Expert.MCPLibrary.pas"/>
+        <DCCReference Include="..\DMVC.Expert.ExeWatchSDK.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

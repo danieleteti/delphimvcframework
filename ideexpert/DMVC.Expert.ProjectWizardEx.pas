@@ -65,6 +65,7 @@ uses
   DMVC.Expert.SwaggerUI,
   DMVC.Expert.AISkills,
   DMVC.Expert.MCPLibrary,
+  DMVC.Expert.ExeWatchSDK,
   System.Win.Registry,
   DMVC.Expert.Forms.SwaggerUIProgress;
 
@@ -105,6 +106,11 @@ begin
       function: string
       begin
         Result := MCPLibraryWarning(IDELibrarySearchPath);
+      end;
+    WizardForm.ExeWatchSDKProbe :=
+      function: TExeWatchSDK
+      begin
+        Result := LocateExeWatchSDK(IDELibrarySearchPath);
       end;
     WizardForm.SetPresetCaption(PRESET_INFOS[APreset].Caption);
     ApplyPresetToForm(APreset, WizardForm);
@@ -150,6 +156,11 @@ begin
         if lWarning <> '' then
           TDMVCProjectGenerator.Warnings := TDMVCProjectGenerator.Warnings + [lWarning];
       end;
+      // Same for the ExeWatch SDK: the project does not compile without it
+      if lJSON.B[TConfigKey.logging_exewatch] and (LocateExeWatchSDK(IDELibrarySearchPath).Location = eslNotFound) then
+        TDMVCProjectGenerator.Warnings := TDMVCProjectGenerator.Warnings + [
+          'the ExeWatch SDK is not in the library path nor in %' + EXEWATCH_SDK_ENV + '%: the project will not ' +
+          'compile until it is installed (' + EXEWATCH_URL + ')'];
       for lWarning in TDMVCProjectGenerator.Warnings do
         (BorlandIDEServices as IOTAMessageServices).AddTitleMessage('DMVCFramework wizard: ' + lWarning);
       if Length(TDMVCProjectGenerator.Warnings) > 0 then
@@ -163,6 +174,11 @@ begin
       begin
         lConfig := (lProject.ProjectOptions as IOTAProjectOptionsConfigurations).BaseConfiguration;
         lConfig.SetValue(sUnitSearchPath, '$(DMVC)');
+        // the SDK is reachable only through EXEWATCH_SDK (set by its setup): the project says so itself,
+        // so it compiles without a visit to the IDE options
+        if lJSON.B[TConfigKey.logging_exewatch] and
+          (LocateExeWatchSDK(IDELibrarySearchPath).Location = eslEnvironment) then
+          lConfig.SetValue(sUnitSearchPath, '$(DMVC);$(' + EXEWATCH_SDK_ENV + ')');
         lConfig.SetValue(sFramework, 'FMX');
         lConfig.SetValue(sExeOutput, '.\bin');
         lConfig.SetValue(sDcuOutput, '.\$(Platform)\$(Config)');

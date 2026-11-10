@@ -8,7 +8,8 @@ uses
   DMVC.Expert.SwaggerUI in '..\DMVC.Expert.SwaggerUI.pas',
   DMVC.Expert.AISkills in '..\DMVC.Expert.AISkills.pas',
   DMVC.Expert.Commons in '..\DMVC.Expert.Commons.pas',
-  DMVC.Expert.MCPLibrary in '..\DMVC.Expert.MCPLibrary.pas';
+  DMVC.Expert.MCPLibrary in '..\DMVC.Expert.MCPLibrary.pas',
+  DMVC.Expert.ExeWatchSDK in '..\DMVC.Expert.ExeWatchSDK.pas';
 
 {$R *.res}
 {$R ..\DMVC.Expert.Templates.res}

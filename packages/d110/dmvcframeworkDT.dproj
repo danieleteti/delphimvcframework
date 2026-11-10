@@ -156,6 +156,7 @@
         <DCCReference Include="..\..\ideexpert\DMVC.Expert.Forms.SwaggerUIProgress.pas"/>
         <DCCReference Include="..\..\ideexpert\DMVC.Expert.AISkills.pas"/>
         <DCCReference Include="..\..\ideexpert\DMVC.Expert.MCPLibrary.pas"/>
+        <DCCReference Include="..\..\ideexpert\DMVC.Expert.ExeWatchSDK.pas"/>
         <RcItem Include="..\..\ideexpert\DMVC.Expert.NewProject.ico">
             <ResourceType>ICON</ResourceType>
             <ResourceId>DMVCNewProjectIcon</ResourceId>

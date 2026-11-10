@@ -45,7 +45,8 @@ uses
   DMVC.Expert.SwaggerUI in '..\DMVC.Expert.SwaggerUI.pas',
   DMVC.Expert.AISkills in '..\DMVC.Expert.AISkills.pas',
   DMVC.Expert.ProjectItems in '..\DMVC.Expert.ProjectItems.pas',
-  DMVC.Expert.MCPLibrary in '..\DMVC.Expert.MCPLibrary.pas';
+  DMVC.Expert.MCPLibrary in '..\DMVC.Expert.MCPLibrary.pas',
+  DMVC.Expert.ExeWatchSDK in '..\DMVC.Expert.ExeWatchSDK.pas';
 
 type
   TTestCase = record
@@ -93,6 +94,8 @@ var
   GSkipCompile: Boolean;
   GMCPSources: string; // sources of mcp-server-delphi; '' = the MCP cases are generated but not compiled
   GMCPNotCompiled: TArray<string>;
+  GExeWatchSDKOnly: Boolean; // --exewatch-sdk-only: just the checks on the SDK, in seconds
+  GExeWatchSDK: string; // folder of the ExeWatch SDK; '' = the ExeWatch cases are generated but not compiled
 
 procedure Log(const AMsg: string);
 begin
@@ -179,6 +182,7 @@ begin
     '-U"C:\DLib\indy_extras\TaurusTLS\Source" ' +
     '-U"C:\DLib\indy_extras\TaurusTLS\Source\Extra" ' +
     IfThen(GMCPSources <> '', '-U"' + GMCPSources + '" ', '') +
+    IfThen(GExeWatchSDK <> '', '-U"' + GExeWatchSDK + '" ', '') +
     '-NSSystem;Winapi;System.Win;Vcl;Data;Data.Win;Web;Soap;Xml ' +
     '"' + LDprPath + '" > "' + LOutputFile + '" 2>&1' + sLineBreak +
     'exit /b %errorlevel%';
@@ -236,6 +240,8 @@ begin
     'C:\DLib\indy_extras\TaurusTLS\Source', 'C:\DLib\indy_extras\TaurusTLS\Source\Extra'];
   if GMCPSources <> '' then
     LPaths := LPaths + [GMCPSources];
+  if GExeWatchSDK <> '' then
+    LPaths := LPaths + [GExeWatchSDK];
   TFile.WriteAllText(LBatFile,
     '@echo off' + sLineBreak +
     'cd /d "' + LDir + '"' + sLineBreak +
@@ -645,6 +651,12 @@ begin
       begin
         Log('Compilation: SKIPPED (mcp-server-delphi not found, set MCP_SERVER_DELPHI)');
         GMCPNotCompiled := GMCPNotCompiled + [ATestCase.Name];
+        LResult.CompilationOK := True;
+      end
+      else if (not GSkipCompile) and LResult.FileCheckOK and
+        ATestCase.Config.B[TConfigKey.logging_exewatch] and (GExeWatchSDK = '') then
+      begin
+        Log('Compilation: SKIPPED (ExeWatch SDK not found, set EXEWATCH_SDK)');
         LResult.CompilationOK := True;
       end
       else if (not GSkipCompile) and LResult.FileCheckOK then
@@ -1683,6 +1695,7 @@ begin
   LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
   LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
   LTestCase.ForbiddenFiles := ['AGENTS.md', 'CLAUDE.md', 'GEMINI.md', 'update_ai_skills.bat', '.claude'];
+  LTestCase.MustNotContain := ['EngineConfigU.pas|ExeWatch', 'BootConfigU.pas|ExeWatch', 'bin/.env|exewatch'];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
 
@@ -1718,6 +1731,57 @@ begin
       ['AGENTS.md|Delphi RTL/VCL source: ' + AISkillsLocalDelphiSource]
   else
     LTestCase.MustNotContain := LTestCase.MustNotContain + ['AGENTS.md|Delphi RTL/VCL source:'];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
+
+  // ExeWatch is a LoggerPro appender like the others: the key from .env, a customer id by default, nothing else in the engine
+  LTestCase.Name := 'indydirect_exewatch';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+  LTestCase.Config.B[TConfigKey.logging_exewatch] := True;
+  LTestCase.Config.B[TConfigKey.program_ai_skills] := True;
+  LTestCase.MustContain := [
+    'BootConfigU.pas|lExeWatchOn := dotEnv.Env(''exewatch.apikey'', '''').StartsWith(''ew_'');',
+    'BootConfigU.pas|lBuilder := WithExeWatch(lBuilder)',
+    'BootConfigU.pas|.WithCustomerId(dotEnv.Env(''exewatch.customerid'', ''TestProject''))',
+    'BootConfigU.pas|.WithAppVersion(dotEnv.Env(''exewatch.appversion'', ''1.0.0''))',
+    'BootConfigU.pas|LogW(''ExeWatch is off: put your API key in .env (exewatch.apikey)'');',
+    'bin/.env|exewatch.apikey=', 'bin/.env|exewatch.customerid=TestProject', 'bin/.env|exewatch.appversion=1.0.0',
+    'AGENTS.md|is a LoggerPro appender here', 'AGENTS.md|`exewatch.apikey` in `bin\.env`', 'AGENTS.md|`EW.xxx`'];
+  LTestCase.MustNotContain := ['bin/.env|REPLACE_WITH_YOUR_EXEWATCH_API_KEY', 'EngineConfigU.pas|ExeWatch',
+    'BootConfigU.pas|{{', 'BootConfigU.pas|not in loggerpro.json', 'AGENTS.md|ExeWatchBundle'];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
+
+  // With the JSON profile the appender is added by code after the file (the file is committed, the key is not):
+  // loggerpro.json has nothing of it, and the code says why
+  LTestCase.Name := 'indydirect_exewatch_json';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+  LTestCase.Config.S[TConfigKey.logging_profile] := TLoggingProfiles.JSON_CONFIG;
+  LTestCase.Config.B[TConfigKey.logging_exewatch] := True;
+  LTestCase.Config.B[TConfigKey.program_ai_skills] := True;
+  LTestCase.MustContain := [
+    'BootConfigU.pas|BuilderFromJSONFile(lConfigFile)',
+    'BootConfigU.pas|lExeWatchOn := dotEnv.Env(''exewatch.apikey'', '''').StartsWith(''ew_'');',
+    'BootConfigU.pas|// The appender is added here and not in loggerpro.json: the file is committed, the key must stay in .env.',
+    'BootConfigU.pas|LogW(''ExeWatch is off: put your API key in .env (exewatch.apikey)'');',
+    'bin/.env|exewatch.apikey=', 'bin/.env|exewatch.customerid=TestProject', 'AGENTS.md|`exewatch.apikey` in `bin\.env`'];
+  LTestCase.MustNotContain := ['bin/loggerpro.json|ExeWatch', 'bin/loggerpro.json|REPLACE_WITH', 'BootConfigU.pas|{{'];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
+
+  // The same in a web module project (ISAPI, Apache, WebBroker): the engine is not touched there either
+  LTestCase.Name := 'isapi_exewatch';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'webbroker';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.ISAPI;
+  LTestCase.Config.B[TConfigKey.logging_exewatch] := True;
+  LTestCase.Config.B[TConfigKey.webmodule_middleware_cors] := True;
+  LTestCase.MustContain := ['BootConfigU.pas|lBuilder := WithExeWatch(lBuilder)', 'bin/.env|exewatch.customerid=TestProject'];
+  LTestCase.MustNotContain := ['WebModuleU.pas|ExeWatch', 'BootConfigU.pas|{{'];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
 
@@ -3631,6 +3695,111 @@ begin
   Result := not LFailed;
 end;
 
+{ ExeWatch: where the SDK is looked for, and what the generated project is told to add to its search path. }
+function RunExeWatchTests: Boolean;
+var
+  LFailed: Boolean;
+
+  procedure Check(const AName: string; ACondition: Boolean; const ADetail: string = '');
+  begin
+    if ACondition then
+      Log('  [PASS] ' + AName)
+    else
+    begin
+      Log('  [FAIL] ' + AName + ' ' + ADetail);
+      LFailed := True;
+    end;
+  end;
+
+  procedure FakeSDK(const AFolder, AVersion: string);
+  begin
+    ForceDirectories(AFolder);
+    TFile.WriteAllText(TPath.Combine(AFolder, 'ExeWatchSDKv1.pas'),
+      'unit ExeWatchSDKv1;' + sLineBreak + 'const' + sLineBreak + '  EXEWATCH_SDK_VERSION = ''' + AVersion + ''';');
+  end;
+
+var
+  LRoot, LLib, LEnv, LEmpty, LNoVersion, LFolder, LVersion, LSaved, LURL: string;
+begin
+  Log('');
+  Log('=== ExeWatch: SDK check ===');
+  LFailed := False;
+  LRoot := TPath.GetFullPath(TPath.Combine(GOutputDir, '_exewatch_sdk'));
+  if TDirectory.Exists(LRoot) then
+    TDirectory.Delete(LRoot, True);
+  LLib := TPath.Combine(LRoot, 'lib');
+  LEnv := TPath.Combine(LRoot, 'env');
+  LEmpty := TPath.Combine(LRoot, 'empty');
+  LNoVersion := TPath.Combine(LRoot, 'noversion');
+  FakeSDK(LLib, '0.25.0');
+  FakeSDK(LEnv, '0.24.0');
+  FakeSDK(LNoVersion, '');
+  ForceDirectories(LEmpty);
+  LSaved := GetEnvironmentVariable(EXEWATCH_SDK_ENV);
+  try
+    SetEnvironmentVariable(PChar(EXEWATCH_SDK_ENV), nil);
+    Check('nowhere: not found, no text, nothing to add to the project',
+      (FindExeWatchSDK('C:\nowhere;' + LEmpty, LFolder, LVersion) = eslNotFound) and (LFolder = '') and
+      (LVersion = '') and (ExeWatchSDKDescription(LEmpty) = '') and (ExeWatchSDKProjectSearchPath(LEmpty) = ''));
+    Check('empty library path: not found', FindExeWatchSDK('', LFolder, LVersion) = eslNotFound);
+    Check('in the library path: found, version read, the project adds nothing',
+      (FindExeWatchSDK(' ' + LEmpty + ' ; "' + LLib + '" ;', LFolder, LVersion) = eslLibraryPath) and
+      (LFolder = LLib) and (LVersion = '0.25.0') and (ExeWatchSDKProjectSearchPath(LLib) = '') and
+      ExeWatchSDKDescription(LLib).Contains('0.25.0') and ExeWatchSDKDescription(LLib).Contains(LLib), LFolder);
+    Check('a version that cannot be read: found all the same',
+      (FindExeWatchSDK(LNoVersion, LFolder, LVersion) = eslLibraryPath) and (LVersion = '') and
+      (ExeWatchSDKDescription(LNoVersion) <> ''));
+    Check('characters a path cannot have: no exception, the SDK is still found',
+      (FindExeWatchSDK('C:\a<b>|c;"C:\x"y;' + LLib, LFolder, LVersion) = eslLibraryPath) and
+      (FindExeWatchSDK('C:\a<b>|c', LFolder, LVersion) = eslNotFound));
+
+    SetEnvironmentVariable(PChar(EXEWATCH_SDK_ENV), PChar(LEnv));
+    Check('only EXEWATCH_SDK: found through it, the project adds $(' + EXEWATCH_SDK_ENV + ')',
+      (FindExeWatchSDK(LEmpty, LFolder, LVersion) = eslEnvironment) and (LFolder = LEnv) and (LVersion = '0.24.0') and
+      (ExeWatchSDKProjectSearchPath(LEmpty) = '$(EXEWATCH_SDK)') and (ExeWatchSDKDescription(LEmpty) <> ''), LFolder);
+    Check('library path and EXEWATCH_SDK: the library path wins, the project adds nothing',
+      (FindExeWatchSDK(LLib, LFolder, LVersion) = eslLibraryPath) and (LFolder = LLib) and
+      (ExeWatchSDKProjectSearchPath(LLib) = ''));
+    Check('$(EXEWATCH_SDK) in the library path counts as the library path',
+      (FindExeWatchSDK('$(EXEWATCH_SDK)', LFolder, LVersion) = eslLibraryPath) and (LFolder = LEnv) and
+      (ExeWatchSDKProjectSearchPath('$(EXEWATCH_SDK)') = ''));
+
+    SetEnvironmentVariable(PChar(EXEWATCH_SDK_ENV), PChar(LEmpty));
+    Check('EXEWATCH_SDK pointing at a folder without the SDK: not found',
+      FindExeWatchSDK(LEmpty, LFolder, LVersion) = eslNotFound);
+
+    // is it the newest one? (the request itself is not tested here: it needs the network)
+    Check('versions: older, equal, newer, with a suffix, missing',
+      ExeWatchVersionIsOlder('0.24.0', '0.25.0') and ExeWatchVersionIsOlder('0.9.0', '0.25.0') and
+      ExeWatchVersionIsOlder('0.25.0', '1.0.0') and ExeWatchVersionIsOlder('0.25', '0.25.1') and
+      not ExeWatchVersionIsOlder('0.25.0', '0.25.0') and not ExeWatchVersionIsOlder('0.26.0', '0.25.0') and
+      not ExeWatchVersionIsOlder('0.25.0-beta', '0.25.0') and not ExeWatchVersionIsOlder('', '0.25.0') and
+      not ExeWatchVersionIsOlder('0.25.0', ''));
+    Check('the answer of ExeWatch: the version and the address of the setup',
+      ParseExeWatchLatest('{"latest":"0.25.0","download_url":"/ui/sdk/delphi/ExeWatchRADStudioSetup.exe","size":2930387}',
+        LVersion, LURL) and (LVersion = '0.25.0') and (LURL = EXEWATCH_SETUP_URL), LVersion + ' ' + LURL);
+    Check('the answer with no setup to offer: the version, no address',
+      ParseExeWatchLatest('{"latest":"0.25.0","download_url":null}', LVersion, LURL) and (LVersion = '0.25.0') and
+      (LURL = ''), LVersion + ' ' + LURL);
+    Check('an address of another site is never offered',
+      ParseExeWatchLatest('{"latest":"0.25.0","download_url":"https://other.example/x.exe"}', LVersion, LURL) and
+      (LURL = ''), LURL);
+    Check('what is not that answer: no version, no exception',
+      not ParseExeWatchLatest('', LVersion, LURL) and not ParseExeWatchLatest('<html>down</html>', LVersion, LURL) and
+      not ParseExeWatchLatest('[1,2]', LVersion, LURL) and not ParseExeWatchLatest('{"latest":""}', LVersion, LURL) and
+      (LVersion = '') and (LURL = ''));
+  finally
+    if LSaved = '' then
+      SetEnvironmentVariable(PChar(EXEWATCH_SDK_ENV), nil)
+    else
+      SetEnvironmentVariable(PChar(EXEWATCH_SDK_ENV), PChar(LSaved));
+  end;
+  if GExeWatchSDK <> '' then
+    Check('the real SDK is found', FindExeWatchSDK(GExeWatchSDK, LFolder, LVersion) = eslLibraryPath, GExeWatchSDK);
+
+  Result := not LFailed;
+end;
+
 function RunRcCoverageTest: Boolean;
 var
   LRc, LFile, LRel, LId: string;
@@ -3671,6 +3840,8 @@ begin
       GVerbose := True
     else if LArg = '--skip-compile' then
       GSkipCompile := True
+    else if LArg = '--exewatch-sdk-only' then
+      GExeWatchSDKOnly := True
     else if LArg.StartsWith('--delphi=') then
       GDelphiPath := LArg.Substring(9);
   end;
@@ -3681,6 +3852,10 @@ begin
   GMCPSources := TPath.Combine(GMCPSources, 'sources');
   if not TFile.Exists(TPath.Combine(GMCPSources, 'MVCFramework.MCP.Server.pas')) then
     GMCPSources := '';
+
+  GExeWatchSDK := GetEnvironmentVariable(EXEWATCH_SDK_ENV);
+  if not TFile.Exists(TPath.Combine(GExeWatchSDK, 'ExeWatchSDKv1.pas')) then
+    GExeWatchSDK := '';
 
   // Auto-detect Delphi if not specified
   if GDelphiPath.IsEmpty and not GSkipCompile then
@@ -3699,6 +3874,12 @@ begin
     Log('');
 
     ParseCommandLine;
+    if GExeWatchSDKOnly then
+    begin
+      if not RunExeWatchTests then
+        ExitCode := 1;
+      Exit;
+    end;
 
     // Set template path to the ideexpert/templates folder
     TTestTemplateEngine.SetTemplatePath(TPath.Combine(
@@ -3865,6 +4046,12 @@ begin
       begin
         Log('');
         Log('FAIL: MCP tests did not pass.');
+        ExitCode := 1;
+      end;
+      if not RunExeWatchTests then
+      begin
+        Log('');
+        Log('FAIL: ExeWatch tests did not pass.');
         ExitCode := 1;
       end;
       if not RunAISkillsBatTest(TPath.GetFullPath(TPath.Combine(GOutputDir, 'indydirect_ai_skills_rest'))) then

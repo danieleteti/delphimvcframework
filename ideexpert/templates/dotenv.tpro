@@ -245,8 +245,10 @@ logger.syslog.use_localtime=false
 # ============================================================================
 # Logging - ExeWatch cloud observability
 # ============================================================================
-# Sign up and get your API key at https://exewatch.com
-exewatch.apikey=REPLACE_WITH_YOUR_EXEWATCH_API_KEY
-exewatch.customerid=
-exewatch.appversion=
+# Paste the key of your ExeWatch application here (it starts with ew_win_). Without it ExeWatch stays off
+# and the server runs as usual. Sign up at https://exewatch.com
+exewatch.apikey=
+# The customer id must not be empty: with an empty one the SDK keeps every event in memory.
+exewatch.customerid={{:program_name}}
+exewatch.appversion=1.0.0
 {{endif}}

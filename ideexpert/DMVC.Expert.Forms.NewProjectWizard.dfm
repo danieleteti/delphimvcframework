@@ -1038,7 +1038,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
         Left = 24
         Top = 125
         Width = 710
-        Height = 183
+        Height = 152
         Caption = ' Built-in appenders '
         TabOrder = 1
         object lblAppenderHint: TLabel
@@ -1120,34 +1120,43 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       end
       object gbLoggingExeWatch: TGroupBox
         Left = 24
-        Top = 317
+        Top = 286
         Width = 710
-        Height = 71
+        Height = 146
         Caption = ' Cloud observability '
         TabOrder = 2
         object lblExeWatchHint: TLabel
           Left = 32
           Top = 44
-          Width = 637
-          Height = 13
-          Caption = 
-            'Credentials read from dotEnv keys exewatch.apikey, exewatch.cust' +
-            'omerid, exewatch.appversion. Sign up at https://exewatch.com'
+          Width = 660
+          Height = 64
+          AutoSize = False
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clGrayText
           Font.Height = -12
           Font.Name = 'Segoe UI'
           Font.Style = []
           ParentFont = False
+          WordWrap = True
         end
         object chkLogExeWatch: TCheckBox
           Left = 14
           Top = 24
           Width = 680
           Height = 17
-          Caption = 'Add ExeWatch appender (orthogonal to profile - layers on top)'
+          Caption = 'Send the log to ExeWatch (a LoggerPro appender)'
           TabOrder = 0
           OnClick = chkLogExeWatchClick
+        end
+        object llExeWatchSetup: TLinkLabel
+          Left = 32
+          Top = 112
+          Width = 660
+          Height = 17
+          AutoSize = False
+          TabOrder = 1
+          Visible = False
+          OnLinkClick = llExeWatchSetupLinkClick
         end
       end
     end

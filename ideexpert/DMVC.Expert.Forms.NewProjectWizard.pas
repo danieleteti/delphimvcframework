@@ -56,7 +56,8 @@ uses
   System.Actions,
   Vcl.ActnList,
   Vcl.AppEvnts,
-  JsonDataObjects;
+  JsonDataObjects,
+  DMVC.Expert.ExeWatchSDK;
 
 type
   TfrmDMVCNewProject = class(TForm)
@@ -91,6 +92,7 @@ type
     gbLoggingExeWatch: TGroupBox;
     chkLogExeWatch: TCheckBox;
     lblExeWatchHint: TLabel;
+    llExeWatchSetup: TLinkLabel;
     // tsAppType controls
     rgApplicationType: TRadioGroup;
     lblAppTypeDescription: TLabel;
@@ -189,6 +191,7 @@ type
     procedure chkCreateSubfolderClick(Sender: TObject);
     procedure rgLoggingProfileClick(Sender: TObject);
     procedure chkLogExeWatchClick(Sender: TObject);
+    procedure llExeWatchSetupLinkClick(Sender: TObject; const Link: string; LinkType: TSysLinkType);
     procedure chkMinimalAPIClick(Sender: TObject);
   private
     fModel: TJsonObject;
@@ -201,6 +204,9 @@ type
     fMCPLibraryNote: string;
     fMCPLibraryMissing: Boolean;
     fMCPLibraryNoteReady: Boolean;
+    fExeWatchSDKProbe: TFunc<TExeWatchSDK>;
+    fExeWatchCheck: IExeWatchLatestCheck; // is there a newer SDK? asked once, in a thread, when the box is ticked
+    fExeWatchTimer: TTimer;               // reads the answer of the thread: the thread never touches the form
     fPresetCaption: string;
     fSteps: TArray<TShape>;
     fStepLabel: TLabel;
@@ -221,6 +227,9 @@ type
     procedure UpdateProjectNameHint;
     procedure UpdateWebModuleVisibility;
     procedure UpdateMCPControls;
+    procedure UpdateExeWatchHint;
+    procedure ShowExeWatchSetupLink(const AText, AURL: string);
+    procedure ExeWatchTimerTick(Sender: TObject);
     function HasEngineConfig: Boolean;
     procedure NavigateToPage(APageIndex: Integer);
     function GetPageCount: Integer;
@@ -240,6 +249,10 @@ type
     /// otherwise what to tell the user. Not set (the standalone test): the notice
     /// states the requirement without checking it.
     property MCPLibraryProbe: TFunc<string> read fMCPLibraryProbe write fMCPLibraryProbe;
+    /// Where the ExeWatch SDK is for the IDE (Location eslNotFound when it will not
+    /// find it). Not set (the standalone test): the hint states the requirement
+    /// without checking it.
+    property ExeWatchSDKProbe: TFunc<TExeWatchSDK> read fExeWatchSDKProbe write fExeWatchSDKProbe;
     procedure SetApiStyleVisible(AVisible: Boolean);
     procedure SetPresetCaption(const ACaption: string);
     procedure InitWizardPages;
@@ -702,6 +715,7 @@ end;
 
 procedure TfrmDMVCNewProject.InitWizardPages;
 begin
+  UpdateExeWatchHint; // the probe is set after the form is created
   NavigateToPage(0);
 end;
 
@@ -735,6 +749,11 @@ begin
 
   UpdateProjectNameHint;
   UpdateWebModuleVisibility;
+  fExeWatchTimer := TTimer.Create(Self);
+  fExeWatchTimer.Enabled := False;
+  fExeWatchTimer.Interval := 300;
+  fExeWatchTimer.OnTimer := ExeWatchTimerTick;
+  UpdateExeWatchHint; // the box is off: a text that needs no probe
   ApplyLook;
 
   {$IF not Defined(FASTCGI)}
@@ -1106,6 +1125,7 @@ begin
   chkLogSyslog.Enabled := lEnableAppenders;
   gbLoggingExeWatch.Enabled := lEnableAppenders;
   chkLogExeWatch.Enabled := lEnableAppenders;
+  UpdateExeWatchHint; // where the key goes depends on the profile
 end;
 
 procedure TfrmDMVCNewProject.chkMinimalAPIClick(Sender: TObject);
@@ -1124,33 +1144,90 @@ begin
 end;
 
 procedure TfrmDMVCNewProject.chkLogExeWatchClick(Sender: TObject);
-var
-  LDlg: TTaskDialog;
 begin
-  if not chkLogExeWatch.Checked then
-    Exit;
+  UpdateExeWatchHint;
+end;
 
-  LDlg := TTaskDialog.Create(nil);
-  try
-    LDlg.Caption := 'DelphiMVCFramework Wizard';
-    LDlg.Title := 'ExeWatch prerequisites';
-    LDlg.MainIcon := tdiInformation;
-    LDlg.CommonButtons := [tcbOk];
-    LDlg.DefaultButton := tcbOk;
-    LDlg.Flags := [tfAllowDialogCancellation]; // no tfSizeToContent: missing in 10.2 Tokyo
-    LDlg.Text :=
-      'Before building a project that uses the ExeWatch appender, make sure:' + sLineBreak + sLineBreak +
-      #$2022 + ' The ExeWatch SDK for Delphi is downloaded from https://exewatch.com ' +
-      'and its source folder is on the project / IDE library path.' + sLineBreak + sLineBreak +
-      #$2022 + ' Your API key is configured:' + sLineBreak +
-      '    Fluent profile -> .env keys exewatch.apikey, exewatch.customerid, exewatch.appversion' + sLineBreak +
-      '    JSON profile   -> "apiKey", "customerId", "appVersion" inside the ExeWatch block of loggerpro.json' + sLineBreak + sLineBreak +
-      #$2022 + ' The generated project will not compile until LoggerPro.ExeWatchAppender ' +
-      'and its dependencies are reachable from the uses clause.';
-    LDlg.Execute;
-  finally
-    LDlg.Free;
+// No dialog: the state of the SDK is said in the group itself, where the box is. The link to
+// the setup is there only when the SDK is missing or older than the one ExeWatch offers.
+procedure TfrmDMVCNewProject.UpdateExeWatchHint;
+const
+  HINT_OFF = 'Sends the log of the server to ' + EXEWATCH_URL + ', like any other appender. Needs the ExeWatch SDK and an API key.';
+  HINT_KEY = 'The API key goes in .env (exewatch.apikey); without it ExeWatch stays off.';
+  HINT_KEY_JSON = 'The API key goes in .env (exewatch.apikey), not in loggerpro.json (that file is committed): ' +
+    'the appender is added by code after it.';
+var
+  lSDK: TExeWatchSDK;
+  lLatest, lKeyHint: string;
+begin
+  if rgLoggingProfile.ItemIndex = 1 then
+    lKeyHint := HINT_KEY_JSON
+  else
+    lKeyHint := HINT_KEY;
+  lblExeWatchHint.Font.Color := clGrayText;
+  llExeWatchSetup.Visible := False;
+  if not chkLogExeWatch.Checked then
+  begin
+    lblExeWatchHint.Caption := HINT_OFF;
+    Exit;
   end;
+  if not Assigned(fExeWatchSDKProbe) then
+  begin
+    lblExeWatchHint.Caption := 'Needs the ExeWatch SDK in the IDE library path or in %' + EXEWATCH_SDK_ENV + '%. ' +
+      lKeyHint;
+    Exit;
+  end;
+  lSDK := fExeWatchSDKProbe();
+  if lSDK.Location = eslNotFound then
+  begin
+    lblExeWatchHint.Font.Color := clMaroon;
+    lblExeWatchHint.Caption := 'The ExeWatch SDK is not in the IDE library path nor in %' + EXEWATCH_SDK_ENV +
+      '%: the project will not compile until it is installed. ' + lKeyHint;
+    ShowExeWatchSetupLink('Download the ExeWatch setup', EXEWATCH_SETUP_URL);
+    Exit;
+  end;
+  lblExeWatchHint.Caption := DescribeExeWatchSDK(lSDK) + '. ' + lKeyHint;
+  if lSDK.Version = '' then
+    Exit;
+  if fExeWatchCheck = nil then
+  begin
+    fExeWatchCheck := StartExeWatchLatestCheck;
+    fExeWatchTimer.Enabled := True;
+  end
+  else if fExeWatchCheck.IsDone then
+  begin
+    lLatest := fExeWatchCheck.Version;
+    if ExeWatchVersionIsOlder(lSDK.Version, lLatest) then
+    begin
+      lblExeWatchHint.Caption := DescribeExeWatchSDK(lSDK) + '; version ' + lLatest + ' is available. ' + lKeyHint;
+      if fExeWatchCheck.SetupURL <> '' then
+        ShowExeWatchSetupLink('Download the ExeWatch setup ' + lLatest, fExeWatchCheck.SetupURL);
+    end;
+  end;
+end;
+
+procedure TfrmDMVCNewProject.ShowExeWatchSetupLink(const AText, AURL: string);
+begin
+  // the setup copies a package into the IDE: it does not run while RAD Studio is open
+  llExeWatchSetup.Caption := '<a href="' + AURL + '">' + AText + '</a> (run it with RAD Studio closed, then ' +
+    'start the wizard again)';
+  llExeWatchSetup.Visible := True;
+end;
+
+procedure TfrmDMVCNewProject.ExeWatchTimerTick(Sender: TObject);
+begin
+  if Assigned(fExeWatchCheck) and fExeWatchCheck.IsDone then
+  begin
+    fExeWatchTimer.Enabled := False;
+    UpdateExeWatchHint;
+  end;
+end;
+
+procedure TfrmDMVCNewProject.llExeWatchSetupLinkClick(Sender: TObject; const Link: string; LinkType: TSysLinkType);
+begin
+  // only the addresses of ExeWatch itself: the text of the link comes from our code and from its server
+  if Link.StartsWith(EXEWATCH_URL + '/') then
+    ShellExecute(0, 'open', PChar(Link), nil, nil, SW_SHOWNORMAL);
 end;
 
 procedure TfrmDMVCNewProject.btnBrowseFolderClick(Sender: TObject);

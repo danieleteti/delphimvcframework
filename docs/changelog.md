@@ -929,6 +929,24 @@ Config[TMVCConfigKey.LoadSystemControllers] := 'true';
   an "API Guard" box (Options page, off in every preset) that registers it first, with the blacklist in memory. Sample in
   `samples/filters_apiguard`, guide in `docs/apiguard_filter.md`. Contributed by Giordano Giaccaglia, KD Software
   (PR #934): thank you, Giordano.
+- **The project wizard's ExeWatch box starts at the first run.** ExeWatch is a LoggerPro appender like the others
+  (`LoggerPro.ExeWatchAppender`); the box (off in every preset) adds it to the generated logger. A project generated with
+  it no longer stops at its first start: it used to carry the key `REPLACE_WITH_YOUR_EXEWATCH_API_KEY`, which makes
+  `InitializeExeWatch` raise `Invalid API key format`. Now `.env` has an empty `exewatch.apikey`, the appender is added
+  only when the key starts with `ew_`, and without it the server runs and the log says `ExeWatch is off`. The customer id
+  defaults to the name of the program (an empty one made the SDK keep every event in memory and send nothing) and the
+  version to `1.0.0`. With the JSON logging profile the appender is added by code after the file, with the key in `.env`,
+  and no longer as a block of `loggerpro.json`: that file is committed, `.env` is not. The form tells whether the SDK was
+  found (no more dialog), links the download of ExeWatch's setup when the SDK is missing or older than the one ExeWatch
+  announces, and a project that reaches the SDK only through `EXEWATCH_SDK` gets that folder in its search path. What is
+  specific to ExeWatch (breadcrumbs, timings, counters) stays in the ExeWatch SDK, called from your code: see
+  `docs/exewatch.md`.
+- **LoggerPro: capture hook, and the ExeWatch appender sends the stack of the error.** `ILoggerProBuilder.WithCapture`
+  installs a function that runs on the thread that logs, for Error and Fatal only, and whose result travels in
+  `TLogItem.Captured`; it receives the exception of `LogException` or the one being handled when the log is called
+  inside an `except` block. Not installed, nothing changes. The ExeWatch appender uses it: an error arrives with the
+  stack of the raise (or of the place that logged it) as `stack_trace`, and with the time and the thread of the log
+  line; before, it carried the stack of LoggerPro's own thread.
 - **OIDC: timeouts on the calls to the provider and a 503 when it is down (PR #937).** Discovery, token exchange and
   UserInfo used the platform default timeout (60 s or more), so a provider that did not answer held the request.
   `TMVCOIDCOptions.ConnectTimeoutMS` and `ReadTimeoutMS` (default `OIDC_DEFAULT_HTTP_TIMEOUT_MS`, 10 s; the deprecated

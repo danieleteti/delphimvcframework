@@ -32,6 +32,7 @@ uses
   DMVC.Expert.ProjectGenerator,
   DMVC.Expert.Commons,
   DMVC.Expert.MCPLibrary,
+  DMVC.Expert.ExeWatchSDK,
   JsonDataObjects,
   System.IOUtils;
 
@@ -60,6 +61,12 @@ begin
       function: string
       begin
         Result := MCPLibraryWarning(GetEnvironmentVariable('DMVC_MCP_LIBRARY_PATH'));
+      end;
+    // same for the ExeWatch SDK: DMVC_EXEWATCH_LIBRARY_PATH stands for the library path of the IDE
+    LWizardForm.ExeWatchSDKProbe :=
+      function: TExeWatchSDK
+      begin
+        Result := LocateExeWatchSDK(GetEnvironmentVariable('DMVC_EXEWATCH_LIBRARY_PATH'));
       end;
     if LWizardForm.ShowModal = mrOk then
     begin
