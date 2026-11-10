@@ -99,6 +99,15 @@ type
     #) }
   TStackTraceFormatter = TFunc<Exception, string>;
 
+  { @abstract(Capture hook: runs on the thread that logs, for Error and Fatal only)
+    The appenders run on the thread of the logger, so they cannot see what belongs to the thread that logged (its
+    stack, for one). A capture is called where the log is called, before the item is queued, and its result travels
+    in @link(TLogItem.Captured). AException is the exception passed to LogException, otherwise the one being
+    handled when the log is called inside an except block (ExceptObject), otherwise nil: its stack lives on the
+    exception object (Exception.StackTrace). A capture that raises is ignored:
+    logging never fails because of it. Not set (the default): nothing is called and nothing changes. }
+  TLogItemCapture = reference to function(const AException: Exception): string;
+
   { @abstract(Represent the single log item)
     Each call to some kind of log method is wrapped in a @link(TLogItem)
     instance and passed down the layour of LoggerPro. }
@@ -111,6 +120,7 @@ type
     FThreadID: TThreadID;
     FContext: LogParams;
     FPreRenderedContext: string;
+    FCaptured: string;
     function GetLogTypeAsString: string;
   public
     constructor Create(const aType: TLogType; const aMessage: string; const aTag: string); overload;
@@ -146,6 +156,8 @@ type
     property Context: LogParams read FContext;
     { @abstract(Pre-rendered context string for fixed context optimization) }
     property PreRenderedContext: string read FPreRenderedContext write FPreRenderedContext;
+    { @abstract(What the capture hook (@link(TLogItemCapture)) returned on the thread that logged, '' when none) }
+    property Captured: string read FCaptured write FCaptured;
     { @abstract(Returns true if the log item has context data) }
     function HasContext: Boolean; inline;
   end;
@@ -407,6 +419,7 @@ type
     FFreeAllowed: Boolean;
     FLock: TObject;
     FStackTraceFormatter: TStackTraceFormatter;
+    FCapture: TLogItemCapture;
     function GetAppendersClassNames: TArray<string>;
   protected
     FEnabled: Boolean;
@@ -436,6 +449,9 @@ type
     procedure SetMinimumLevel(const aLevel: TLogType);
 
     property StackTraceFormatter: TStackTraceFormatter read FStackTraceFormatter write FStackTraceFormatter;
+    property Capture: TLogItemCapture read FCapture write FCapture;
+    procedure CaptureInto(const aLogItem: TLogItem; const aException: Exception);
+    procedure LogWithCapture(const aType: TLogType; const aMessage, aTag: string; const aException: Exception);
     property MinimumLevel: TLogType read GetMinimumLevel write SetMinimumLevel;
   end;
 
@@ -1291,6 +1307,8 @@ type
     function WithDefaultRenderer(aRenderer: ILogItemRenderer): ILoggerProBuilder;
     function WithDefaultTag(const aTag: string): ILoggerProBuilder;
     function WithStackTraceFormatter(aFormatter: TStackTraceFormatter): ILoggerProBuilder;
+    { Installs a capture hook (see TLogItemCapture). The last one wins. }
+    function WithCapture(aCapture: TLogItemCapture): ILoggerProBuilder;
 
     // Build the logger
     function Build: ILogWriter;
@@ -1862,25 +1880,8 @@ begin
 end;
 
 procedure TCustomLogWriter.Log(const aType: TLogType; const aMessage, aTag: string);
-var
-  lLogItem: TLogItem;
 begin
-  Assert(not FShuttingDown, 'Cannot log: logger is shutting down');
-  if FShuttingDown then Exit;
-  if FEnabled and (aType >= FLogLevel) then
-  begin
-    lLogItem := TLogItem.Create(aType, aMessage, aTag);
-    try
-      if not FLoggerThread.LogWriterQueue.Enqueue(lLogItem) then
-      begin
-        raise ELoggerPro.Create
-          ('Main logs queue is full. Hints: Are there appenders? Are these appenders fast enough considering the log item production?');
-      end;
-    except
-      FreeAndNil(lLogItem);
-      raise;
-    end;
-  end;
+  LogWithCapture(aType, aMessage, aTag, nil);
 end;
 
 procedure TCustomLogWriter.Log(const aType: TLogType; const aMessage, aTag: string; const aContext: LogParams);
@@ -1895,6 +1896,7 @@ begin
   begin
     lLogItem := TLogItem.Create(aType, aMessage, aTag, aContext);
     try
+      CaptureInto(lLogItem, nil);
       if not FLoggerThread.LogWriterQueue.Enqueue(lLogItem) then
       begin
         raise ELoggerPro.Create
@@ -1919,6 +1921,7 @@ begin
 
   if FEnabled and (aLogItem.LogType >= FLogLevel) then
   begin
+    CaptureInto(aLogItem, nil);
     if not FLoggerThread.LogWriterQueue.Enqueue(aLogItem) then
     begin
       aLogItem.Free;
@@ -2125,7 +2128,7 @@ end;
 
 procedure TLogWriter.LogException(const E: Exception; const aMessage: string; const aTag: string);
 begin
-  Log(TLogType.Error, FormatExceptionMessage(E, aMessage), aTag);
+  LogWithCapture(TLogType.Error, FormatExceptionMessage(E, aMessage), aTag, E);
 end;
 
 procedure TLogWriter.Log(const aType: TLogType; const aMessage: string; const aTag: string; const aContext: array of LogParam);
@@ -2219,6 +2222,7 @@ end;
 function TLogItem.Clone: TLogItem;
 begin
   Result := TLogItem.Create(FType, FMessage, FTag, FTimeStamp, FThreadID, FContext);
+  Result.Captured := FCaptured;
 end;
 
 constructor TLogItem.Create(const aType: TLogType; const aMessage, aTag: string);
@@ -3684,6 +3688,50 @@ function TLogWriterWithDefaultContext.IsWarningEnabled: Boolean; begin Result :=
 function TLogWriterWithDefaultContext.IsErrorEnabled: Boolean;   begin Result := FInner.IsErrorEnabled;   end;
 function TLogWriterWithDefaultContext.IsFatalEnabled: Boolean;   begin Result := FInner.IsFatalEnabled;   end;
 
+{ Capture hook }
+
+procedure TCustomLogWriter.CaptureInto(const aLogItem: TLogItem; const aException: Exception);
+var
+  lException: Exception;
+begin
+  if Assigned(FCapture) and (aLogItem.LogType >= TLogType.Error) then
+  begin
+    lException := aException;
+    if (lException = nil) and (ExceptObject is Exception) then
+      lException := Exception(ExceptObject); // an error logged inside an except block
+    try
+      aLogItem.Captured := FCapture(lException);
+    except
+      aLogItem.Captured := ''; // a capture never breaks logging
+    end;
+  end;
+end;
+
+procedure TCustomLogWriter.LogWithCapture(const aType: TLogType; const aMessage, aTag: string;
+  const aException: Exception);
+var
+  lLogItem: TLogItem;
+begin
+  Assert(not FShuttingDown, 'Cannot log: logger is shutting down');
+  if FShuttingDown then Exit;
+  if FEnabled and (aType >= FLogLevel) then
+  begin
+    lLogItem := TLogItem.Create(aType, aMessage, aTag);
+    try
+      CaptureInto(lLogItem, aException);
+      if not FLoggerThread.LogWriterQueue.Enqueue(lLogItem) then
+      begin
+        raise ELoggerPro.Create
+          ('Main logs queue is full. Hints: Are there appenders? Are these appenders fast enough considering the log item production?');
+      end;
+    except
+      FreeAndNil(lLogItem);
+      raise;
+    end;
+  end;
+end;
+
+
 initialization
   gAdapterLifecycleLock := TCriticalSection.Create;
 
@@ -3691,4 +3739,3 @@ finalization
   FreeAndNil(gAdapterLifecycleLock);
 
 end.
-

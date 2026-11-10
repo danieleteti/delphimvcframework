@@ -148,6 +148,13 @@ function NewExeWatchAppender(const aAPIKey: string;
 /// appender.</summary>
 function WithExeWatch(const aBuilder: ILoggerProBuilder): IExeWatchConfigurator;
 
+/// <summary>The capture hook of the ExeWatch appender (see TLogItemCapture): runs on the thread that logs and takes
+/// the stack there, because the appender runs on the thread of the logger. For an exception it is the stack of the raise
+/// (Exception.StackTrace, which the ExeWatch SDK keeps on the exception object); for a plain error it is the stack of the
+/// call site without the frames of LoggerPro (they are known by name when the map file is there). WithExeWatch installs
+/// it; with NewExeWatchAppender call <c>builder.WithCapture(ExeWatchCapture)</c>.</summary>
+function ExeWatchCapture(const AException: Exception): string;
+
 implementation
 
 uses
@@ -220,18 +227,32 @@ begin
 end;
 
 procedure TLoggerProExeWatchAppender.WriteLog(const aLogItem: TLogItem);
+var
+  lLevel: TEWLogLevel;
+  lExtra: TJSONObject;
 begin
   if not ExeWatchIsInitialized then
     Exit;
-  // Map LoggerPro TLogType -> ExeWatch severity. Tag flows through
-  // verbatim; ExeWatch uses it the same way LoggerPro does.
+  // Map LoggerPro TLogType -> ExeWatch severity. Tag flows through verbatim; ExeWatch uses it the same way LoggerPro does.
   case aLogItem.LogType of
-    TLogType.Debug:   EW.Debug(aLogItem.LogMessage, aLogItem.LogTag);
-    TLogType.Info:    EW.Info(aLogItem.LogMessage, aLogItem.LogTag);
-    TLogType.Warning: EW.Warning(aLogItem.LogMessage, aLogItem.LogTag);
-    TLogType.Error:   EW.Error(aLogItem.LogMessage, aLogItem.LogTag);
-    TLogType.Fatal:   EW.Fatal(aLogItem.LogMessage, aLogItem.LogTag);
+    TLogType.Debug:   lLevel := llDebug;
+    TLogType.Info:    lLevel := llInfo;
+    TLogType.Warning: lLevel := llWarning;
+    TLogType.Error:   lLevel := llError;
+    TLogType.Fatal:   lLevel := llFatal;
+  else
+    Exit;
   end;
+  // What the capture took on the thread that logged: the stack, as the structured field ExeWatch reads and symbolises.
+  // The SDK keeps a stack_trace that is already there; it owns the object.
+  lExtra := nil;
+  if aLogItem.Captured <> '' then
+  begin
+    lExtra := TJSONObject.Create;
+    lExtra.AddPair('stack_trace', TJSONString.Create(aLogItem.Captured)); // TJSONString: Delphi 10.3 has no AddPair(string, string)
+  end;
+  // the time and the thread of the log item, not those of the thread of the logger
+  EW.Log(lLevel, aLogItem.LogMessage, aLogItem.LogTag, aLogItem.TimeStamp, aLogItem.ThreadID, lExtra);
 end;
 
 { TExeWatchConfigurator }
@@ -285,6 +306,7 @@ begin
   if FLogLevelSet then
     lAppender.SetMinimumLevel(FLogLevel);
   FBuilder.WriteToAppender(lAppender);
+  FBuilder.WithCapture(ExeWatchCapture);
   Result := FBuilder;
 end;
 
@@ -298,6 +320,36 @@ end;
 function WithExeWatch(const aBuilder: ILoggerProBuilder): IExeWatchConfigurator;
 begin
   Result := TExeWatchConfigurator.Create(aBuilder);
+end;
+
+{ Capture }
+
+function RemoveLoggerProFrames(const AStack: string): string;
+var
+  lLine: string;
+  lKept: TStringList;
+begin
+  // with the symbols a frame reads "Module!LoggerPro.Unit.Class.Method+0x..."; without them it is an address and stays
+  lKept := TStringList.Create;
+  try
+    for lLine in AStack.Split([#13#10, #10]) do
+      if (lLine.Trim <> '') and not lLine.Contains('!LoggerPro.') and not lLine.StartsWith('LoggerPro.') then
+        lKept.Add(lLine);
+    Result := lKept.Text.TrimRight;
+  finally
+    lKept.Free;
+  end;
+end;
+
+function ExeWatchCapture(const AException: Exception): string;
+begin
+  Result := '';
+  if not ExeWatchIsInitialized then
+    Exit;
+  if Assigned(AException) then
+    Result := AException.StackTrace;
+  if Result = '' then // no exception, or one that was never raised
+    Result := RemoveLoggerProFrames(GetStackTraceStr(0));
 end;
 
 { JSON config auto-registration }

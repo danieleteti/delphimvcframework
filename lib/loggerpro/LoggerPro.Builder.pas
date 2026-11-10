@@ -451,6 +451,7 @@ type
     FDefaultRenderer: ILogItemRenderer;
     FDefaultTag: string;
     FStackTraceFormatter: TStackTraceFormatter;
+    FCapture: TLogItemCapture;
     FPendingConfiguratorName: string;
   public
     constructor Create;
@@ -494,6 +495,7 @@ type
     function WithDefaultRenderer(aRenderer: ILogItemRenderer): ILoggerProBuilder;
     function WithDefaultTag(const aTag: string): ILoggerProBuilder;
     function WithStackTraceFormatter(aFormatter: TStackTraceFormatter): ILoggerProBuilder;
+    function WithCapture(aCapture: TLogItemCapture): ILoggerProBuilder;
     // Build the logger
     function Build: ILogWriter;
     // Used by configurators
@@ -747,6 +749,12 @@ begin
   Result := Self;
 end;
 
+function TLoggerProBuilder.WithCapture(aCapture: TLogItemCapture): ILoggerProBuilder;
+begin
+  FCapture := aCapture;
+  Result := Self;
+end;
+
 function TLoggerProBuilder.GetDefaultRenderer: ILogItemRenderer;
 begin
   Result := FDefaultRenderer;
@@ -790,6 +798,10 @@ begin
   // Set stack trace formatter if configured
   if Assigned(FStackTraceFormatter) then
     lLogWriter.StackTraceFormatter := FStackTraceFormatter;
+
+  // Set capture hook if configured
+  if Assigned(FCapture) then
+    lLogWriter.Capture := FCapture;
 
   // Wrap with default tag if configured
   if not FDefaultTag.IsEmpty then
