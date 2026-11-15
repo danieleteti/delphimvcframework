@@ -1713,7 +1713,8 @@ begin
     '.claude/skills/delphi-build/SKILL.md', '.claude/skills/delphi-build/scripts/build.bat',
     '.claude/skills/delphi-security/SKILL.md', '.claude/skills/exewatch-delphi/SKILL.md'];
   LTestCase.ForbiddenFiles := ['.claude/skills/dmvcframework-minimal-api', '.claude/skills/dmvcframework-webapp',
-    '.claude/skills/dmvcframework-ui', '.claude/skills/htmx-skill', '.claude/skills/dmvcframework-jsonrpc'];
+    '.claude/skills/dmvcframework-ui', '.claude/skills/htmx-skill', '.claude/skills/dmvcframework-jsonrpc',
+    '.claude/skills/dmvcframework-mcp'];
   LTestCase.MustContain := ['CLAUDE.md|@AGENTS.md', 'GEMINI.md|@AGENTS.md',
     'AGENTS.md|DelphiMVCFramework ' + AISkillsDMVCVersion + ' project',
     'AGENTS.md|<!-- delphi-local-sources -->',
@@ -1724,7 +1725,8 @@ begin
     'update_ai_skills.bat|set "REF=' + AISkillsRef + '"',
     'update_ai_skills.bat|set "SKILLS=delphi delphi-code-smells dmvcframework dmvcframework-security dmvcframework-testing delphi-firedac delphi-testing delphi-build delphi-security exewatch-delphi"',
     '.claude/skills/VERSION|' + AISkillsLine];
-  LTestCase.MustNotContain := ['AGENTS.md|dmvcframework-webapp', 'AGENTS.md|{{', 'update_ai_skills.bat|{{'];
+  LTestCase.MustNotContain := ['AGENTS.md|dmvcframework-webapp', 'AGENTS.md|{{', 'update_ai_skills.bat|{{',
+    'AGENTS.md|dmvcframework-mcp', 'update_ai_skills.bat|dmvcframework-mcp'];
   // $(BDS) is set only when a Delphi install was found (not with --skip-compile)
   if AISkillsLocalDelphiSource <> '' then
     LTestCase.MustContain := LTestCase.MustContain +
@@ -1815,6 +1817,24 @@ begin
   LTestCase.Config.B[TConfigKey.program_ai_skills] := True;
   LTestCase.ExpectedFiles := ['.claude/skills/dmvcframework-jsonrpc/SKILL.md'];
   LTestCase.ForbiddenFiles := ['.claude/skills/dmvcframework-webapp', '.claude/skills/htmx-skill'];
+  ATestCases.Add(LTestCase);
+  LTestCase := Default(TTestCase);
+
+  // MCP Server preset: + mcp, from the real branch zip
+  LTestCase.Name := 'mcp_preset_ai_skills';
+  LTestCase.Config := CreateBaseConfig;
+  LTestCase.Config.S[TConfigKey.program_server_engine] := 'indydirect';
+  LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
+  LTestCase.Config.B[TConfigKey.mcp_generate] := True;
+  LTestCase.Config.B[TConfigKey.mcp_stdio] := True;
+  LTestCase.Config.B[TConfigKey.mcp_standalone] := True;
+  LTestCase.Config.B[TConfigKey.program_ai_skills] := True;
+  LTestCase.ExpectedFiles := ['.claude/skills/dmvcframework-mcp/SKILL.md', '.claude/skills/dmvcframework/SKILL.md',
+    'Tools.SampleU.pas'];
+  LTestCase.ForbiddenFiles := ['.claude/skills/dmvcframework-jsonrpc', '.claude/skills/dmvcframework-webapp'];
+  LTestCase.MustContain := ['AGENTS.md|`.claude/skills/dmvcframework-mcp/SKILL.md` - MCP tools',
+    'update_ai_skills.bat|delphi-security exewatch-delphi dmvcframework-mcp"',
+    '.claude/skills/dmvcframework-mcp/SKILL.md|name: dmvcframework-mcp'];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
 
@@ -2520,6 +2540,12 @@ begin
     LConfig.B[TConfigKey.program_ssv_mustache] := True;
     Result := Check('Mustache views: no TemplatePro web skills', Length(AISkillsFor(LConfig)) = 10,
       string.Join(' ', AISkillsFor(LConfig))) and Result;
+    LConfig.B[TConfigKey.mcp_generate] := True;
+    LSkills := AISkillsFor(LConfig);
+    Result := Check('MCP: + dmvcframework-mcp, listed in AGENTS.md',
+      (Length(LSkills) = 11) and (LSkills[10] = 'dmvcframework-mcp') and
+      AISkillsMarkdownList(LSkills).Contains('`.claude/skills/dmvcframework-mcp/SKILL.md` - MCP tools'),
+      string.Join(' ', LSkills)) and Result;
   finally
     LConfig.Free;
   end;

@@ -85,7 +85,7 @@ type
   end;
 
 const
-  AI_SKILLS: array [0 .. 14] of TAISkillInfo = (
+  AI_SKILLS: array [0 .. 15] of TAISkillInfo = (
     (Name: 'delphi'; Description: 'the language and the RTL: version gating, lifetime, strings, generics, threading'),
     (Name: 'delphi-code-smells'; Description: 'code review: compiler warnings, static analysis, memory leaks'),
     (Name: 'dmvcframework'; Description: 'controllers, ActiveRecord, validation, DI, middleware, servers, dotEnv'),
@@ -94,6 +94,7 @@ const
     (Name: 'dmvcframework-ui'; Description: 'Bootstrap 5.3 layout, style.css, dark mode'),
     (Name: 'dmvcframework-security'; Description: 'REQUIRED for any endpoint taking client input'),
     (Name: 'dmvcframework-jsonrpc'; Description: 'JSON-RPC 2.0 services and client'),
+    (Name: 'dmvcframework-mcp'; Description: 'MCP tools, resources and prompts (mcp-server-delphi)'),
     (Name: 'dmvcframework-testing'; Description: 'DUnitX integration tests'),
     (Name: 'htmx-skill'; Description: 'index of the htmx 2.x reference pages'),
     (Name: 'delphi-firedac'; Description: 'FireDAC in plain Delphi: connections, queries, transactions'),
@@ -138,6 +139,8 @@ begin
     Result := Result + ['htmx-skill'];
   if AConfig.B[TConfigKey.jsonrpc_generate] then
     Result := Result + ['dmvcframework-jsonrpc'];
+  if AConfig.B[TConfigKey.mcp_generate] then
+    Result := Result + ['dmvcframework-mcp'];
 end;
 
 function AISkillsMarkdownList(const ASkills: TArray<string>): string;
