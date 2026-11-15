@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "{{:program_name}}": {
-      "command": "bin\\{{:program_name}}.exe",
+      "command": ".\\{{:program_name}}.exe",
       "args": ["--transport", "stdio"]
     }
   }

@@ -594,7 +594,8 @@ begin
   end
   else if (rgApplicationType.ItemIndex = 0) or not lOn then
     chkMCPStdio.Hint := 'The same executable started with "--transport stdio" talks MCP on stdin/stdout, ' +
-      'the way Claude Code and Claude Desktop launch a local server. Generates .mcp.json. ' +
+      'the way Claude Code and Claude Desktop launch a local server. Generates bin\.mcp.json and ' +
+      'bin\opencode.json: develop from the project folder, use the server from a client started in bin\. ' +
       'In this mode no HTTP server runs and ConfigureEngine is not called.'
   else
     chkMCPStdio.Hint := 'Not available: a Windows service has no stdin/stdout.';
@@ -1465,7 +1466,7 @@ begin
       else if chkMCP.Checked and chkMCP.Enabled or fIsMCPServerPreset then
       begin
         if chkMCPStdio.Checked and chkMCPStdio.Enabled then
-          LSummary.Add('MCP: /mcp over HTTP + stdio (needs mcp-server-delphi)')
+          LSummary.Add('MCP: /mcp over HTTP + stdio (needs mcp-server-delphi); bin\.mcp.json: use the server from bin\')
         else
           LSummary.Add('MCP: /mcp over HTTP (needs mcp-server-delphi)');
         // same rule as the generator ('mcp.auth.jwt')

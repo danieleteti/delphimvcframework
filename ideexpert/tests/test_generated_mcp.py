@@ -311,16 +311,22 @@ def test_stdio(case_dir, expect_resources, expect_log_file=True):
     else:
         check("logging disabled: no log file", not has_log, logs)
     check("nothing was written in the client's working directory", not os.listdir(cwd), str(os.listdir(cwd)))
-    mcp_json = json.load(open(os.path.join(project, ".mcp.json"), encoding="utf-8"))
+    # The client config lives in bin\: a client started in the project folder would run the exe for the
+    # whole session and lock it, so every rebuild would fail. The command is relative to bin\.
+    bin_dir = os.path.join(project, "bin")
+    check("no .mcp.json / opencode.json in the project folder",
+          not os.path.exists(os.path.join(project, ".mcp.json"))
+          and not os.path.exists(os.path.join(project, "opencode.json")))
+    mcp_json = json.load(open(os.path.join(bin_dir, ".mcp.json"), encoding="utf-8"))
     server = mcp_json["mcpServers"]["TestProject"]
-    check(".mcp.json points at the built executable, relative to the project",
-          os.path.isfile(os.path.join(project, server["command"])) and server["args"] == ["--transport", "stdio"],
+    check("bin\\.mcp.json points at the built executable, relative to bin",
+          os.path.isfile(os.path.join(bin_dir, server["command"])) and server["args"] == ["--transport", "stdio"],
           str(server))
     # OpenCode does not read .mcp.json: it has its own file and its own shape
-    oc = json.load(open(os.path.join(project, "opencode.json"), encoding="utf-8"))["mcp"]["TestProject"]
-    check("opencode.json: local server, one command array pointing at the built executable",
+    oc = json.load(open(os.path.join(bin_dir, "opencode.json"), encoding="utf-8"))["mcp"]["TestProject"]
+    check("bin\\opencode.json: local server, one command array pointing at the built executable",
           oc["type"] == "local" and oc["enabled"] is True and oc["command"][1:] == ["--transport", "stdio"]
-          and os.path.isfile(os.path.join(project, oc["command"][0])), str(oc))
+          and os.path.isfile(os.path.join(bin_dir, oc["command"][0])), str(oc))
     return project
 
 

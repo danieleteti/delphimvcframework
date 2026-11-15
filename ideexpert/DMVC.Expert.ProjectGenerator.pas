@@ -807,12 +807,15 @@ begin
       SaveFile('Resources.SampleU.pas', RenderTemplate('mcp_resources.pas.tpro', AConfig));
       SaveFile('Prompts.SampleU.pas', RenderTemplate('mcp_prompts.pas.tpro', AConfig));
     end;
-    // Claude Code opened in the project folder finds the server: a relative
-    // path, nothing machine-specific and no secret. OpenCode reads opencode.json, not .mcp.json
+    // In bin\, not in the project folder: a client started in the project folder
+    // would run the exe for the whole session and lock it, so every rebuild fails.
+    // Develop from the project folder, use the server from bin\. A relative path,
+    // nothing machine-specific and no secret. OpenCode reads opencode.json, not .mcp.json
     if AConfig.B[TConfigKey.mcp_stdio] then
     begin
-      SaveFileNoBOM('.mcp.json', RenderTemplate('mcp_json.tpro', AConfig));
-      SaveFileNoBOM('opencode.json', RenderTemplate('opencode_json.tpro', AConfig));
+      TDirectory.CreateDirectory(TPath.Combine(AProjectFolder, 'bin'));
+      SaveFileNoBOM('bin' + PathDelim + '.mcp.json', RenderTemplate('mcp_json.tpro', AConfig));
+      SaveFileNoBOM('bin' + PathDelim + 'opencode.json', RenderTemplate('opencode_json.tpro', AConfig));
     end;
   end;
 

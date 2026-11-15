@@ -1726,7 +1726,7 @@ begin
     'update_ai_skills.bat|set "SKILLS=delphi delphi-code-smells dmvcframework dmvcframework-security dmvcframework-testing delphi-firedac delphi-testing delphi-build delphi-security exewatch-delphi"',
     '.claude/skills/VERSION|' + AISkillsLine];
   LTestCase.MustNotContain := ['AGENTS.md|dmvcframework-webapp', 'AGENTS.md|{{', 'update_ai_skills.bat|{{',
-    'AGENTS.md|dmvcframework-mcp', 'update_ai_skills.bat|dmvcframework-mcp'];
+    'AGENTS.md|dmvcframework-mcp', 'update_ai_skills.bat|dmvcframework-mcp', 'AGENTS.md|MCP server'];
   // $(BDS) is set only when a Delphi install was found (not with --skip-compile)
   if AISkillsLocalDelphiSource <> '' then
     LTestCase.MustContain := LTestCase.MustContain +
@@ -1834,7 +1834,11 @@ begin
   LTestCase.ForbiddenFiles := ['.claude/skills/dmvcframework-jsonrpc', '.claude/skills/dmvcframework-webapp'];
   LTestCase.MustContain := ['AGENTS.md|`.claude/skills/dmvcframework-mcp/SKILL.md` - MCP tools',
     'update_ai_skills.bat|delphi-security exewatch-delphi dmvcframework-mcp"',
-    '.claude/skills/dmvcframework-mcp/SKILL.md|name: dmvcframework-mcp'];
+    '.claude/skills/dmvcframework-mcp/SKILL.md|name: dmvcframework-mcp',
+    'AGENTS.md|Skill: `dmvcframework-mcp`.',
+    'AGENTS.md|- Develop from this folder; use the MCP server from `bin\`',
+    'AGENTS.md|talk to `bin\TestProject.exe --transport stdio` directly'];
+  LTestCase.MustNotContain := ['AGENTS.md|{{'];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
 
@@ -1848,8 +1852,10 @@ begin
   LTestCase.Config.B[TConfigKey.mcp_generate] := True;
   LTestCase.Config.B[TConfigKey.mcp_stdio] := True;
   LTestCase.Config.B[TConfigKey.mcp_standalone] := True;
-  LTestCase.ExpectedFiles := ['Tools.SampleU.pas', 'Resources.SampleU.pas', 'Prompts.SampleU.pas', '.mcp.json', 'opencode.json'];
-  LTestCase.ForbiddenFiles := ['Controllers.HomeU.pas', 'AuthenticationU.pas', 'bin/loggerpro.stdio.json'];
+  LTestCase.ExpectedFiles := ['Tools.SampleU.pas', 'Resources.SampleU.pas', 'Prompts.SampleU.pas', 'bin/.mcp.json', 'bin/opencode.json'];
+  // in bin\: a client started in the project folder would run the exe and lock it
+  LTestCase.ForbiddenFiles := ['Controllers.HomeU.pas', 'AuthenticationU.pas', 'bin/loggerpro.stdio.json',
+    '.mcp.json', 'opencode.json'];
   LTestCase.MustContain := [
     'TestProject.dpr|Tools.SampleU in ''Tools.SampleU.pas''',
     'TestProject.dpr|MVCFramework.MCP.TransportConf',
@@ -1868,10 +1874,11 @@ begin
     'EngineConfigU.pas|TMCPServer.Instance.CreatePublishedEndpoint',
     'BootConfigU.pas|if not MCPTransportIsStdio then',
     'bin/.env|mcp.auth.token=', 'bin/.env|mcp.allowed_origins=', 'bin/.env|mcp.http.host=localhost',
-    '.mcp.json|"command": "bin\\TestProject.exe"', '.mcp.json|"--transport", "stdio"',
-    'opencode.json|"type": "local"', 'opencode.json|"command": ["bin\\TestProject.exe", "--transport", "stdio"]'];
+    'bin/.mcp.json|"command": ".\\TestProject.exe"', 'bin/.mcp.json|"--transport", "stdio"',
+    'bin/opencode.json|"type": "local"', 'bin/opencode.json|"command": [".\\TestProject.exe", "--transport", "stdio"]'];
   LTestCase.MustNotContain := ['EngineConfigU.pas|THomeController', 'EngineConfigU.pas|RegisterFromEngine',
-    'TestProject.dpr|Controllers.HomeU', 'bin/.env|mcp.auth.token=' + sLineBreak, '.mcp.json|{{', 'opencode.json|{{'];
+    'TestProject.dpr|Controllers.HomeU', 'bin/.env|mcp.auth.token=' + sLineBreak, 'bin/.mcp.json|{{',
+    'bin/opencode.json|{{'];
   ATestCases.Add(LTestCase);
   LTestCase := Default(TTestCase);
 
@@ -1916,7 +1923,7 @@ begin
   LTestCase.Config.S[TConfigKey.program_type] := TProgramTypes.INDY_DIRECT;
   LTestCase.Config.B[TConfigKey.mcp_generate] := True;
   LTestCase.ExpectedFiles := ['Tools.SampleU.pas', 'Resources.SampleU.pas', 'Prompts.SampleU.pas'];
-  LTestCase.ForbiddenFiles := ['.mcp.json', 'opencode.json'];
+  LTestCase.ForbiddenFiles := ['.mcp.json', 'opencode.json', 'bin/.mcp.json', 'bin/opencode.json'];
   LTestCase.MustNotContain := ['TestProject.dpr|MCPTransportIsStdio', 'TestProject.dpr|RunMCPStdio',
     'BootConfigU.pas|MCPTransportIsStdio'];
   ATestCases.Add(LTestCase);
@@ -2095,7 +2102,7 @@ begin
   LTestCase.Config.B[TConfigKey.mcp_generate] := True;
   LTestCase.Config.B[TConfigKey.mcp_stdio] := True;
   LTestCase.ExpectedFiles := ['Tools.SampleU.pas', 'Resources.SampleU.pas', 'Prompts.SampleU.pas'];
-  LTestCase.ForbiddenFiles := ['.mcp.json', 'opencode.json'];
+  LTestCase.ForbiddenFiles := ['.mcp.json', 'opencode.json', 'bin/.mcp.json', 'bin/opencode.json'];
   LTestCase.MustContain := ['TestProject.dpr|Tools.SampleU in ''Tools.SampleU.pas''', 'EngineConfigU.pas|AllowedMethodsHTTPFilter'];
   LTestCase.MustNotContain := ['TestProject.dpr|TransportConf', 'BootConfigU.pas|MCPTransportIsStdio'];
   ATestCases.Add(LTestCase);
