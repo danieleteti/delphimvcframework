@@ -775,6 +775,7 @@ function TJWT.IsValidToken(const Token: string; out Header, Payload: TJDOJSONObj
 var
   lPieces: TArray<string>;
   lAlgName: string;
+  lSignature: TBytes;
 begin
   Result := False;
   Header := nil;
@@ -817,9 +818,14 @@ begin
         Error := Error + ' (algorithm mismatch: token=' + lAlgName + ', expected=' + FSigner.GetAlgorithm + ')';
         Exit(False);
       end;
-      Result := FSigner.Verify(
-        lPieces[0] + '.' + lPieces[1],
-        URLSafeB64DecodeBytes(lPieces[2]));
+      // only the spelling that was issued: another one of the same bytes would
+      // slip past a deny-list keyed on the token string (#939)
+      if not TryURLSafeB64DecodeCanonicalBytes(lPieces[2], lSignature) then
+      begin
+        Error := Error + ' (step5)';
+        Exit(False);
+      end;
+      Result := FSigner.Verify(lPieces[0] + '.' + lPieces[1], lSignature);
 
       // if the token is correctly signed and has not been tampered,
       // let's check it's validity usinf nbf, exp, iat as configured in

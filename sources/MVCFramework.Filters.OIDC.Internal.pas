@@ -605,8 +605,8 @@ begin
         raise EMVCException.Create(SOIDCIDTokenSigNoKey);
       // Verify: signature is over "header.payload" (the first two base64url parts)
       lDataToVerify := lParts[0] + '.' + lParts[1];
-      lSignatureBytes := URLSafeB64DecodeBytes(lParts[2]);
-      if not lSigner.Verify(lDataToVerify, lSignatureBytes) then
+      if not TryURLSafeB64DecodeCanonicalBytes(lParts[2], lSignatureBytes)
+        or not lSigner.Verify(lDataToVerify, lSignatureBytes) then
         raise EMVCException.Create(SOIDCIDTokenSigFailed);
       LogD(SOIDCIDTokenSigVerified);
     end

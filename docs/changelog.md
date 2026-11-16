@@ -1077,6 +1077,24 @@ change a default; each one says so.
   are unaffected, and a warning says what happened. Validate a client-supplied
   key before the limiter sees it - the cap is a backstop, not the fix.
 
+**JWT: one spelling per signature** (#939)
+
+- Since the asymmetric signers (RS/PS/ES/EdDSA) arrived, `TJWT` compared the
+  decoded signature bytes, not the token string as 3.4 did. Base64url leaves the
+  low bits of the last char unused and a decoder takes an optional `=`, so several
+  strings carry the same signature: changing one of those bits gave a different
+  token that still verified, on every algorithm. A deny-list keyed on the token
+  string (a hash of the token stored at logout) missed it and the revoked token
+  worked again. `TJWT` now accepts the signature only in the canonical form it
+  issues, as 3.4 did; a revocation keyed on the `jti` claim was never affected.
+  Header and payload were not affected: they are signed as strings.
+- A signature that is not base64url at all (a length of 4k+1) made `LoadToken`
+  raise an `EExternalException` instead of returning `False`, and the JWT check
+  does not catch it, also on a public action that only reads an optional token.
+  It is an invalid token again: `False`, so a 401 where a token is required.
+- The OIDC flow checks the ID token signature the same way.
+- New in `MVCFramework.Commons`: `TryURLSafeB64DecodeCanonicalBytes`.
+
 **Path handling**
 
 - The static-files middleware and filter computed a directory-traversal verdict

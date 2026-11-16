@@ -147,6 +147,39 @@ type
     procedure RS256SingleByteSignatureCorruptionIsRejected;
   end;
 
+  // Issue #939: TJWT must accept only the token string it issued. Base64url
+  // leaves unused low bits in the last char, and a decoder takes the optional
+  // '=' padding, so several strings decode to the same signature bytes. If any
+  // of them verifies, a deny-list keyed on the token string (logout) is
+  // bypassed. 3.4.3 compared the re-encoded string; 3.5 compared bytes only.
+  [TestFixture]
+  TTestJWTCanonicalEncoding = class
+  public
+    // The variants really decode to the same bytes, so the tests below fail
+    // for the right reason and not because the signature changed.
+    [Test]
+    procedure VariantsDecodeToTheSameBytes;
+    [Test]
+    procedure HS256AcceptsOnlyTheIssuedSignature;
+    [Test]
+    procedure HS512AcceptsOnlyTheIssuedSignature;
+    [Test]
+    procedure RS256AcceptsOnlyTheIssuedSignature;
+    [Test]
+    procedure PS256AcceptsOnlyTheIssuedSignature;
+    [Test]
+    procedure ES256AcceptsOnlyTheIssuedSignature;
+    [Test]
+    procedure EdDSAAcceptsOnlyTheIssuedSignature;
+    // Header and payload are signed as strings: a re-encoded one fails already.
+    [Test]
+    procedure ReencodedHeaderOrPayloadIsRejected;
+    // A malformed signature is an invalid token (False, then 401), not an
+    // exception: 3.4.3 never decoded the signature, so it could not raise.
+    [Test]
+    procedure MalformedSignatureIsRejectedWithoutRaising;
+  end;
+
   // GHSA-hgv7-ch4w-2f47: the demo secret shipped as default parameter value of
   // the JWT middleware/filter constructors is public, so tokens signed with it
   // can be forged by anyone. It must be rejected instead of used.
@@ -800,6 +833,192 @@ begin
     'a token with one corrupted signature byte must be rejected');
 end;
 
+{ TTestJWTCanonicalEncoding }
+
+const
+  B64URL_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+
+// Every other string that decodes to the same bytes as the canonical, unpadded
+// ASegment: its last char with the unused low bits changed, and the '=' padding.
+function NonCanonicalVariants(const ASegment: string): TArray<string>;
+var
+  lUnusedBits, lMask, lHigh, lIndex, K: Integer;
+  lBase: string;
+begin
+  Result := [];
+  // n chars carry 6n bits, the bytes use the largest multiple of 8 below
+  lUnusedBits := (6 * Length(ASegment)) mod 8;
+  if lUnusedBits > 0 then
+  begin
+    lMask := (1 shl lUnusedBits) - 1;
+    lIndex := Pos(ASegment[Length(ASegment)], B64URL_ALPHABET) - 1;
+    lHigh := lIndex and not lMask;
+    lBase := Copy(ASegment, 1, Length(ASegment) - 1);
+    for K := 0 to lMask do
+      if (lHigh or K) <> lIndex then
+        Result := Result + [lBase + B64URL_ALPHABET[(lHigh or K) + 1]];
+  end;
+  case Length(ASegment) mod 4 of
+    2: Result := Result + [ASegment + '=='];
+    3: Result := Result + [ASegment + '='];
+  end;
+end;
+
+// not const: callers pass a signer constructed in place, so the parameter must hold a reference
+procedure AssertOnlyIssuedSignatureAccepted(ASigner: IJWTSigner);
+var
+  lToken, lVariant: string;
+  lParts, lVariants: TArray<string>;
+begin
+  lToken := CreateTestToken(ASigner);
+  Assert.IsTrue(VerifyTestToken(ASigner, lToken), 'sanity: the issued token must verify');
+  lParts := lToken.Split(['.']);
+  lVariants := NonCanonicalVariants(lParts[2]);
+  Assert.IsTrue(Length(lVariants) > 0, 'this signature length has no non-canonical form');
+  for lVariant in lVariants do
+    Assert.IsFalse(VerifyTestToken(ASigner, lParts[0] + '.' + lParts[1] + '.' + lVariant),
+      'accepted a re-encoded signature: ' + lVariant + ' (issued: ' + lParts[2] + ')');
+end;
+
+procedure TTestJWTCanonicalEncoding.VariantsDecodeToTheSameBytes;
+const
+  // 32 = HS256, 64 = HS512/ES256/EdDSA, 256 = RS256/PS256 (2048-bit key)
+  SIZES: array [0..2] of Integer = (32, 64, 256);
+  EXPECTED_VARIANTS: array [0..2] of Integer = (4, 16, 16);
+var
+  lBytes, lDecoded: TBytes;
+  lSeg, lVariant: string;
+  lVariants: TArray<string>;
+  I, J: Integer;
+begin
+  for I := Low(SIZES) to High(SIZES) do
+  begin
+    SetLength(lBytes, SIZES[I]);
+    for J := 0 to High(lBytes) do
+      lBytes[J] := Byte(J * 37 + 11);
+    lSeg := URLSafeB64encode(lBytes, False);
+    lVariants := NonCanonicalVariants(lSeg);
+    Assert.AreEqual<Integer>(EXPECTED_VARIANTS[I], Length(lVariants), Format('variants of %d bytes', [SIZES[I]]));
+    // the decoder TJWT and the OIDC flow use takes the canonical form only
+    Assert.IsTrue(TryURLSafeB64DecodeCanonicalBytes(lSeg, lDecoded) and SameBytes(lBytes, lDecoded),
+      'canonical form refused: ' + lSeg);
+    for lVariant in lVariants do
+    begin
+      Assert.AreNotEqual(lSeg, lVariant);
+      Assert.IsTrue(SameBytes(lBytes, URLSafeB64DecodeBytes(lVariant)),
+        Format('%s does not decode to the bytes of %s', [lVariant, lSeg]));
+      Assert.IsFalse(TryURLSafeB64DecodeCanonicalBytes(lVariant, lDecoded),
+        'non-canonical form accepted: ' + lVariant);
+    end;
+  end;
+end;
+
+procedure TTestJWTCanonicalEncoding.HS256AcceptsOnlyTheIssuedSignature;
+begin
+  AssertOnlyIssuedSignatureAccepted(THMACJWTSigner.Create(HMAC_HS256, 'test-secret'));
+end;
+
+procedure TTestJWTCanonicalEncoding.HS512AcceptsOnlyTheIssuedSignature;
+begin
+  AssertOnlyIssuedSignatureAccepted(THMACJWTSigner.Create(HMAC_HS512, 'test-secret-512'));
+end;
+
+procedure TTestJWTCanonicalEncoding.RS256AcceptsOnlyTheIssuedSignature;
+begin
+  AssertOnlyIssuedSignatureAccepted(TRSAJWTSigner.CreateFromFiles(JWT_RS256,
+    TPath.Combine(GetTestKeysPath, 'rsa/private.pem'), TPath.Combine(GetTestKeysPath, 'rsa/public.pem')));
+end;
+
+procedure TTestJWTCanonicalEncoding.PS256AcceptsOnlyTheIssuedSignature;
+begin
+  AssertOnlyIssuedSignatureAccepted(TRSAPSSJWTSigner.CreateFromFiles(JWT_PS256,
+    TPath.Combine(GetTestKeysPath, 'rsa/private.pem'), TPath.Combine(GetTestKeysPath, 'rsa/public.pem')));
+end;
+
+procedure TTestJWTCanonicalEncoding.ES256AcceptsOnlyTheIssuedSignature;
+begin
+  AssertOnlyIssuedSignatureAccepted(TECDSAJWTSigner.CreateFromFiles(JWT_ES256,
+    TPath.Combine(GetTestKeysPath, 'ec/es256_private.pem'), TPath.Combine(GetTestKeysPath, 'ec/es256_public.pem')));
+end;
+
+procedure TTestJWTCanonicalEncoding.EdDSAAcceptsOnlyTheIssuedSignature;
+begin
+  AssertOnlyIssuedSignatureAccepted(TEdDSAJWTSigner.CreateFromFiles(
+    TPath.Combine(GetTestKeysPath, 'ed25519/private.pem'), TPath.Combine(GetTestKeysPath, 'ed25519/public.pem')));
+end;
+
+procedure TTestJWTCanonicalEncoding.ReencodedHeaderOrPayloadIsRejected;
+var
+  lSigner: IJWTSigner;
+  lJWT: TJWT;
+  lToken, lVariant: string;
+  lParts: TArray<string>;
+  lTried, lPad: Integer;
+begin
+  lSigner := THMACJWTSigner.Create(HMAC_HS256, 'test-secret');
+  lTried := 0;
+  // three payload lengths in a row: at least two are not a multiple of 3 bytes
+  for lPad := 1 to 3 do
+  begin
+    lJWT := TJWT.Create(lSigner, 0);
+    try
+      lJWT.CustomClaims['pad'] := StringOfChar('x', lPad);
+      lToken := lJWT.GetToken;
+    finally
+      lJWT.Free;
+    end;
+    Assert.IsTrue(VerifyTestToken(lSigner, lToken), 'sanity: the issued token must verify');
+    lParts := lToken.Split(['.']);
+    for lVariant in NonCanonicalVariants(lParts[0]) do
+    begin
+      Inc(lTried);
+      Assert.IsFalse(VerifyTestToken(lSigner, lVariant + '.' + lParts[1] + '.' + lParts[2]),
+        'accepted a re-encoded header: ' + lVariant);
+    end;
+    for lVariant in NonCanonicalVariants(lParts[1]) do
+    begin
+      Inc(lTried);
+      Assert.IsFalse(VerifyTestToken(lSigner, lParts[0] + '.' + lVariant + '.' + lParts[2]),
+        'accepted a re-encoded payload: ' + lVariant);
+    end;
+  end;
+  Assert.IsTrue(lTried > 0, 'no re-encoded header or payload was tried');
+end;
+
+procedure TTestJWTCanonicalEncoding.MalformedSignatureIsRejectedWithoutRaising;
+var
+  lSigner: IJWTSigner;
+  lParts: TArray<string>;
+  lSig, lBad: string;
+  lCase: Integer;
+  lAccepted: Boolean;
+begin
+  lSigner := THMACJWTSigner.Create(HMAC_HS256, 'test-secret');
+  lParts := CreateTestToken(lSigner).Split(['.']);
+  lSig := lParts[2];
+  for lCase := 0 to 4 do
+  begin
+    case lCase of
+      0: begin // a length no base64 string can have (4k+1)
+           lBad := lSig;
+           while Length(lBad) mod 4 <> 1 do
+             lBad := lBad + 'A';
+         end;
+      1: lBad := Copy(lSig, 1, 10) + '!' + Copy(lSig, 11, MaxInt);  // not in the alphabet
+      2: lBad := Copy(lSig, 1, 10) + ' ' + Copy(lSig, 11, MaxInt);  // whitespace
+      3: lBad := Copy(lSig, 1, 10) + '+' + Copy(lSig, 12, MaxInt);  // base64, not base64url
+      4: lBad := '=' + lSig;                                         // padding in front
+    end;
+    lAccepted := True;
+    Assert.WillNotRaise(
+      procedure
+      begin
+        lAccepted := VerifyTestToken(lSigner, lParts[0] + '.' + lParts[1] + '.' + lBad);
+      end, nil, Format('case %d raised: %s', [lCase, lBad]));
+    Assert.IsFalse(lAccepted, Format('case %d accepted: %s', [lCase, lBad]));
+  end;
+end;
+
 { TTestJWTInsecureSecret }
 
 procedure TTestJWTInsecureSecret.ShippedDefaultSecretIsRejected;
@@ -883,6 +1102,7 @@ initialization
   TDUnitX.RegisterTestFixture(TTestEdDSASigner);
   TDUnitX.RegisterTestFixture(TTestJWTSignerSecurity);
   TDUnitX.RegisterTestFixture(TTestJWTSignatureTamper);
+  TDUnitX.RegisterTestFixture(TTestJWTCanonicalEncoding);
   TDUnitX.RegisterTestFixture(TTestJWTInsecureSecret);
 
 end.

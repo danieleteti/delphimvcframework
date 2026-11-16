@@ -745,6 +745,9 @@ function URLSafeB64encode(const Value: string; IncludePadding: Boolean; AByteEnc
 function URLSafeB64encode(const Value: TBytes; IncludePadding: Boolean): string; overload;
 function URLSafeB64Decode(const Value: string; AByteEncoding: IIdTextEncoding = nil): string;
 function URLSafeB64DecodeBytes(const Value: string): TBytes;
+// False, without raising, unless Value is the canonical unpadded base64url of
+// Bytes: a signature has a single spelling, so a token is identified by its string
+function TryURLSafeB64DecodeCanonicalBytes(const Value: string; out Bytes: TBytes): Boolean;
 
 function URLEncode(const Value: string): string; overload;
 function URLDecode(const Value: string): string;
@@ -1699,6 +1702,22 @@ begin
     raise EExternalException.Create('Illegal base64url length');
   end;
   Result := TBytes(TURLSafeDecode.DecodeBytes(lPadded));
+end;
+
+function TryURLSafeB64DecodeCanonicalBytes(const Value: string; out Bytes: TBytes): Boolean;
+begin
+  // the decoder ignores the unused low bits of the last char and takes '=':
+  // only the round trip tells the one spelling from the others
+  try
+    Bytes := URLSafeB64DecodeBytes(Value);
+  except
+    on E: Exception do
+    begin
+      Bytes := nil;
+      Exit(False);
+    end;
+  end;
+  Result := URLSafeB64encode(Bytes, False) = Value;
 end;
 
 { TMultiReadExclusiveWriteSynchronizerHelper }
