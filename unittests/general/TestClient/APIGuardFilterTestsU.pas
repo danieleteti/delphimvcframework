@@ -368,15 +368,34 @@ function TAPIGuardFilterTests.WaitForLines(const AFile: string;
   const ACount: Integer): TArray<string>;
 var
   I: Integer;
+  lStream: TFileStream;
+  lLines: TStringList;
 begin
-  // the audit log is written by the guard's writer thread
+  // the audit log is written by the guard's writer thread: read without locking the writer out,
+  // and retry while it holds the file
   for I := 1 to 100 do
   begin
+    lStream := nil;
     if TFile.Exists(AFile) then
-    begin
-      Result := TFile.ReadAllLines(AFile, TEncoding.UTF8);
+    try
+      lStream := TFileStream.Create(AFile, fmOpenRead or fmShareDenyNone);
+    except
+      on EFOpenError do
+        lStream := nil;
+    end;
+    if Assigned(lStream) then
+    try
+      lLines := TStringList.Create;
+      try
+        lLines.LoadFromStream(lStream, TEncoding.UTF8);
+        Result := lLines.ToStringArray;
+      finally
+        lLines.Free;
+      end;
       if Length(Result) >= ACount then
         Exit;
+    finally
+      lStream.Free;
     end;
     Sleep(50);
   end;

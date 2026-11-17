@@ -632,12 +632,23 @@ procedure TMVCAPIGuardFileAuditLog.Append(const AEvents: TArray<TMVCAPIGuardAudi
   end;
 
 var
+  lStream: TFileStream;
   lWriter: TStreamWriter;
   lNew: Boolean;
   lEvent: TMVCAPIGuardAuditEvent;
 begin
   lNew := not FileExists(fFileName);
-  lWriter := TStreamWriter.Create(fFileName, True, TEncoding.UTF8);
+  // readers (tail, log shippers) may keep the file open while it is written: an exclusive open
+  // would fail and the batch would be lost
+  if lNew then
+    lStream := TFileStream.Create(fFileName, fmCreate or fmShareDenyWrite)
+  else
+  begin
+    lStream := TFileStream.Create(fFileName, fmOpenWrite or fmShareDenyWrite);
+    lStream.Seek(0, soEnd);
+  end;
+  lWriter := TStreamWriter.Create(lStream, TEncoding.UTF8);
+  lWriter.OwnStream;
   try
     if lNew then
       lWriter.WriteLine('# timestamp' + #9 + 'event' + #9 + 'ip' + #9 + 'rule' + #9 + 'path' + #9 + 'message');
