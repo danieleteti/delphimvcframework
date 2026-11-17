@@ -151,6 +151,20 @@ def create_zip(ctx, version):
             raise Exit("Failed to create zip archive")
 
 
+def check_linked_resources(folder: str) -> None:
+    """Every file a unit links with {$R name.ext} must ship next to it: without it the user's
+    project fails with E1026 File not found (issue #938: MVCFramework.Server.WebBroker.dfm)."""
+    import re
+    missing = []
+    for pas in glob.glob(os.path.join(folder, "*.pas")):
+        with open(pas, encoding="utf-8-sig", errors="replace") as f:
+            for name in re.findall(r"\{\$R\s+([^\s*}]+\.\w+)\s*\}", f.read(), re.IGNORECASE):
+                if not os.path.exists(os.path.join(folder, name)):
+                    missing.append(f"{os.path.basename(pas)} -> {name}")
+    if missing:
+        raise Exit("Linked resources missing from the release sources: " + ", ".join(missing))
+
+
 def copy_sources():
     # Validate source directories exist
     ensure_dir_exists("sources", "DMVCFramework sources")
@@ -165,10 +179,11 @@ def copy_sources():
     os.makedirs(config.output_folder + "\\tools", exist_ok=True)
     # copying main sources
     print("Copying DMVCFramework Sources...")
-    src = glob.glob("sources\\*.pas") + glob.glob("sources\\*.inc")
+    src = glob.glob("sources\\*.pas") + glob.glob("sources\\*.inc") + glob.glob("sources\\*.dfm")
     for file in src:
         print("Copying " + file + " to " + config.output_folder + "\\sources")
         copy2(file, config.output_folder + "\\sources\\")
+    check_linked_resources(config.output_folder + "\\sources")
 
     # copying tools
     print("Copying tools...")
