@@ -247,17 +247,18 @@ Premium guides and video tutorials available at the [DMVCFramework Patreon Shop]
 
 DelphiMVCFramework is proudly sponsored by:
 
-| Gold Sponsors |
-|---|
-| [bit Time Professionals](https://www.bittimeprofessionals.com) |
-| [bit Time Software](https://www.bittime.it) |
+| Gold Sponsors | |
+|---|---|
+| [bit Time Professionals](https://www.bittimeprofessionals.com) | ![bit Time Professionals](docs/sponsorlogos/bittimeprofessionals.png) |
+| [bit Time Software](https://www.bittime.it) | ![bit Time Software](docs/sponsorlogos/bittimesoftware.png) |
 
-| Silver Sponsors |
-|---|
-| [Centro Software](https://www.centrosoftware.com) |
-| [Delphi Studio ES](https://www.delphistudio.es) |
-| [Orion Law](https://orionlaw.com/) |
-| [Vivaticket](https://www.vivaticket.com/) |
+| Silver Sponsors | |
+|---|---|
+| [Centro Software](https://www.centrosoftware.com) | ![Centro Software](docs/sponsorlogos/centrosoftware.png) |
+| [Delphi Studio ES](https://www.delphistudio.es) | ![Delphi Studio ES](docs/sponsorlogos/delphistudio.png) |
+| [DevArt](https://www.devart.com/dac.html) | ![DevArt](docs/sponsorlogos/devart.png) |
+| [Orion Law](https://orionlaw.com/) | ![Orion Law](docs/sponsorlogos/orionlaw.png) |
+| [Vivaticket](https://www.vivaticket.com/) | ![Vivaticket](docs/sponsorlogos/vivaticket.png) |
 
 ## 📄 **License**
 
