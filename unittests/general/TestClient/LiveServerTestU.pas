@@ -437,6 +437,35 @@ type
     [Test]
     procedure TestGetMVCResponseSimpleBuilderWithHeaders;
 
+    // IMVCResponse under text/plain (issue #930)
+    [Test]
+    procedure TestGetTextMVCResponseMessage;
+    [Test]
+    [TestCase('Data', '/api/v1/actionresult/mvcresponse/text/data')]
+    [TestCase('ObjectDictionary', '/api/v1/actionresult/mvcresponse/text/dictionary')]
+    [TestCase('Object', '/api/v1/actionresult/mvcresponse/text/object')]
+    [TestCase('JSONObject', '/api/v1/actionresult/mvcresponse/text/jsonobject')]
+    [TestCase('JSONObjectDirect', '/api/v1/actionresult/text/jsonobject/direct')]
+    procedure TestGetTextMVCResponseWithDataIsAnError(const URL: string);
+    [Test]
+    procedure TestGetTextMVCErrorResponseItems;
+    [Test]
+    procedure TestTextNotFoundDoesNotRepeatTheReasonPhrase;
+    // IMVCResponse under text/html
+    [Test]
+    procedure TestGetHTMLMVCResponseMessage;
+    [Test]
+    procedure TestGetHTMLMVCResponseWithDataIsAnError;
+    [Test]
+    procedure TestGetHTMLMVCErrorResponseItems;
+    [Test]
+    procedure TestHTMLNotFoundDoesNotRepeatTheReasonPhrase;
+    // an action returning nil under a non-JSON content type
+    [Test]
+    [TestCase('text/plain', '/api/v1/actionresult/text/nil,text/plain')]
+    [TestCase('text/html', '/api/v1/actionresult/html/nil,text/html')]
+    procedure TestNilObjectIsAnEmptyBody(const URL, MediaType: string);
+
     // test issues
     [Test]
     [Category('renders')]
@@ -2510,6 +2539,103 @@ begin
     .Get('/api/v1/actionresult/mvcresponse/message');
   Assert.areEqual(HTTP_STATUS.OK, r.StatusCode);
   Assert.areEqual('{"message":"My Message"}', r.Content, r.Content);
+end;
+
+procedure TServerTest.TestGetTextMVCResponseMessage;
+var
+  r: IMVCRESTResponse;
+begin
+  r := RESTClient.Accept(TMVCMediaType.TEXT_PLAIN).Get('/api/v1/actionresult/mvcresponse/text/message');
+  Assert.areEqual(HTTP_STATUS.OK, r.StatusCode, r.Content);
+  Assert.StartsWith(TMVCMediaType.TEXT_PLAIN, r.ContentType);
+  Assert.areEqual('Hello World', r.Content);
+end;
+
+procedure TServerTest.TestGetTextMVCResponseWithDataIsAnError(const URL: string);
+var
+  r: IMVCRESTResponse;
+begin
+  r := RESTClient.Accept(TMVCMediaType.TEXT_PLAIN).Get(URL);
+  Assert.areEqual(HTTP_STATUS.InternalServerError, r.StatusCode, r.Content);
+  Assert.StartsWith(TMVCMediaType.TEXT_PLAIN, r.ContentType);
+  Assert.Contains(r.Content, 'application/json', False, r.Content);
+end;
+
+procedure TServerTest.TestGetTextMVCErrorResponseItems;
+var
+  r: IMVCRESTResponse;
+begin
+  r := RESTClient.Accept(TMVCMediaType.TEXT_PLAIN).Get('/api/v1/actionresult/mvcresponse/text/error');
+  Assert.areEqual(HTTP_STATUS.BadRequest, r.StatusCode, r.Content);
+  Assert.StartsWith(TMVCMediaType.TEXT_PLAIN, r.ContentType);
+  Assert.StartsWith('400: Bad Request' + sLineBreak, r.Content, False);
+  // the class name before the message is there only in DEBUG
+  Assert.Contains(r.Content, 'Error Message' + sLineBreak + 'Detail' + sLineBreak, False);
+  Assert.EndsWith(
+    'Application Error Code: 1001' + sLineBreak +
+    'Error Items:' + sLineBreak +
+    '- item1' + sLineBreak +
+    '- item2', r.Content, False);
+end;
+
+procedure TServerTest.TestTextNotFoundDoesNotRepeatTheReasonPhrase;
+var
+  r: IMVCRESTResponse;
+begin
+  r := RESTClient.Accept(TMVCMediaType.TEXT_PLAIN).Get('/invalidurl');
+  Assert.areEqual(HTTP_STATUS.NotFound, r.StatusCode, r.Content);
+  Assert.StartsWith('404: Not Found', r.Content, False);
+  Assert.DoesNotContain(r.Content, sLineBreak + 'Not Found', False, r.Content);
+end;
+
+procedure TServerTest.TestGetHTMLMVCResponseMessage;
+var
+  r: IMVCRESTResponse;
+begin
+  r := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('/api/v1/actionresult/mvcresponse/html/message');
+  Assert.areEqual(HTTP_STATUS.OK, r.StatusCode, r.Content);
+  Assert.StartsWith(TMVCMediaType.TEXT_HTML, r.ContentType);
+  Assert.areEqual('&lt;b&gt;Tom &amp; Jerry&lt;/b&gt;', r.Content);
+end;
+
+procedure TServerTest.TestGetHTMLMVCResponseWithDataIsAnError;
+var
+  r: IMVCRESTResponse;
+begin
+  r := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('/api/v1/actionresult/mvcresponse/html/data');
+  Assert.areEqual(HTTP_STATUS.InternalServerError, r.StatusCode, r.Content);
+  Assert.StartsWith(TMVCMediaType.TEXT_HTML, r.ContentType);
+  Assert.Contains(r.Content, 'cannot be rendered as text/html', False, r.Content);
+end;
+
+procedure TServerTest.TestGetHTMLMVCErrorResponseItems;
+var
+  r: IMVCRESTResponse;
+begin
+  r := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('/api/v1/actionresult/mvcresponse/html/error');
+  Assert.areEqual(HTTP_STATUS.BadRequest, r.StatusCode, r.Content);
+  Assert.StartsWith(TMVCMediaType.TEXT_HTML, r.ContentType);
+  Assert.Contains(r.Content, '<li>item1</li><li>item2</li>', False, r.Content);
+end;
+
+procedure TServerTest.TestHTMLNotFoundDoesNotRepeatTheReasonPhrase;
+var
+  r: IMVCRESTResponse;
+begin
+  r := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('/invalidurl');
+  Assert.areEqual(HTTP_STATUS.NotFound, r.StatusCode, r.Content);
+  Assert.Contains(r.Content, '<div class="status-text">Not Found</div>', False, r.Content);
+  Assert.DoesNotContain(r.Content, 'Message:', False, r.Content);
+end;
+
+procedure TServerTest.TestNilObjectIsAnEmptyBody(const URL, MediaType: string);
+var
+  r: IMVCRESTResponse;
+begin
+  r := RESTClient.Accept(MediaType).Get(URL);
+  Assert.areEqual(HTTP_STATUS.OK, r.StatusCode, r.Content);
+  Assert.StartsWith(MediaType, r.ContentType);
+  Assert.areEqual('', r.Content);
 end;
 
 procedure TServerTest.TestGetMVCResponseSimpleBuilderWithHeaders;

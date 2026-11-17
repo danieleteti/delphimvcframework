@@ -5019,6 +5019,8 @@ class procedure TMVCRenderer.InternalRenderMVCResponse(
   begin
     Result := False;
     if MVCResponse.ClassType <> TMVCResponse then Exit;       // no subclasses (errors etc.)
+    // JSON only: under another negotiated type the serializer of that type decides
+    if not SameText(Controller.FContentMediaType, TMVCMediaType.APPLICATION_JSON) then Exit;
     if MVCResponse.Message <> '' then Exit;
     if Assigned(MVCResponse.ObjectDictionary) then Exit;
     LData := MVCResponse.Data;
@@ -5060,6 +5062,7 @@ class procedure TMVCRenderer.InternalRenderMVCResponse(
   begin
     Result := False;
     if MVCResponse.ClassType <> TMVCResponse then Exit;
+    if not SameText(Controller.FContentMediaType, TMVCMediaType.APPLICATION_JSON) then Exit;
     if MVCResponse.Message <> '' then Exit;
     if Assigned(MVCResponse.ObjectDictionary) then Exit;
     LData := MVCResponse.Data;
@@ -5622,6 +5625,7 @@ begin
       per request. }
     if Assigned(AObject) and
        AObject.InheritsFrom(TJsonBaseObject) and
+       SameText(FContentMediaType, TMVCMediaType.APPLICATION_JSON) and
        (SameText(TMVCCharSet.UTF_8, FContentCharset) or
         SameText(TMVCCharSet.UTF_8_WITHOUT_DASH, FContentCharset) or
         FContentCharset.IsEmpty) then

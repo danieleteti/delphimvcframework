@@ -509,8 +509,9 @@ function TMVCHTMLSerializer.SerializeObject(const AObject: TObject;
         '</div>';
     end;
 
-    // Message
-    if not Message.IsEmpty then
+    // Message (not when it only repeats the reason phrase of the header)
+    if not (Message.IsEmpty or
+      (ClazzName.IsEmpty and SameText(Message, HTTP_STATUS.ReasonStringFor(HTTPStatusCode)))) then
     begin
       Result := Result + '<div class="error-line">' +
         '<div class="error-label">Message:</div>' +
@@ -558,8 +559,16 @@ var
   lMVCException: EMVCException;
   lException: Exception;
   lErrResponse: TMVCErrorResponse;
+  lResponse: TMVCResponse;
+  lItems: TArray<String>;
+  lIndex: Integer;
 begin
   lBody := '';
+  if AObject = nil then
+  begin
+    Result := '';
+    Exit;
+  end;
   if AObject is Exception then
   begin
     if AObject is EMVCException then
@@ -589,13 +598,32 @@ begin
   if AObject is TMVCErrorResponse then
   begin
     lErrResponse := TMVCErrorResponse(AObject);
+    SetLength(lItems, lErrResponse.Items.Count);
+    for lIndex := 0 to lErrResponse.Items.Count - 1 do
+    begin
+      lItems[lIndex] := lErrResponse.Items[lIndex].Message;
+    end;
     lBody := GetHTMLBody(
       lErrResponse.StatusCode,
       lErrResponse.Message,
       lErrResponse.DetailedMessage,
       lErrResponse.ClassName,
       lErrResponse.AppErrorCode,
-      nil);
+      lItems);
+  end
+  else if AObject is TMVCResponse then
+  begin
+    // TMVCHTMLResponse and TMVCProblemDetailsResponse never get here:
+    // TMVCRenderer.InternalRenderMVCResponse writes them before choosing a serializer
+    lResponse := TMVCResponse(AObject);
+    if Assigned(lResponse.Data) or Assigned(lResponse.ObjectDictionary) then
+    begin
+      raise EMVCSerializationException.Create(
+        'A response with Data or ObjectDictionary cannot be rendered as text/html: ' +
+        'make the action produce application/json, or put the text in Message');
+    end;
+    Result := HTMLEntitiesEncode(lResponse.Message);
+    Exit;
   end;
 
   if lBody.IsEmpty then

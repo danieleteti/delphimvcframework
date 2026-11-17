@@ -584,6 +584,54 @@ type
     procedure ClearingTheLimitDoesNotDisableIt;
   end;
 
+  // TMVCTextSerializer, the serializer behind text/plain (issue #930)
+  [TestFixture]
+  TTestTextSerializer = class(TObject)
+  public
+    [Test]
+    procedure ResponseMessageIsTheBody;
+    [Test]
+    procedure EmptyResponseIsAnEmptyBody;
+    [Test]
+    procedure ResponseWithDataRaises;
+    [Test]
+    procedure ResponseWithObjectDictionaryRaises;
+    [Test]
+    procedure ErrorResponseItemsAreOnePerLine;
+    [Test]
+    procedure ErrorResponseWithoutClassNameKeepsTheMessage;
+    [Test]
+    procedure MVCExceptionItemsAreOnePerLine;
+    [Test]
+    procedure PlainExceptionHasTitleAndClass;
+    [Test]
+    procedure ReasonPhraseMessageIsNotRepeated;
+    [Test]
+    procedure OtherObjectsRaiseAnExplicitError;
+  end;
+
+  // TMVCHTMLSerializer, the serializer behind text/html
+  [TestFixture]
+  TTestHTMLSerializer = class(TObject)
+  public
+    [Test]
+    procedure ResponseMessageIsTheEscapedBody;
+    [Test]
+    procedure EmptyResponseIsAnEmptyBody;
+    [Test]
+    procedure ResponseWithDataRaises;
+    [Test]
+    procedure ResponseWithObjectDictionaryRaises;
+    [Test]
+    procedure ErrorResponseItemsAreRendered;
+    [Test]
+    procedure ReasonPhraseMessageIsNotRepeated;
+    [Test]
+    procedure MessageWithoutClassNameIsKept;
+    [Test]
+    procedure NilIsAnEmptyBody;
+  end;
+
 implementation
 
 {$WARN SYMBOL_DEPRECATED OFF}
@@ -610,7 +658,7 @@ uses
   IdGlobal, System.TypInfo, System.Types, Winapi.Windows, MVCFramework.DotEnv,
   MVCFramework.DotEnv.Parser, System.Rtti,
   MVCFramework.Session, MVCFramework.Middleware.RateLimit, JsonDataObjects,
-  MVCFramework.Session.Database;
+  MVCFramework.Session.Database, MVCFramework.Serializer.Text, MVCFramework.Serializer.HTML;
 
 var
   JWT_SECRET_KEY_TEST: string = 'myk3y';
@@ -4297,6 +4345,310 @@ begin
   end;
 end;
 
+{ TTestTextSerializer }
+
+procedure TTestTextSerializer.ResponseMessageIsTheBody;
+var
+  lSer: IMVCSerializer;
+  lResp: TMVCResponse;
+begin
+  lSer := TMVCTextSerializer.Create(nil);
+  lResp := TMVCResponse.Create(HTTP_STATUS.OK, 'hello world');
+  try
+    Assert.AreEqual('hello world', lSer.SerializeObject(lResp));
+  finally
+    lResp.Free;
+  end;
+end;
+
+procedure TTestTextSerializer.EmptyResponseIsAnEmptyBody;
+var
+  lSer: IMVCSerializer;
+  lResp: TMVCResponse;
+begin
+  lSer := TMVCTextSerializer.Create(nil);
+  lResp := TMVCResponse.Create;
+  try
+    Assert.AreEqual('', lSer.SerializeObject(lResp));
+  finally
+    lResp.Free;
+  end;
+end;
+
+procedure TTestTextSerializer.ResponseWithDataRaises;
+var
+  lSer: IMVCSerializer;
+  lResp: TMVCResponse;
+begin
+  lSer := TMVCTextSerializer.Create(nil);
+  lResp := TMVCResponse.Create(HTTP_STATUS.OK, 'a message');
+  try
+    lResp.Data := TObject.Create;
+    Assert.WillRaiseWithMessageRegex(
+      procedure
+      begin
+        lSer.SerializeObject(lResp);
+      end, EMVCSerializationException, 'application/json');
+  finally
+    lResp.Free;
+  end;
+end;
+
+procedure TTestTextSerializer.ResponseWithObjectDictionaryRaises;
+var
+  lSer: IMVCSerializer;
+  lResp: TMVCResponse;
+begin
+  lSer := TMVCTextSerializer.Create(nil);
+  lResp := TMVCResponse.Create;
+  try
+    lResp.ObjectDictionary := ObjectDict().Add('person', TObject.Create);
+    Assert.WillRaiseWithMessageRegex(
+      procedure
+      begin
+        lSer.SerializeObject(lResp);
+      end, EMVCSerializationException, 'application/json');
+  finally
+    lResp.Free;
+  end;
+end;
+
+procedure TTestTextSerializer.ErrorResponseItemsAreOnePerLine;
+var
+  lSer: IMVCSerializer;
+  lResp: TMVCErrorResponse;
+begin
+  lSer := TMVCTextSerializer.Create(nil);
+  lResp := TMVCErrorResponse.Create(HTTP_STATUS.BadRequest, 'Error Message');
+  try
+    lResp.Classname := 'EMyError';
+    lResp.DetailedMessage := 'Detail';
+    lResp.AppErrorCode := 1001;
+    lResp.Items.Add(TMVCErrorResponseItem.Create('item1'));
+    lResp.Items.Add(TMVCErrorResponseItem.Create('item2'));
+    Assert.AreEqual(
+      '400: Bad Request' + sLineBreak +
+      'EMyError: Error Message' + sLineBreak +
+      'Detail' + sLineBreak +
+      'Application Error Code: 1001' + sLineBreak +
+      'Error Items:' + sLineBreak +
+      '- item1' + sLineBreak +
+      '- item2',
+      lSer.SerializeObject(lResp));
+  finally
+    lResp.Free;
+  end;
+end;
+
+procedure TTestTextSerializer.ErrorResponseWithoutClassNameKeepsTheMessage;
+var
+  lSer: IMVCSerializer;
+  lResp: TMVCErrorResponse;
+begin
+  lSer := TMVCTextSerializer.Create(nil);
+  // outside DEBUG TMVCRenderer.Render(AException) leaves Classname empty
+  lResp := TMVCErrorResponse.Create(HTTP_STATUS.NotFound, 'No such customer');
+  try
+    Assert.AreEqual('404: Not Found' + sLineBreak + 'No such customer', lSer.SerializeObject(lResp));
+  finally
+    lResp.Free;
+  end;
+end;
+
+procedure TTestTextSerializer.MVCExceptionItemsAreOnePerLine;
+var
+  lSer: IMVCSerializer;
+  lEx: EMVCException;
+begin
+  lSer := TMVCTextSerializer.Create(nil);
+  lEx := EMVCException.Create('Error Message', 'Detail', 1001, HTTP_STATUS.BadRequest, ['item1', 'item2']);
+  try
+    Assert.AreEqual(
+      '400: Bad Request' + sLineBreak +
+      'EMVCException: Error Message' + sLineBreak +
+      'Detail' + sLineBreak +
+      'Application Error Code: 1001' + sLineBreak +
+      'Error Items:' + sLineBreak +
+      '- item1' + sLineBreak +
+      '- item2',
+      lSer.SerializeObject(lEx));
+  finally
+    lEx.Free;
+  end;
+end;
+
+procedure TTestTextSerializer.PlainExceptionHasTitleAndClass;
+var
+  lSer: IMVCSerializer;
+  lEx: Exception;
+begin
+  lSer := TMVCTextSerializer.Create(nil);
+  lEx := Exception.Create('boom');
+  try
+    Assert.AreEqual('500: Internal Server Error' + sLineBreak + 'Exception: boom' + sLineBreak,
+      lSer.SerializeObject(lEx));
+  finally
+    lEx.Free;
+  end;
+end;
+
+procedure TTestTextSerializer.ReasonPhraseMessageIsNotRepeated;
+var
+  lSer: IMVCSerializer;
+  lResp: TMVCErrorResponse;
+begin
+  lSer := TMVCTextSerializer.Create(nil);
+  // what TMVCEngine.SendHTTPStatus builds for an unknown route
+  lResp := TMVCErrorResponse.Create(HTTP_STATUS.NotFound, 'Not Found');
+  try
+    Assert.AreEqual('404: Not Found', lSer.SerializeObject(lResp));
+    lResp.Classname := 'EMyError';
+    Assert.AreEqual('404: Not Found' + sLineBreak + 'EMyError: Not Found', lSer.SerializeObject(lResp));
+  finally
+    lResp.Free;
+  end;
+end;
+
+procedure TTestTextSerializer.OtherObjectsRaiseAnExplicitError;
+var
+  lSer: IMVCSerializer;
+  lObj: TStringList;
+begin
+  lSer := TMVCTextSerializer.Create(nil);
+  lObj := TStringList.Create;
+  try
+    Assert.WillRaiseWithMessageRegex(
+      procedure
+      begin
+        lSer.SerializeObject(lObj);
+      end, EMVCSerializationException, 'TStringList.*application/json');
+  finally
+    lObj.Free;
+  end;
+end;
+
+{ TTestHTMLSerializer }
+
+procedure TTestHTMLSerializer.NilIsAnEmptyBody;
+var
+  lSer: IMVCSerializer;
+begin
+  lSer := TMVCHTMLSerializer.Create(nil);
+  Assert.AreEqual('', lSer.SerializeObject(TObject(nil)));
+end;
+
+procedure TTestHTMLSerializer.ResponseMessageIsTheEscapedBody;
+var
+  lSer: IMVCSerializer;
+  lResp: TMVCResponse;
+begin
+  lSer := TMVCHTMLSerializer.Create(nil);
+  lResp := TMVCResponse.Create(HTTP_STATUS.OK, '<b>Tom & Jerry</b>');
+  try
+    Assert.AreEqual('&lt;b&gt;Tom &amp; Jerry&lt;/b&gt;', lSer.SerializeObject(lResp));
+  finally
+    lResp.Free;
+  end;
+end;
+
+procedure TTestHTMLSerializer.EmptyResponseIsAnEmptyBody;
+var
+  lSer: IMVCSerializer;
+  lResp: TMVCResponse;
+begin
+  lSer := TMVCHTMLSerializer.Create(nil);
+  lResp := TMVCResponse.Create;
+  try
+    Assert.AreEqual('', lSer.SerializeObject(lResp));
+  finally
+    lResp.Free;
+  end;
+end;
+
+procedure TTestHTMLSerializer.ResponseWithDataRaises;
+var
+  lSer: IMVCSerializer;
+  lResp: TMVCResponse;
+begin
+  lSer := TMVCHTMLSerializer.Create(nil);
+  lResp := TMVCResponse.Create(HTTP_STATUS.OK, 'a message');
+  try
+    lResp.Data := TObject.Create;
+    Assert.WillRaiseWithMessageRegex(
+      procedure
+      begin
+        lSer.SerializeObject(lResp);
+      end, EMVCSerializationException, 'text/html');
+  finally
+    lResp.Free;
+  end;
+end;
+
+procedure TTestHTMLSerializer.ResponseWithObjectDictionaryRaises;
+var
+  lSer: IMVCSerializer;
+  lResp: TMVCResponse;
+begin
+  lSer := TMVCHTMLSerializer.Create(nil);
+  lResp := TMVCResponse.Create;
+  try
+    lResp.ObjectDictionary := ObjectDict().Add('person', TObject.Create);
+    Assert.WillRaiseWithMessageRegex(
+      procedure
+      begin
+        lSer.SerializeObject(lResp);
+      end, EMVCSerializationException, 'text/html');
+  finally
+    lResp.Free;
+  end;
+end;
+
+procedure TTestHTMLSerializer.ErrorResponseItemsAreRendered;
+var
+  lSer: IMVCSerializer;
+  lResp: TMVCErrorResponse;
+begin
+  lSer := TMVCHTMLSerializer.Create(nil);
+  lResp := TMVCErrorResponse.Create(HTTP_STATUS.BadRequest, 'Error Message');
+  try
+    lResp.Items.Add(TMVCErrorResponseItem.Create('item1'));
+    lResp.Items.Add(TMVCErrorResponseItem.Create('<item2>'));
+    Assert.Contains(lSer.SerializeObject(lResp), '<li>item1</li><li>&lt;item2&gt;</li>');
+  finally
+    lResp.Free;
+  end;
+end;
+
+procedure TTestHTMLSerializer.ReasonPhraseMessageIsNotRepeated;
+var
+  lSer: IMVCSerializer;
+  lResp: TMVCErrorResponse;
+begin
+  lSer := TMVCHTMLSerializer.Create(nil);
+  lResp := TMVCErrorResponse.Create(HTTP_STATUS.NotFound, 'Not Found');
+  try
+    Assert.DoesNotContain(lSer.SerializeObject(lResp), 'Message:');
+    lResp.Classname := 'EMyError';
+    Assert.Contains(lSer.SerializeObject(lResp), 'Message:');
+  finally
+    lResp.Free;
+  end;
+end;
+
+procedure TTestHTMLSerializer.MessageWithoutClassNameIsKept;
+var
+  lSer: IMVCSerializer;
+  lResp: TMVCErrorResponse;
+begin
+  lSer := TMVCHTMLSerializer.Create(nil);
+  lResp := TMVCErrorResponse.Create(HTTP_STATUS.NotFound, 'No such customer');
+  try
+    Assert.Contains(lSer.SerializeObject(lResp), 'No such customer');
+  finally
+    lResp.Free;
+  end;
+end;
+
 initialization
 
 TDUnitX.RegisterTestFixture(TTestRouteParamKinds);
@@ -4325,6 +4677,8 @@ TDUnitX.RegisterTestFixture(TTestStaticFilesTraversal);
 TDUnitX.RegisterTestFixture(TTestSecurityHelpers);
 TDUnitX.RegisterTestFixture(TTestSwaggerMetadata);
 TDUnitX.RegisterTestFixture(TTestJSONNestingDepth);
+TDUnitX.RegisterTestFixture(TTestTextSerializer);
+TDUnitX.RegisterTestFixture(TTestHTMLSerializer);
 
 finalization
 

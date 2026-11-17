@@ -797,6 +797,48 @@ type
     [MVCPath('/mvcresponse/message/builder/headers')]
     function GetMVCResponseSimpleBuilderWithHeaders: IMVCResponse;
 
+    { IMVCResponse under text/plain (issue #930) }
+    [MVCPath('/mvcresponse/text/message')]
+    [MVCProduces(TMVCMediaType.TEXT_PLAIN)]
+    function GetTextMVCResponseMessage: IMVCResponse;
+    [MVCPath('/mvcresponse/text/data')]
+    [MVCProduces(TMVCMediaType.TEXT_PLAIN)]
+    function GetTextMVCResponseWithData: IMVCResponse;
+    [MVCPath('/mvcresponse/text/dictionary')]
+    [MVCProduces(TMVCMediaType.TEXT_PLAIN)]
+    function GetTextMVCResponseWithObjectDictionary: IMVCResponse;
+    [MVCPath('/mvcresponse/text/error')]
+    [MVCProduces(TMVCMediaType.TEXT_PLAIN)]
+    function GetTextMVCErrorResponse: IMVCResponse;
+    [MVCPath('/mvcresponse/text/object')]
+    [MVCProduces(TMVCMediaType.TEXT_PLAIN)]
+    function GetTextOKResponseObject: IMVCResponse;
+    [MVCPath('/mvcresponse/text/jsonobject')]
+    [MVCProduces(TMVCMediaType.TEXT_PLAIN)]
+    function GetTextOKResponseJSONObject: IMVCResponse;
+
+    { IMVCResponse under text/html }
+    [MVCPath('/mvcresponse/html/message')]
+    [MVCProduces(TMVCMediaType.TEXT_HTML)]
+    function GetHTMLMVCResponseMessage: IMVCResponse;
+    [MVCPath('/mvcresponse/html/data')]
+    [MVCProduces(TMVCMediaType.TEXT_HTML)]
+    function GetHTMLMVCResponseWithData: IMVCResponse;
+    [MVCPath('/mvcresponse/html/error')]
+    [MVCProduces(TMVCMediaType.TEXT_HTML)]
+    function GetHTMLMVCErrorResponse: IMVCResponse;
+
+    { objects returned directly under a non-JSON content type }
+    [MVCPath('/text/jsonobject/direct')]
+    [MVCProduces(TMVCMediaType.TEXT_PLAIN)]
+    function GetTextJSONObjectDirect: JsonDataObjects.TJsonObject;
+    [MVCPath('/text/nil')]
+    [MVCProduces(TMVCMediaType.TEXT_PLAIN)]
+    function GetTextNilObject: TObject;
+    [MVCPath('/html/nil')]
+    [MVCProduces(TMVCMediaType.TEXT_HTML)]
+    function GetHTMLNilObject: TObject;
+
   end;
 
   /// <summary>Item produced by the /streamitems endpoints.</summary>
@@ -2377,6 +2419,81 @@ begin
       TPerson.Create('Bruce','Banner', 45)
     ])
   ).Build;
+end;
+
+function TTestActionResultController.GetTextMVCResponseMessage: IMVCResponse;
+begin
+  Result := OKResponse('Hello World');
+end;
+
+function TTestActionResultController.GetTextMVCResponseWithData: IMVCResponse;
+begin
+  Result := MVCResponseBuilder
+    .StatusCode(HTTP_STATUS.OK)
+    .Body('This is a message')
+    .Body(TPerson.GetNew('Daniele','Teti', EncodeDate(1979,11,4), True))
+    .Build;
+end;
+
+function TTestActionResultController.GetTextMVCResponseWithObjectDictionary: IMVCResponse;
+begin
+  Result := MVCResponseBuilder
+    .StatusCode(HTTP_STATUS.OK)
+    .Body(ObjectDict().Add('person', TPerson.GetNew('Daniele','Teti', EncodeDate(1979,11,4), True)))
+    .Build;
+end;
+
+function TTestActionResultController.GetTextMVCErrorResponse: IMVCResponse;
+begin
+  raise EMVCException.Create('Error Message', 'Detail', 1001, HTTP_STATUS.BadRequest, ['item1', 'item2']);
+end;
+
+function TTestActionResultController.GetTextOKResponseObject: IMVCResponse;
+var
+  lSum: TSum;
+begin
+  lSum := TSum.Create;
+  lSum.Value := 42;
+  Result := OKResponse(lSum);
+end;
+
+function TTestActionResultController.GetTextOKResponseJSONObject: IMVCResponse;
+begin
+  Result := OKResponse(StrToJSONObject('{"name":"Daniele"}'));
+end;
+
+function TTestActionResultController.GetHTMLMVCResponseMessage: IMVCResponse;
+begin
+  Result := OKResponse('<b>Tom & Jerry</b>');
+end;
+
+function TTestActionResultController.GetHTMLMVCResponseWithData: IMVCResponse;
+begin
+  Result := MVCResponseBuilder
+    .StatusCode(HTTP_STATUS.OK)
+    .Body('This is a message')
+    .Body(TPerson.GetNew('Daniele','Teti', EncodeDate(1979,11,4), True))
+    .Build;
+end;
+
+function TTestActionResultController.GetHTMLMVCErrorResponse: IMVCResponse;
+begin
+  raise EMVCException.Create('Error Message', 'Detail', 1001, HTTP_STATUS.BadRequest, ['item1', 'item2']);
+end;
+
+function TTestActionResultController.GetTextJSONObjectDirect: JsonDataObjects.TJsonObject;
+begin
+  Result := StrToJSONObject('{"name":"Daniele"}');
+end;
+
+function TTestActionResultController.GetTextNilObject: TObject;
+begin
+  Result := nil;
+end;
+
+function TTestActionResultController.GetHTMLNilObject: TObject;
+begin
+  Result := nil;
 end;
 
 function TTestActionResultController.GetMVCResponseWithJSON: IMVCResponse;

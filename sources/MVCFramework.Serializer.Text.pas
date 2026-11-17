@@ -270,7 +270,7 @@ function TMVCTextSerializer.SerializeObject(const AObject: TObject;
   const ASerializationAction: TMVCSerializationAction): string;
   function EmitExceptionClass(const ClazzName, Message: string): string;
   begin
-    Result := Result + IfThen(not ClazzName.IsEmpty, ClazzName + ': ') + Message;
+    Result := IfThen(not ClazzName.IsEmpty, ClazzName + ': ') + Message;
   end;
   function EmitTitle(const HTTPStatusCode: Word): string;
   begin
@@ -286,10 +286,14 @@ function TMVCTextSerializer.SerializeObject(const AObject: TObject;
     const ErrorItems: TArray<String>): String;
   var
     lErr: String;
+    lMessageLine: Boolean;
   begin
+    // no message line when it only repeats the reason phrase of the title
+    lMessageLine := not (ClazzName.IsEmpty and
+      (Message.IsEmpty or SameText(Message, HTTP_STATUS.ReasonStringFor(HTTPStatusCode))));
     Result :=
         EmitTitle(HTTPStatusCode) +
-        IfThen(not ClazzName.IsEmpty, sLineBreak + EmitExceptionClass(ClazzName, Message)) +
+        IfThen(lMessageLine, sLineBreak + EmitExceptionClass(ClazzName, Message)) +
         IfThen(not DetailedMessage.IsEmpty, sLineBreak + DetailedMessage);
     if Assigned(FConfig) then
     begin
@@ -300,14 +304,14 @@ function TMVCTextSerializer.SerializeObject(const AObject: TObject;
     end;
     if AppErrorCode <> 0 then
     begin
-      Result := sLineBreak + Result + 'Application Error Code: ' + AppErrorCode.ToString + sLineBreak;
+      Result := Result + sLineBreak + 'Application Error Code: ' + AppErrorCode.ToString;
     end;
-    if Assigned(ErrorItems) and (Length(ErrorItems) > 0) then
+    if Length(ErrorItems) > 0 then
     begin
-      Result := sLineBreak + Result + 'Error Items: ';
+      Result := Result + sLineBreak + 'Error Items:';
       for lErr in ErrorItems do
       begin
-        Result := sLineBreak + Result + '- ' + lErr;
+        Result := Result + sLineBreak + '- ' + lErr;
       end;
     end;
   end;
@@ -315,6 +319,9 @@ var
   lMVCException: EMVCException;
   lException: Exception;
   lErrResponse: TMVCErrorResponse;
+  lResponse: TMVCResponse;
+  lItems: TArray<String>;
+  lIndex: Integer;
 begin
   if AObject is Exception then
   begin
@@ -338,19 +345,38 @@ begin
   end else if AObject is TMVCErrorResponse then
   begin
     lErrResponse := TMVCErrorResponse(AObject);
+    SetLength(lItems, lErrResponse.Items.Count);
+    for lIndex := 0 to lErrResponse.Items.Count - 1 do
+    begin
+      lItems[lIndex] := lErrResponse.Items[lIndex].Message;
+    end;
     Result := GetText(
       lErrResponse.StatusCode,
       lErrResponse.Message,
       lErrResponse.DetailedMessage,
       lErrResponse.ClassName,
       lErrResponse.AppErrorCode,
-      nil);
+      lItems);
+  end else if AObject is TMVCResponse then
+  begin
+    // TMVCHTMLResponse and TMVCProblemDetailsResponse never get here:
+    // TMVCRenderer.InternalRenderMVCResponse writes them before choosing a serializer
+    lResponse := TMVCResponse(AObject);
+    if Assigned(lResponse.Data) or Assigned(lResponse.ObjectDictionary) then
+    begin
+      raise EMVCSerializationException.Create(
+        'A response with Data or ObjectDictionary cannot be rendered as text/plain: ' +
+        'make the action produce application/json, or put the text in Message');
+    end;
+    Result := lResponse.Message;
   end else if aObject = nil then
   begin
     Result := '';
   end else
   begin
-    RaiseNotImplemented;
+    raise EMVCSerializationException.CreateFmt(
+      'A %s cannot be rendered as text/plain: make the action produce application/json',
+      [AObject.ClassName]);
   end;
 end;
 
