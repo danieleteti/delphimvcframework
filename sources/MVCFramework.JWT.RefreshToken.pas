@@ -116,7 +116,7 @@ type
     procedure OnAfterControllerAction(AContext: TWebContext;
       const AControllerQualifiedClassName: string; const AActionName: string; const AHandled: Boolean);
     procedure OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
-  end deprecated 'Use the refresh token of the JWT filter bundle: RefreshTokenStore in the options of AEngine.Use(JWTAuthenticationBundle(...)) (MVCFramework.Filters.Authentication); with a login of your own, LoginURL empty and the login outside the check (a controller action the handler OnRequest makes public, or the bundle on a route group)';
+  end deprecated 'Use RefreshTokenStore in the options of JWTAuthenticationBundle (MVCFramework.Filters.Authentication); with a login of your own: LoginURL empty and the login outside the check (an action made public by OnRequest, or the bundle on a route group)';
 
   // Reference in-memory store. Rotation + reuse-detection via token families.
   // Not durable across restarts: use the ActiveRecord store in production.

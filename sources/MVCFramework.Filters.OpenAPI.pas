@@ -110,8 +110,10 @@ function OpenAPIHTTPFilter(AEngine: TMVCEngine; const AInfo: TMVCOpenAPIInfo;
   const ASources: array of IMVCOpenAPISource; const AURL: string): TMVCHTTPFilter;
 var
   lSources: TArray<IMVCOpenAPISource>;
+  lInfo: TMVCOpenAPIInfo;
   I: Integer;
 begin
+  lInfo := AInfo; // 10.2 Tokyo cannot capture a const record parameter (E2555)
   SetLength(lSources, Length(ASources)); // an open array cannot be captured
   for I := 0 to High(ASources) do
     lSources[I] := ASources[I];
@@ -130,7 +132,7 @@ begin
       lContentType := BuildContentType(TMVCMediaType.APPLICATION_JSON, TMVCCharSet.UTF_8);
       AContext.Response.ContentType := lContentType;
       AContext.Response.SetContentStream(
-        TStringStream.Create(OpenAPIDocumentJSON(AEngine, AInfo, lSources), TEncoding.UTF8), lContentType);
+        TStringStream.Create(OpenAPIDocumentJSON(AEngine, lInfo, lSources), TEncoding.UTF8), lContentType);
     end;
 end;
 

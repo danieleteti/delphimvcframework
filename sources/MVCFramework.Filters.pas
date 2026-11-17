@@ -480,8 +480,8 @@ function CSRFEndpointFilter(const ASecret: string;
   const ATokenSource: TFunc<TWebContext, string>;
   const AHeaderName: string = 'X-CSRF-Token';
   const AFormFieldName: string = 'csrf_token';
-  const AExemptPaths: TArray<string> = [];
-  const AAllowedHosts: TArray<string> = []): TMVCEndpointFilter;
+  const AExemptPaths: TArray<string> = nil;
+  const AAllowedHosts: TArray<string> = nil): TMVCEndpointFilter;
 
 // HTTP filter: the same CSRF check before routing, for every request, as
 // TMVCCSRFMiddleware does. Registered first, it also checks the unsafe
@@ -496,8 +496,8 @@ function CSRFHTTPFilter(const ASecret: string;
   const ATokenSource: TFunc<TWebContext, string>;
   const AHeaderName: string = 'X-CSRF-Token';
   const AFormFieldName: string = 'csrf_token';
-  const AExemptPaths: TArray<string> = [];
-  const AAllowedHosts: TArray<string> = []): TMVCHTTPFilter;
+  const AExemptPaths: TArray<string> = nil;
+  const AAllowedHosts: TArray<string> = nil): TMVCHTTPFilter;
 
 // The CSRF token of a session id (lowercase hex HMAC-SHA256), to put in the
 // pages and forms the CSRF filters will check. The session id must not change

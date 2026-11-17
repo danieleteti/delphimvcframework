@@ -58,8 +58,8 @@ type
   public
     constructor Create(const ASecret: string; ATokenSource: TFunc<TWebContext, string>;
       const AHeaderName: string = 'X-CSRF-Token'; const AFormFieldName: string = 'csrf_token';
-      const AExemptPaths: TArray<string> = [];
-      const AAllowedHosts: TArray<string> = []);
+      const AExemptPaths: TArray<string> = nil;
+      const AAllowedHosts: TArray<string> = nil);
     /// <summary>True if the value is a plain host[:port] (no scheme, path, spaces or wildcards; no IPv6 literals).</summary>
     class function IsValidHost(const AHost: string): Boolean; static;
     /// <summary>HMAC-SHA256 (lowercase hex) of the session id, keyed with the secret.</summary>

@@ -119,13 +119,17 @@ Concretely, in `sources/`:
 - **No inline variable declarations** (`var x := ...`, `var x: T;` inside a `begin..end`) and **no `for var`** — both require 10.3 Rio. Declare in the routine's `var` section.
 - No `NameOf`, no inline `if` expressions (13 Florence).
 - `class var` inside a class declaration is fine — it is not an inline declaration.
+- **A string literal is at most 255 characters** (longer ones only from 12 Athens, E2056), `deprecated` messages included. A `deprecated` message cannot be split: neither `'a' + 'b'` nor a constant is accepted there, so shorten it.
+- **An anonymous method must not capture a `const` parameter passed by reference**: a record bigger than a pointer, `TGUID`, `TValue`, `Variant` (E2555 on 10.2). Copy it to a local in the routine's `var` section and capture the local. Strings, interfaces, dynamic arrays, small sets and value (non-const) parameters are fine; an open array cannot be captured on any version.
+- A dynamic array parameter defaults to `= nil`, not `= []`.
 
-Generated code, samples and the wizard scaffold may target newer versions (they assume 11 Alexandria).
+The same rules apply to `lib/loggerpro` and `lib/swagdoc`, which the runtime package requires. Generated code, samples and the wizard scaffold may target newer versions (they assume 11 Alexandria).
 
-Check `sources/` before committing:
+Check before committing (`tools/tokyo_check.py` covers all the rules above; exit 1 on findings):
 
 ```bash
 grep -rnE "^\s+var [a-zA-Z_]+ :=|for var " sources/*.pas
+python tools/tokyo_check.py sources lib/loggerpro lib/swagdoc/Source
 ```
 
 ## Backward compatibility
