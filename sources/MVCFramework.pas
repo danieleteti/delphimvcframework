@@ -353,6 +353,7 @@ type
     FContentType: string;
     FCharset: string;
     FContentMediaType: string;
+    function TryGetBodySerializer(out ASerializer: IMVCSerializer): Boolean;
   protected
     FQueryParams: TDictionary<string, string>;
     FContentFields: TDictionary<string, string>;
@@ -553,6 +554,13 @@ type
     procedure SetDate(const AValue: TDateTime); virtual; abstract;
     { Virtual getter for RawWebResponse - returns nil by default, overridden by WebBroker subclass }
     function GetRawWebResponse: TWebResponse; virtual;
+    // True when AContentType is AMediaType, with or without parameters ("; charset=..."), case-insensitive.
+    // No allocation
+    class function ContentTypeIsMediaType(const AContentType, AMediaType: string): Boolean; static;
+    // True when the content type of the response is AMediaType (any charset). Asked once per response by the
+    // render fast paths (TMVCRenderer, same unit): a host that keeps the media type apart answers without building
+    // the string GetContentType gives back
+    function IsContentMediaType(const AMediaType: string): Boolean; virtual;
   public
     constructor Create;
     destructor Destroy; override;
@@ -822,6 +830,7 @@ type
     FContentCharset: string;
     FContentMediaType: String;
     FResponseStream: TStringBuilder;
+    function BuiltinJSONSerializerApplies: Boolean;
   protected
     function ToMVCList(const AObject: TObject; AOwnsObject: Boolean = False): IMVCList;
     function InternalStatusCodeResponse(const StatusCode: Word; const Body: TObject; const Message: String = ''): IMVCResponse;
@@ -1298,6 +1307,11 @@ type
     fConfigCache_PathPrefix: String;
     fConfigCache_UseViewCache: Boolean;
     fSerializers: TDictionary<string, IMVCSerializer>;
+    // The built-in application/json serializer, and whether it is the one stored for application/json now. The
+    // renderer's fast paths write JSON directly, without asking a serializer: they are on only while this is True,
+    // so a serializer the user registered (AddSerializer or the public Serializers dictionary) always wins
+    fBuiltinJSONSerializer: IMVCSerializer;
+    fJSONSerializerIsBuiltin: Boolean;
     fMiddlewares: TList<IMVCMiddleware>;
     fControllers: TObjectList<TMVCControllerDelegate>;
     { [PERF] Engine-owned route table. Declared as TObject so the class
@@ -1324,6 +1338,7 @@ type
       const AContext: TWebContext; const AActionFormalParams: TArray<TRttiParameter>;
       const AActionName: string; var AActualParams: TArray<TValue>; out ABodyParameter: TObject);
     procedure RegisterDefaultsSerializers;
+    procedure SerializersChanged(Sender: TObject; const Item: IMVCSerializer; Action: TCollectionNotification);
     function GetViewEngineClass: TMVCViewEngineClass;
     procedure HandleDefaultValueForInjectedParameter(var InjectedParamValue: String;
       const InjectableParamAttribute: MVCInjectableParamAttribute);
@@ -2036,12 +2051,52 @@ begin
   Result := FBody;
 end;
 
+class function TMVCWebResponse.ContentTypeIsMediaType(const AContentType, AMediaType: string): Boolean;
+var
+  lLen: Integer;
+begin
+  lLen := Length(AMediaType);
+  Result := (Length(AContentType) >= lLen) and (StrLIComp(PChar(AContentType), PChar(AMediaType), lLen) = 0) and
+    ((Length(AContentType) = lLen) or (AContentType[lLen + 1] = ';') or (AContentType[lLen + 1] = ' '));
+end;
+
+function TMVCWebResponse.IsContentMediaType(const AMediaType: string): Boolean;
+begin
+  Result := ContentTypeIsMediaType(GetContentType, AMediaType);
+end;
+
+// application/<anything>+json: a JSON dialect (application/vnd.api+json, application/ld+json...)
+function IsPlusJSONMediaType(const AMediaType: string): Boolean;
+const
+  PREFIX = 'application/';
+  SUFFIX = '+json';
+begin
+  Result := (Length(AMediaType) > Length(PREFIX) + Length(SUFFIX)) and
+    AMediaType.StartsWith(PREFIX, True) and AMediaType.EndsWith(SUFFIX, True);
+end;
+
+// The one rule that tells which serializer a media type gets, for the response and for the request body: the one
+// registered for the type; nothing registered for an application/<x>+json type: the application/json one (the
+// built-in or the user's). Any other type with nothing registered has no serializer
+function FindSerializer(const ASerializers: TDictionary<string, IMVCSerializer>; const AMediaType: string;
+  out ASerializer: IMVCSerializer): Boolean;
+begin
+  Result := ASerializers.TryGetValue(AMediaType, ASerializer);
+  if (not Result) and IsPlusJSONMediaType(AMediaType) then
+    Result := ASerializers.TryGetValue(TMVCMediaType.APPLICATION_JSON, ASerializer);
+end;
+
+function TMVCWebRequest.TryGetBodySerializer(out ASerializer: IMVCSerializer): Boolean;
+begin
+  Result := FindSerializer(FSerializers, ContentMediaType, ASerializer);
+end;
+
 function TMVCWebRequest.BodyAs<T>(const RootNode: string): T;
 var
   Obj: TObject;
   lSerializer: IMVCSerializer;
 begin
-  if FSerializers.TryGetValue(ContentMediaType, lSerializer) then
+  if TryGetBodySerializer(lSerializer) then
   begin
     Obj := TMVCSerializerHelper.CreateObject(TClass(T).QualifiedClassName);
     try
@@ -2065,7 +2120,7 @@ var
   List: TObjectList<T>;
   lSerializer: IMVCSerializer;
 begin
-  if FSerializers.TryGetValue(ContentMediaType, lSerializer) then
+  if TryGetBodySerializer(lSerializer) then
   begin
     List := TObjectList<T>.Create(True);
     try
@@ -2087,7 +2142,7 @@ var
 begin
   if Assigned(AObject) then
   begin
-    if FSerializers.TryGetValue(ContentMediaType, lSerializer) then
+    if TryGetBodySerializer(lSerializer) then
     begin
       lSerializer.DeserializeObject(Body, AObject,
         TMVCSerializationType.stDefault, [], RootNode)
@@ -2105,7 +2160,7 @@ var
 begin
   if Assigned(AObjectList) then
   begin
-    if FSerializers.TryGetValue(ContentMediaType, lSerializer) then
+    if TryGetBodySerializer(lSerializer) then
     begin
       lSerializer.DeserializeCollection(Body, AObjectList, T,
         TMVCSerializationType.stDefault, [], RootNode)
@@ -3251,6 +3306,8 @@ destructor TMVCEngine.Destroy;
 begin
   fRouteTable.Free;
   fConfig.Free;
+  if Assigned(fSerializers) then
+    fSerializers.OnValueNotify := nil; // the Clear done by Free must not call back a half destroyed engine
   fSerializers.Free;
   fMiddlewares.Free;
   fControllers.Free;
@@ -4347,6 +4404,7 @@ end;
 procedure TMVCEngine.RegisterDefaultsSerializers;
 var lDefaultSerializerContentType: string;
 begin
+  fSerializers.OnValueNotify := SerializersChanged;
   // lDefaultSerializerContentType := BuildContentType(TMVCMediaType.APPLICATION_JSON, TMVCCharset.UTF_8);
   // if not FSerializers.ContainsKey(lDefaultSerializerContentType) then
   // begin
@@ -4357,7 +4415,9 @@ begin
   lDefaultSerializerContentType := BuildContentType(TMVCMediaType.APPLICATION_JSON, '');
   if not FSerializers.ContainsKey(lDefaultSerializerContentType) then
   begin
-    FSerializers.Add(lDefaultSerializerContentType, TMVCJSONDataObjectsSerializer.Create(Config));
+    // assigned before Add: SerializersChanged compares what is stored with it
+    fBuiltinJSONSerializer := TMVCJSONDataObjectsSerializer.Create(Config);
+    FSerializers.Add(lDefaultSerializerContentType, fBuiltinJSONSerializer);
   end;
 
   // this is used only for exceptions (dt 2020-09-16)
@@ -4380,6 +4440,15 @@ begin
   begin
     FSerializers.Add(lDefaultSerializerContentType, TMVCURLEncodedSerializer.Create(Config));
   end;
+end;
+
+procedure TMVCEngine.SerializersChanged(Sender: TObject; const Item: IMVCSerializer; Action: TCollectionNotification);
+var
+  lStored: IMVCSerializer;
+begin
+  // Notified on every change of the dictionary, which carries the value and not the key: read the key again
+  fJSONSerializerIsBuiltin := Assigned(fBuiltinJSONSerializer) and
+    fSerializers.TryGetValue(TMVCMediaType.APPLICATION_JSON, lStored) and (lStored = fBuiltinJSONSerializer);
 end;
 
 function TMVCEngine.RegisterRoute(const AURLSegment: string; const AControllerClazz: TMVCControllerClazz): TMVCEngine;
@@ -4469,11 +4538,8 @@ var
   lContentCharSet: string;
 begin
   SplitContentMediaTypeAndCharset(AContentType.ToLower, lContentMediaType, lContentCharSet);
-  if FSerializers.ContainsKey(lContentMediaType) then
-  begin
-    Result := FSerializers.Items[lContentMediaType];
-  end
-  else
+  // the one registered for the type or, for application/<x>+json, the application/json one
+  if not FindSerializer(FSerializers, lContentMediaType, Result) then
   begin
     if ARaiseExceptionIfNotExists then
     begin
@@ -5000,6 +5066,26 @@ begin
   Result := GetContext.Response.StatusCode;
 end;
 
+function TMVCRenderer.BuiltinJSONSerializerApplies: Boolean;
+var
+  lMediaType, lCharset: string;
+begin
+  Result := False;
+  // the serializer of the user always wins. Without an engine nobody can have registered one
+  if (FEngine <> nil) and not FEngine.fJSONSerializerIsBuiltin then
+    Exit;
+  // The type of the response, which is what the serializer lookup of the full path reads: an action may set it
+  // directly, without telling the renderer. The hot path: a Boolean and a compare, no lookup, no allocation
+  if GetContext.Response.IsContentMediaType(TMVCMediaType.APPLICATION_JSON) then
+    Exit(True);
+  if FEngine = nil then
+    Exit;
+  // application/<x>+json with nothing registered for it is answered by the JSON serializer: the built-in one
+  // too writes it directly (not the hot path: the name is lower-cased)
+  SplitContentMediaTypeAndCharset(GetContext.Response.ContentType.ToLower, lMediaType, lCharset);
+  Result := IsPlusJSONMediaType(lMediaType) and not FEngine.fSerializers.ContainsKey(lMediaType);
+end;
+
 class procedure TMVCRenderer.InternalRenderMVCResponse(
   const Controller: TMVCRenderer; const MVCResponse: TMVCResponse);
 
@@ -5019,8 +5105,8 @@ class procedure TMVCRenderer.InternalRenderMVCResponse(
   begin
     Result := False;
     if MVCResponse.ClassType <> TMVCResponse then Exit;       // no subclasses (errors etc.)
-    // JSON only: under another negotiated type the serializer of that type decides
-    if not SameText(Controller.FContentMediaType, TMVCMediaType.APPLICATION_JSON) then Exit;
+    // only for a JSON response whose serializer is the built-in one: the user's, and the one of another type, decide
+    if not Controller.BuiltinJSONSerializerApplies then Exit;
     if MVCResponse.Message <> '' then Exit;
     if Assigned(MVCResponse.ObjectDictionary) then Exit;
     LData := MVCResponse.Data;
@@ -5062,7 +5148,7 @@ class procedure TMVCRenderer.InternalRenderMVCResponse(
   begin
     Result := False;
     if MVCResponse.ClassType <> TMVCResponse then Exit;
-    if not SameText(Controller.FContentMediaType, TMVCMediaType.APPLICATION_JSON) then Exit;
+    if not Controller.BuiltinJSONSerializerApplies then Exit;
     if MVCResponse.Message <> '' then Exit;
     if Assigned(MVCResponse.ObjectDictionary) then Exit;
     LData := MVCResponse.Data;
@@ -5625,7 +5711,7 @@ begin
       per request. }
     if Assigned(AObject) and
        AObject.InheritsFrom(TJsonBaseObject) and
-       SameText(FContentMediaType, TMVCMediaType.APPLICATION_JSON) and
+       BuiltinJSONSerializerApplies and
        (SameText(TMVCCharSet.UTF_8, FContentCharset) or
         SameText(TMVCCharSet.UTF_8_WITHOUT_DASH, FContentCharset) or
         FContentCharset.IsEmpty) then
@@ -5718,7 +5804,7 @@ begin
             LOK := False;
 {$IFDEF MVC_HAS_STREAMING_JSON}
             if (Length(AIgnoredFields) = 0) and (not Assigned(ASerializationAction)) and
-               (Pos(TMVCMediaType.APPLICATION_JSON, GetContentType) = 1) and
+               BuiltinJSONSerializerApplies and
                (SameText(TMVCCharSet.UTF_8, FContentCharset) or
                 SameText(TMVCCharSet.UTF_8_WITHOUT_DASH, FContentCharset) or
                 (FContentCharset = '')) then

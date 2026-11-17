@@ -21,6 +21,7 @@ uses
   AuthHandlersU,
   TestServerControllerJSONRPCU,
   MinimalAPIWebTestsU,
+  SerializerPrecedenceSupportU,
   EndpointFilterSupportU,
   HTTPFilterSupportU,
   AuthFilterSupportU,
@@ -51,6 +52,7 @@ begin
     .AddController(TTestMultiPathController)
     .AddController(TTestActionResultController)
     .AddController(TTestStreamItemsController)
+    .AddController(TSerializerPrecedenceController)
     .AddController(TTestJSONRPCController, '/jsonrpc')
     .AddController(TTestJSONRPCControllerWithGet, '/jsonrpcwithget')
     .AddController(TMVCActiveRecordController, '/api/entities')
@@ -96,6 +98,10 @@ begin
   AEngine.SetViewEngine(TMVCMustacheViewEngine);
   RegisterOptionalCustomTypesSerializers(AEngine.Serializer(TMVCMediaType.APPLICATION_JSON));
 {$ENDIF}
+
+  // serializer precedence tests: a serializer of its own for application/x-own+json (application/vnd.api+json has none, on purpose)
+  AEngine.AddSerializer(MEDIA_OWN, TMarkerJSONSerializer.Create(AEngine.Config));
+  RegisterSerializerPrecedenceRoutes(AEngine);
 
   // Minimal-API web extension integration tests
   RegisterMinimalAPIWebRoutes(AEngine);

@@ -128,6 +128,8 @@ uses
   MVCFramework.WebBroker.Request in '..\..\..\sources\MVCFramework.WebBroker.Request.pas',
   MVCFramework.WebBroker.Response in '..\..\..\sources\MVCFramework.WebBroker.Response.pas',
   ServerAbstractionTestU in 'ServerAbstractionTestU.pas',
+  SerializerPrecedenceSupportU in '..\TestServer\SerializerPrecedenceSupportU.pas',
+  SerializerPrecedenceTestsU in 'SerializerPrecedenceTestsU.pas',
   IndyDirectSingleFlushTestU in 'IndyDirectSingleFlushTestU.pas',
   TestMinimalWebApiU in 'TestMinimalWebApiU.pas',
   MVCFramework.JWT.RefreshToken in '..\..\..\sources\MVCFramework.JWT.RefreshToken.pas',

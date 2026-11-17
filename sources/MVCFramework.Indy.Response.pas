@@ -63,6 +63,7 @@ type
     function GetContentLength: Int64; override;
     procedure SetDate(const AValue: TDateTime); override;
     function GetRawWebResponse: TWebResponse; override;
+    function IsContentMediaType(const AMediaType: string): Boolean; override;
   public
     constructor Create(const AContext: TIdContext;
       const AResponseInfo: TIdHTTPResponseInfo;
@@ -133,6 +134,12 @@ begin
     Result := FResponseInfo.ContentType
   else
     Result := FResponseInfo.ContentType + '; charset=' + FResponseInfo.CharSet;
+end;
+
+function TMVCIndyDirectResponse.IsContentMediaType(const AMediaType: string): Boolean;
+begin
+  // Indy keeps the charset apart: GetContentType would build a string to give it back
+  Result := ContentTypeIsMediaType(FResponseInfo.ContentType, AMediaType);
 end;
 
 function TMVCIndyDirectResponse.GetContentEncoding: string;

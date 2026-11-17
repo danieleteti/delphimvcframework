@@ -283,6 +283,8 @@
         <DCCReference Include="RangeMediaMiddlewareTestsU.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.Middleware.RangeMedia.pas"/>
         <DCCReference Include="TestMinimalWebApiU.pas"/>
+        <DCCReference Include="..\TestServer\SerializerPrecedenceSupportU.pas"/>
+        <DCCReference Include="SerializerPrecedenceTestsU.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
